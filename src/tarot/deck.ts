@@ -135,7 +135,7 @@ export const TAROT_DECK: TarotCard[] = [
     number: 10,
     keywords: ['fate', 'cycles', 'turning point', 'luck', 'destiny'],
     uprightMeaning:
-      'A turning point is at hand. Life's cycles bring new opportunities — what rises must eventually fall, and vice versa.',
+      "A turning point is at hand. Life's cycles bring new opportunities — what rises must eventually fall, and vice versa.",
     reversedMeaning:
       'Bad luck, resistance to change, or feeling trapped by fate.',
     imageKey: 'major_wheel_of_fortune',
@@ -529,7 +529,7 @@ export const TAROT_DECK: TarotCard[] = [
     suit: 'cups',
     number: 9,
     keywords: ['contentment', 'satisfaction', 'wish fulfillment', 'pleasure', 'well-being'],
-    uprightMeaning: 'The wish card. Deep satisfaction and emotional fulfillment. Your heart's desire is within reach.',
+    uprightMeaning: "The wish card. Deep satisfaction and emotional fulfillment. Your heart's desire is within reach.",
     reversedMeaning: 'Smugness, overindulgence, or a wish that comes with strings attached.',
     imageKey: 'cups_09',
   },
@@ -540,7 +540,7 @@ export const TAROT_DECK: TarotCard[] = [
     suit: 'cups',
     number: 10,
     keywords: ['divine love', 'blissful relationships', 'harmony', 'family', 'alignment'],
-    uprightMeaning: 'The rainbow's end — lasting happiness, family harmony, and emotional fulfillment. A life well-loved.',
+    uprightMeaning: "The rainbow's end — lasting happiness, family harmony, and emotional fulfillment. A life well-loved.",
     reversedMeaning: 'Family conflict, misaligned values, or a fractured sense of home.',
     imageKey: 'cups_10',
   },
