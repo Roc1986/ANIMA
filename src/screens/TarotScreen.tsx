@@ -13,11 +13,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, GRADIENTS, SHADOW } from '../theme';
 import { TarotCard as TarotCardComponent } from '../components/TarotCard';
 import { VoicePlayer } from '../components/VoicePlayer';
-import { TAROT_DECK } from '../../../../packages/shared/src/tarot/deck';
-import { getSpreadCards } from '../../../../packages/shared/src/tarot/readings';
-import { buildTarotPrompt } from '../../../../packages/shared/src/tarot/prompts';
-import { t } from '../../../../packages/shared/src/i18n';
-import type { SpreadType, DrawnCard } from '../../../../packages/shared/src/types/tarot';
+import { TAROT_DECK } from '../tarot/deck';
+import { getSpreadCards } from '../tarot/readings';
+import { buildTarotPrompt } from '../tarot/prompts';
+import { t } from '../i18n';
+import type { SpreadType, DrawnCard } from '../types/tarot';
 
 interface SpreadOption {
   type: SpreadType;

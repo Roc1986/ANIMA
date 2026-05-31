@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
-import { TAROT_DECK } from '../../../../packages/shared/src/tarot/deck';
-import { getSpreadCards } from '../../../../packages/shared/src/tarot/readings';
-import { buildTarotPrompt } from '../../../../packages/shared/src/tarot/prompts';
-import type { DrawnCard, SpreadType } from '../../../../packages/shared/src/types/tarot';
-import type { UserProfile, SubProfileInsights } from '../../../../packages/shared/src/types/user';
+import { TAROT_DECK } from '../tarot/deck';
+import { getSpreadCards } from '../tarot/readings';
+import { buildTarotPrompt } from '../tarot/prompts';
+import type { DrawnCard, SpreadType } from '../types/tarot';
+import type { UserProfile, SubProfileInsights } from '../types/user';
 
 interface UseTarotReturn {
   drawnCards: DrawnCard[];

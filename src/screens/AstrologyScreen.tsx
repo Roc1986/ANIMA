@@ -12,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, GRADIENTS } from '../theme';
-import { t } from '../../../../packages/shared/src/i18n';
+import { t } from '../i18n';
 
 export function AstrologyScreen() {
   const [activeTab, setActiveTab] = useState<'natal' | 'transits'>('natal');

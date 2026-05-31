@@ -12,7 +12,7 @@ import { AstrologyScreen } from '../screens/AstrologyScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { ConstellationScreen } from '../screens/ConstellationScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import { t } from '../../../../packages/shared/src/i18n';
+import { t } from '../i18n';
 
 // ── Param lists ───────────────────────────────────────────────
 export type RootStackParamList = {

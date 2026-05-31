@@ -10,7 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { COLORS, TYPOGRAPHY, BORDER_RADIUS, SHADOW } from '../theme';
-import type { TarotCard as TarotCardType } from '../../../../packages/shared/src/types/tarot';
+import type { TarotCard as TarotCardType } from '../types/tarot';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

@@ -8,7 +8,7 @@ import { createClient, Session } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 
 import { RootNavigator } from './src/navigation';
-import { setLanguage } from '../../packages/shared/src/i18n';
+import { setLanguage } from './src/i18n';
 import { COLORS } from './src/theme';
 
 // ── Supabase client ──────────────────────────────────────────

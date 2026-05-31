@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, GRADIENTS, SHADOW } from '../theme';
 import { VoicePlayer } from '../components/VoicePlayer';
-import { t } from '../../../../packages/shared/src/i18n';
+import { t } from '../i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CANVAS_SIZE = SCREEN_WIDTH - SPACING.md * 2;

@@ -13,9 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, GRADIENTS, SHADOW } from '../theme';
 import { TarotCard } from '../components/TarotCard';
 import { DailyMessage } from '../components/DailyMessage';
-import { TAROT_DECK } from '../../../../packages/shared/src/tarot/deck';
-import { drawCards } from '../../../../packages/shared/src/tarot/readings';
-import { t } from '../../../../packages/shared/src/i18n';
+import { TAROT_DECK } from '../tarot/deck';
+import { drawCards } from '../tarot/readings';
+import { t } from '../i18n';
 
 export function HomeScreen() {
   const [dailyCard, setDailyCard] = useState(() => {

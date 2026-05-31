@@ -4,8 +4,8 @@ import {
   getCurrentTransits,
   calculateTransitAspects,
   interpretTransits,
-} from '../../../../packages/shared/src/astrology/calculations';
-import type { BirthData, NatalChart, TransitData } from '../../../../packages/shared/src/types/astrology';
+} from '../astrology/calculations';
+import type { BirthData, NatalChart, TransitData } from '../types/astrology';
 
 interface UseAstrologyReturn {
   natalChart: NatalChart | null;

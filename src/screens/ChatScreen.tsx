@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOW } from '../theme';
-import { t } from '../../../../packages/shared/src/i18n';
+import { t } from '../i18n';
 
 interface Message {
   id: string;

@@ -12,8 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, GRADIENTS } from '../theme';
-import { t } from '../../../../packages/shared/src/i18n';
-import type { Language } from '../../../../packages/shared/src/types/user';
+import { t } from '../i18n';
+import type { Language } from '../types/user';
 
 const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
