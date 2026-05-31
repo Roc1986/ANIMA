@@ -1,0 +1,15 @@
+{
+  "name": "@anima/supabase",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Supabase migrations and database schema for ANIMA",
+  "scripts": {
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset",
+    "db:diff": "supabase db diff",
+    "types": "supabase gen types typescript --local > ./src/database.types.ts"
+  },
+  "devDependencies": {
+    "supabase": "^1.127.0"
+  }
+}

@@ -1,5 +1,7 @@
 # ANIMA
 
+> *Your inner universe, illuminated.*
+
 A spiritual and therapeutic mobile + web app offering tarot readings, astrology insights, AI-powered chat, and constellation therapy.
 
 ## Tech Stack
