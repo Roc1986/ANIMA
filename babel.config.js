@@ -3,9 +3,6 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      '@babel/plugin-proposal-private-methods',
-      '@babel/plugin-proposal-class-properties',
-      '@babel/plugin-proposal-private-fields',
       'react-native-reanimated/plugin',
     ],
   };
