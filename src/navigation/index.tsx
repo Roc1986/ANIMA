@@ -28,7 +28,6 @@ export function RootNavigator() {
         tabBarInactiveTintColor: '#6D6D8A',
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: any;
