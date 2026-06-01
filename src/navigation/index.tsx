@@ -17,15 +17,15 @@ export function RootNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: COLORS.surface,
-          borderTopColor: COLORS.border,
+          backgroundColor: '#0F0A1E',
+          borderTopColor: '#2D1B69',
           borderTopWidth: 1,
           paddingBottom: 5,
           paddingTop: 5,
           height: 60,
         },
-        tabBarActiveTintColor: COLORS.accent,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarActiveTintColor: '#C4B5FD',
+        tabBarInactiveTintColor: '#6D6D8A',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
@@ -35,23 +35,23 @@ export function RootNavigator() {
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Tarot') {
-            iconName = focused ? 'layers' : 'layers-outline';
+            iconName = focused ? 'albums' : 'albums-outline';
           } else if (route.name === 'Astrology') {
             iconName = focused ? 'planet' : 'planet-outline';
           } else if (route.name === 'Chat') {
-            iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
+            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           } else if (route.name === 'Profile') {
-            iconName = focused ? 'person-circle' : 'person-circle-outline';
+            iconName = focused ? 'person' : 'person-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Tarot" component={TarotScreen} />
-      <Tab.Screen name="Astrology" component={AstrologyScreen} />
-      <Tab.Screen name="Chat" component={ChatScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Inicio' }} />
+      <Tab.Screen name="Tarot" component={TarotScreen} options={{ tabBarLabel: 'Tarot' }} />
+      <Tab.Screen name="Astrology" component={AstrologyScreen} options={{ tabBarLabel: 'Astrología' }} />
+      <Tab.Screen name="Chat" component={ChatScreen} options={{ tabBarLabel: 'Chat' }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Perfil' }} />
     </Tab.Navigator>
   );
 }

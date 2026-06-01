@@ -10,81 +10,84 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS } from '../theme';
 
 const SPREADS = [
   {
     id: 'daily',
-    icon: '🌟',
+    icon: '✦',
     name: 'Carta del Día',
-    description: 'Una carta para guiar tu jornada',
+    description: 'Una carta que guía tu jornada',
+    badge: 'GRATIS',
+    badgeColor: COLORS.success,
+    badgeBg: 'rgba(16,185,129,0.15)',
     free: true,
   },
   {
     id: 'yesno',
-    icon: '⚖️',
+    icon: '⚖',
     name: 'Sí o No',
     description: 'Respuesta directa a tu pregunta',
+    badge: 'PRO',
+    badgeColor: COLORS.accent,
+    badgeBg: 'rgba(124,58,237,0.2)',
     free: false,
   },
   {
     id: 'ppp',
-    icon: '🔮',
+    icon: '◈',
     name: 'Pasado · Presente · Futuro',
-    description: 'El flujo del tiempo revelado',
+    description: 'El hilo de tu historia',
+    badge: 'PRO',
+    badgeColor: COLORS.accent,
+    badgeBg: 'rgba(124,58,237,0.2)',
     free: false,
   },
   {
     id: 'celtic',
-    icon: '✨',
+    icon: '✤',
     name: 'Cruz Celta',
-    description: 'Tirada completa de 10 cartas',
+    description: 'Lectura profunda de 10 cartas',
+    badge: 'PREMIUM',
+    badgeColor: COLORS.gold,
+    badgeBg: 'rgba(245,158,11,0.15)',
     free: false,
   },
 ];
 
 const MOCK_CARDS = [
-  { name: 'El Mago', meaning: 'Voluntad, habilidad, acción consciente' },
-  { name: 'La Sacerdotisa', meaning: 'Intuición, misterio, sabiduría interior' },
-  { name: 'La Emperatriz', meaning: 'Fertilidad, abundancia, naturaleza' },
-  { name: 'El Ermitaño', meaning: 'Introspección, soledad, búsqueda espiritual' },
-  { name: 'La Rueda de la Fortuna', meaning: 'Cambio, ciclos, destino' },
-  { name: 'La Estrella', meaning: 'Esperanza, inspiración, renovación' },
-  { name: 'La Luna', meaning: 'Ilusión, miedo, el subconsciente' },
-  { name: 'El Sol', meaning: 'Alegría, éxito, vitalidad' },
+  { name: 'La Estrella', meaning: 'La esperanza brilla. Renovación y fe se acercan a tu vida.' },
+  { name: 'El Mago', meaning: 'Tienes el poder y la voluntad para manifestar tu realidad.' },
+  { name: 'La Sacerdotisa', meaning: 'Confía en tu intuición. El misterio revela sus secretos.' },
+  { name: 'La Emperatriz', meaning: 'Abundancia, creatividad y conexión con la naturaleza.' },
+  { name: 'El Ermitaño', meaning: 'La introspección y la soledad traen sabiduría profunda.' },
+  { name: 'La Luna', meaning: 'Explora tus sombras con valentía. El subconsciente habla.' },
+  { name: 'El Sol', meaning: 'Alegría, vitalidad y éxito iluminan tu camino.' },
+  { name: 'La Rueda de la Fortuna', meaning: 'Los ciclos cambian. El destino está en movimiento.' },
 ];
 
 export default function TarotScreen() {
-  const [flipped, setFlipped] = useState(false);
   const [drawnCard, setDrawnCard] = useState(MOCK_CARDS[0]);
   const [modalVisible, setModalVisible] = useState(false);
-  const flipAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const drawCard = () => {
     const card = MOCK_CARDS[Math.floor(Math.random() * MOCK_CARDS.length)];
     setDrawnCard(card);
-    setFlipped(false);
-    flipAnim.setValue(0);
+    fadeAnim.setValue(0);
     setModalVisible(true);
-    setTimeout(() => {
-      Animated.timing(flipAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start(() => setFlipped(true));
-    }, 300);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 700,
+      useNativeDriver: true,
+    }).start();
   };
-
-  const cardFront = flipAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ['0deg', '90deg', '0deg'],
-  });
 
   return (
     <LinearGradient colors={GRADIENTS.background} style={styles.gradient}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+
           <View style={styles.header}>
             <Text style={styles.title}>Tiradas de Tarot</Text>
             <Text style={styles.subtitle}>Elige tu lectura</Text>
@@ -94,52 +97,45 @@ export default function TarotScreen() {
             <TouchableOpacity
               key={spread.id}
               onPress={spread.free ? drawCard : undefined}
-              activeOpacity={spread.free ? 0.7 : 1}
+              activeOpacity={spread.free ? 0.75 : 0.9}
             >
               <LinearGradient
                 colors={spread.free ? GRADIENTS.primary : GRADIENTS.card}
                 style={styles.spreadCard}
               >
-                <Text style={styles.spreadIcon}>{spread.icon}</Text>
+                <View style={styles.spreadIconWrap}>
+                  <Text style={styles.spreadIcon}>{spread.icon}</Text>
+                </View>
                 <View style={styles.spreadInfo}>
                   <Text style={styles.spreadName}>{spread.name}</Text>
                   <Text style={styles.spreadDesc}>{spread.description}</Text>
                 </View>
-                {!spread.free && (
-                  <View style={styles.badge}>
-                    <Ionicons name="lock-closed" size={10} color={COLORS.textMuted} />
-                    <Text style={styles.badgeText}>Premium</Text>
-                  </View>
-                )}
-                {spread.free && (
-                  <Ionicons name="chevron-forward" size={20} color={COLORS.accent} />
-                )}
+                <View style={[styles.badge, { backgroundColor: spread.badgeBg, borderColor: spread.badgeColor + '60' }]}>
+                  <Text style={[styles.badgeText, { color: spread.badgeColor }]}>{spread.badge}</Text>
+                </View>
               </LinearGradient>
             </TouchableOpacity>
           ))}
+
         </ScrollView>
       </SafeAreaView>
 
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <LinearGradient colors={GRADIENTS.card} style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Tu Carta del Día</Text>
-            <Animated.View style={[styles.tarotCardContainer, { transform: [{ rotateY: cardFront }] }]}>
-              {flipped ? (
-                <LinearGradient colors={['#4C1D95', '#7C3AED']} style={styles.tarotCardFace}>
-                  <Text style={styles.tarotCardName}>{drawnCard.name}</Text>
-                  <Text style={styles.tarotCardMeaning}>{drawnCard.meaning}</Text>
-                </LinearGradient>
-              ) : (
-                <LinearGradient colors={['#1A1035', '#2D1B69']} style={styles.tarotCardBack}>
-                  <Text style={styles.tarotCardBackText}>✨</Text>
-                </LinearGradient>
-              )}
-            </Animated.View>
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
-              <Text style={styles.closeBtnText}>Cerrar</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+          <Animated.View style={{ opacity: fadeAnim, width: '100%' }}>
+            <LinearGradient colors={GRADIENTS.card} style={styles.modalCard}>
+              <Text style={styles.modalTitle}>✦ Tu Carta del Día ✦</Text>
+              <LinearGradient colors={['#4C1D95', '#7C3AED']} style={styles.cardFace}>
+                <Text style={styles.cardFaceSymbol}>✦</Text>
+                <Text style={styles.cardFaceName}>{drawnCard.name}</Text>
+                <View style={styles.cardDivider} />
+                <Text style={styles.cardFaceMeaning}>{drawnCard.meaning}</Text>
+              </LinearGradient>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
+                <Text style={styles.closeBtnText}>Cerrar lectura</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </Animated.View>
         </View>
       </Modal>
     </LinearGradient>
@@ -156,35 +152,40 @@ const styles = StyleSheet.create({
   spreadCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  spreadIcon: { fontSize: 32, marginRight: 14 },
+  spreadIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  spreadIcon: { fontSize: 22, color: COLORS.accent },
   spreadInfo: { flex: 1 },
-  spreadName: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 2 },
+  spreadName: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 3 },
   spreadDesc: { fontSize: 13, color: COLORS.textSecondary },
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(107,114,128,0.2)',
     borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
   },
-  badgeText: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600' },
+  badgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   modalCard: {
-    width: '100%',
     borderRadius: 24,
     padding: 28,
     alignItems: 'center',
@@ -192,49 +193,48 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.accent,
     marginBottom: 24,
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
-  tarotCardContainer: { width: 180, height: 280, marginBottom: 24 },
-  tarotCardFace: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 20,
+  cardFace: {
+    width: 200,
+    borderRadius: 18,
+    padding: 24,
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 28,
     borderWidth: 2,
     borderColor: COLORS.accent,
   },
-  tarotCardBack: {
-    flex: 1,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.border,
-  },
-  tarotCardBackText: { fontSize: 64 },
-  tarotCardName: {
-    fontSize: 20,
+  cardFaceSymbol: { fontSize: 48, color: COLORS.accent, marginBottom: 12 },
+  cardFaceName: {
+    fontSize: 22,
     fontWeight: '800',
     color: COLORS.text,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  tarotCardMeaning: {
+  cardDivider: {
+    width: 60,
+    height: 1,
+    backgroundColor: COLORS.accent,
+    marginBottom: 14,
+    opacity: 0.5,
+  },
+  cardFaceMeaning: {
     fontSize: 13,
     color: COLORS.accent,
     textAlign: 'center',
     lineHeight: 20,
+    fontStyle: 'italic',
   },
   closeBtn: {
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingHorizontal: 36,
+    paddingVertical: 14,
   },
-  closeBtnText: { color: COLORS.text, fontWeight: '700', fontSize: 16 },
+  closeBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 15 },
 });
