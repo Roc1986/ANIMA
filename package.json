@@ -2,7 +2,7 @@
   "name": "anima",
   "version": "1.0.0",
   "private": true,
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
     "start": "npx expo start",
     "android": "npx expo start --android",
