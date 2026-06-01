@@ -1,4 +1,18 @@
 import 'react-native-url-polyfill/auto';
+
+// Polyfill DOMRect for Supabase
+if (typeof global.DOMRect === 'undefined') {
+  (global as any).DOMRect = class DOMRect {
+    x: number; y: number; width: number; height: number;
+    constructor(x = 0, y = 0, width = 0, height = 0) {
+      this.x = x; this.y = y; this.width = width; this.height = height;
+    }
+    get top() { return this.y; }
+    get left() { return this.x; }
+    get right() { return this.x + this.width; }
+    get bottom() { return this.y + this.height; }
+  };
+}
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
