@@ -1,240 +1,149 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Animated,
-  Modal,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, GRADIENTS } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const SPREADS = [
+const spreads = [
   {
-    id: 'daily',
-    icon: '✦',
-    name: 'Carta del Día',
-    description: 'Una carta que guía tu jornada',
+    title: 'Carta del Día',
+    description: 'Una carta para guiar tu jornada',
     badge: 'GRATIS',
-    badgeColor: COLORS.success,
-    badgeBg: 'rgba(16,185,129,0.15)',
-    free: true,
+    badgeColor: '#10B981',
+    icon: '🌟',
   },
   {
-    id: 'yesno',
-    icon: '⚖',
-    name: 'Sí o No',
+    title: 'Sí o No',
     description: 'Respuesta directa a tu pregunta',
     badge: 'PRO',
-    badgeColor: COLORS.accent,
-    badgeBg: 'rgba(124,58,237,0.2)',
-    free: false,
+    badgeColor: '#7C3AED',
+    icon: '⚖️',
   },
   {
-    id: 'ppp',
-    icon: '◈',
-    name: 'Pasado · Presente · Futuro',
-    description: 'El hilo de tu historia',
+    title: 'Pasado · Presente · Futuro',
+    description: 'Comprende tu camino en el tiempo',
     badge: 'PRO',
-    badgeColor: COLORS.accent,
-    badgeBg: 'rgba(124,58,237,0.2)',
-    free: false,
+    badgeColor: '#7C3AED',
+    icon: '🔮',
   },
   {
-    id: 'celtic',
-    icon: '✤',
-    name: 'Cruz Celta',
-    description: 'Lectura profunda de 10 cartas',
+    title: 'Cruz Celta',
+    description: 'Lectura completa de 10 cartas',
     badge: 'PREMIUM',
-    badgeColor: COLORS.gold,
-    badgeBg: 'rgba(245,158,11,0.15)',
-    free: false,
+    badgeColor: '#F59E0B',
+    icon: '✨',
   },
-];
-
-const MOCK_CARDS = [
-  { name: 'La Estrella', meaning: 'La esperanza brilla. Renovación y fe se acercan a tu vida.' },
-  { name: 'El Mago', meaning: 'Tienes el poder y la voluntad para manifestar tu realidad.' },
-  { name: 'La Sacerdotisa', meaning: 'Confía en tu intuición. El misterio revela sus secretos.' },
-  { name: 'La Emperatriz', meaning: 'Abundancia, creatividad y conexión con la naturaleza.' },
-  { name: 'El Ermitaño', meaning: 'La introspección y la soledad traen sabiduría profunda.' },
-  { name: 'La Luna', meaning: 'Explora tus sombras con valentía. El subconsciente habla.' },
-  { name: 'El Sol', meaning: 'Alegría, vitalidad y éxito iluminan tu camino.' },
-  { name: 'La Rueda de la Fortuna', meaning: 'Los ciclos cambian. El destino está en movimiento.' },
 ];
 
 export default function TarotScreen() {
-  const [drawnCard, setDrawnCard] = useState(MOCK_CARDS[0]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const drawCard = () => {
-    const card = MOCK_CARDS[Math.floor(Math.random() * MOCK_CARDS.length)];
-    setDrawnCard(card);
-    fadeAnim.setValue(0);
-    setModalVisible(true);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 700,
-      useNativeDriver: true,
-    }).start();
-  };
-
   return (
-    <LinearGradient colors={GRADIENTS.background} style={styles.gradient}>
+    <LinearGradient
+      colors={['#0F0A1E', '#1A1035', '#2D1B69']}
+      style={styles.gradient}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <Text style={styles.title}>Tarot</Text>
+          <Text style={styles.subtitle}>Elige tu tirada</Text>
 
-          <View style={styles.header}>
-            <Text style={styles.title}>Tiradas de Tarot</Text>
-            <Text style={styles.subtitle}>Elige tu lectura</Text>
-          </View>
-
-          {SPREADS.map((spread) => (
-            <TouchableOpacity
-              key={spread.id}
-              onPress={spread.free ? drawCard : undefined}
-              activeOpacity={spread.free ? 0.75 : 0.9}
-            >
-              <LinearGradient
-                colors={spread.free ? GRADIENTS.primary : GRADIENTS.card}
-                style={styles.spreadCard}
-              >
-                <View style={styles.spreadIconWrap}>
-                  <Text style={styles.spreadIcon}>{spread.icon}</Text>
+          {spreads.map((spread, index) => (
+            <TouchableOpacity key={index} style={styles.card} activeOpacity={0.8}>
+              <View style={styles.cardRow}>
+                <Text style={styles.cardIcon}>{spread.icon}</Text>
+                <View style={styles.cardContent}>
+                  <View style={styles.titleRow}>
+                    <Text style={styles.cardTitle}>{spread.title}</Text>
+                    <View style={[styles.badge, { backgroundColor: spread.badgeColor }]}>
+                      <Text style={styles.badgeText}>{spread.badge}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.cardDescription}>{spread.description}</Text>
                 </View>
-                <View style={styles.spreadInfo}>
-                  <Text style={styles.spreadName}>{spread.name}</Text>
-                  <Text style={styles.spreadDesc}>{spread.description}</Text>
-                </View>
-                <View style={[styles.badge, { backgroundColor: spread.badgeBg, borderColor: spread.badgeColor + '60' }]}>
-                  <Text style={[styles.badgeText, { color: spread.badgeColor }]}>{spread.badge}</Text>
-                </View>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           ))}
-
         </ScrollView>
       </SafeAreaView>
-
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <Animated.View style={{ opacity: fadeAnim, width: '100%' }}>
-            <LinearGradient colors={GRADIENTS.card} style={styles.modalCard}>
-              <Text style={styles.modalTitle}>✦ Tu Carta del Día ✦</Text>
-              <LinearGradient colors={['#4C1D95', '#7C3AED']} style={styles.cardFace}>
-                <Text style={styles.cardFaceSymbol}>✦</Text>
-                <Text style={styles.cardFaceName}>{drawnCard.name}</Text>
-                <View style={styles.cardDivider} />
-                <Text style={styles.cardFaceMeaning}>{drawnCard.meaning}</Text>
-              </LinearGradient>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
-                <Text style={styles.closeBtnText}>Cerrar lectura</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </Animated.View>
-        </View>
-      </Modal>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 40 },
-  header: { marginBottom: 28, marginTop: 16 },
-  title: { fontSize: 28,  color: COLORS.text, letterSpacing: 1 },
-  subtitle: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  spreadCard: {
+  gradient: {
+    flex: 1,
+  },
+  safe: {
+    flex: 1,
+  },
+  scroll: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  title: {
+    fontSize: 32,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 8,
+    letterSpacing: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#C4B5FD',
+    textAlign: 'center',
+    marginBottom: 32,
+    letterSpacing: 1,
+  },
+  card: {
+    backgroundColor: '#1A1035',
+    borderWidth: 1,
+    borderColor: '#2D1B69',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  spreadIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
+  cardIcon: {
+    fontSize: 32,
+    marginRight: 16,
   },
-  spreadIcon: { fontSize: 22, color: COLORS.accent },
-  spreadInfo: { flex: 1 },
-  spreadName: { fontSize: 16,  color: COLORS.text, marginBottom: 3 },
-  spreadDesc: { fontSize: 13, color: COLORS.textSecondary },
-  badge: {
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-  },
-  badgeText: { fontSize: 11,  letterSpacing: 0.5 },
-  modalOverlay: {
+  cardContent: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 24,
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  modalCard: {
-    borderRadius: 24,
-    padding: 28,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  cardTitle: {
+    fontSize: 16,
+    color: '#F5F3FF',
+    fontWeight: 'bold',
+    flex: 1,
   },
-  modalTitle: {
-    fontSize: 18,
-    
-    color: COLORS.accent,
-    marginBottom: 24,
-    letterSpacing: 2,
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginLeft: 8,
   },
-  cardFace: {
-    width: 200,
-    borderRadius: 18,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 28,
-    borderWidth: 2,
-    borderColor: COLORS.accent,
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
-  cardFaceSymbol: { fontSize: 48, color: COLORS.accent, marginBottom: 12 },
-  cardFaceName: {
-    fontSize: 22,
-    
-    color: COLORS.text,
-    textAlign: 'center',
-    marginBottom: 14,
-  },
-  cardDivider: {
-    width: 60,
-    height: 1,
-    backgroundColor: COLORS.accent,
-    marginBottom: 14,
-    opacity: 0.5,
-  },
-  cardFaceMeaning: {
+  cardDescription: {
     fontSize: 13,
-    color: COLORS.accent,
-    textAlign: 'center',
-    lineHeight: 20,
-    fontStyle: 'italic',
+    color: '#A78BFA',
   },
-  closeBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 14,
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-  },
-  closeBtnText: { color: COLORS.white,  fontSize: 15 },
 });

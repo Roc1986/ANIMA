@@ -4,57 +4,48 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, GRADIENTS } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const NATAL_CHART = [
-  { symbol: '☉', name: 'Sol', position: 'Aries', degree: '14°32\'', house: 'Casa I' },
-  { symbol: '☽', name: 'Luna', position: 'Cáncer', degree: '28°11\'', house: 'Casa IV' },
-  { symbol: '☿', name: 'Mercurio', position: 'Piscis', degree: '03°44\'', house: 'Casa XII' },
-  { symbol: '♀', name: 'Venus', position: 'Tauro', degree: '19°20\'', house: 'Casa II' },
-  { symbol: '♂', name: 'Marte', position: 'Sagitario', degree: '07°55\'', house: 'Casa IX' },
-  { symbol: '♃', name: 'Júpiter', position: 'Libra', degree: '22°01\'', house: 'Casa VII' },
-  { symbol: '♄', name: 'Saturno', position: 'Acuario', degree: '11°18\'', house: 'Casa XI' },
-  { symbol: '⬆', name: 'Ascendente', position: 'Aries', degree: '00°00\'', house: 'Casa I' },
+const planets = [
+  { name: 'Sol', sign: 'Géminis', degree: '10°' },
+  { name: 'Luna', sign: 'Escorpio', degree: '23°' },
+  { name: 'Mercurio', sign: 'Géminis', degree: '5°' },
+  { name: 'Venus', sign: 'Tauro', degree: '18°' },
+  { name: 'Marte', sign: 'Aries', degree: '2°' },
+  { name: 'Júpiter', sign: 'Géminis', degree: '29°' },
+  { name: 'Saturno', sign: 'Piscis', degree: '15°' },
 ];
 
-const TRANSITS = [
-  { symbol: '☉', name: 'Sol', position: 'Géminis', note: 'Energía de comunicación y curiosidad' },
-  { symbol: '☽', name: 'Luna', position: 'Escorpio', note: 'Emociones intensas y transformadoras' },
-  { symbol: '♀', name: 'Venus', position: 'Cáncer', note: 'Amor y ternura en el hogar' },
-  { symbol: '♂', name: 'Marte', position: 'Leo', note: 'Acción con pasión y liderazgo' },
-  { symbol: '♃', name: 'Júpiter', position: 'Tauro', note: 'Expansión en lo material y sensorial' },
-  { symbol: '♄', name: 'Saturno', position: 'Piscis', note: 'Lecciones espirituales y límites disueltos' },
+const transits = [
+  { planet: 'Júpiter', transit: 'Trígono con tu Sol', effect: 'Expansión y oportunidades' },
+  { planet: 'Saturno', transit: 'Cuadratura con tu Luna', effect: 'Reflexión y disciplina' },
+  { planet: 'Venus', transit: 'Conjunción con tu Ascendente', effect: 'Magnetismo personal' },
+  { planet: 'Marte', transit: 'Sextil con Mercurio', effect: 'Energía mental elevada' },
 ];
-
-const TRANSIT_READING =
-  'La Luna en Escorpio intensifica tu mundo interior hoy. Con el Sol en Géminis, la mente está activa y receptiva. Es un día poderoso para meditar sobre transformaciones profundas y comunicar verdades desde el alma. Júpiter en Tauro bendice los proyectos que nutren cuerpo y espíritu.';
 
 export default function AstrologyScreen() {
   const [activeTab, setActiveTab] = useState<'natal' | 'transits'>('natal');
-  const [birthDate, setBirthDate] = useState('');
-  const [birthTime, setBirthTime] = useState('');
-  const [birthPlace, setBirthPlace] = useState('');
-  const [showChart, setShowChart] = useState(false);
+  const [fecha, setFecha] = useState('');
+  const [hora, setHora] = useState('');
+  const [lugar, setLugar] = useState('');
 
   return (
-    <LinearGradient colors={GRADIENTS.background} style={styles.gradient}>
+    <LinearGradient
+      colors={['#0F0A1E', '#1A1035', '#2D1B69']}
+      style={styles.gradient}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <Text style={styles.title}>Carta Astral</Text>
 
-          <View style={styles.header}>
-            <Text style={styles.title}>Carta Astral</Text>
-            <Text style={styles.subtitle}>Tus astros al nacer y hoy</Text>
-          </View>
-
-          {/* Tab Switcher */}
+          {/* Tabs */}
           <View style={styles.tabRow}>
             <TouchableOpacity
-              style={[styles.tabBtn, activeTab === 'natal' && styles.tabBtnActive]}
+              style={[styles.tab, activeTab === 'natal' && styles.tabActive]}
               onPress={() => setActiveTab('natal')}
             >
               <Text style={[styles.tabText, activeTab === 'natal' && styles.tabTextActive]}>
@@ -62,102 +53,63 @@ export default function AstrologyScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tabBtn, activeTab === 'transits' && styles.tabBtnActive]}
+              style={[styles.tab, activeTab === 'transits' && styles.tabActive]}
               onPress={() => setActiveTab('transits')}
             >
               <Text style={[styles.tabText, activeTab === 'transits' && styles.tabTextActive]}>
-                Tránsitos Actuales
+                Tránsitos
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Carta Natal Tab */}
-          {activeTab === 'natal' && (
+          {activeTab === 'natal' ? (
             <View>
-              <LinearGradient colors={GRADIENTS.card} style={styles.formCard}>
-                <Text style={styles.formTitle}>🪐 Datos de Nacimiento</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Fecha de nacimiento (DD/MM/AAAA)"
+                placeholderTextColor="#6D6D8A"
+                value={fecha}
+                onChangeText={setFecha}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Hora de nacimiento (HH:MM)"
+                placeholderTextColor="#6D6D8A"
+                value={hora}
+                onChangeText={setHora}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Lugar de nacimiento"
+                placeholderTextColor="#6D6D8A"
+                value={lugar}
+                onChangeText={setLugar}
+              />
+              <TouchableOpacity style={styles.calcButton}>
+                <Text style={styles.calcButtonText}>Calcular</Text>
+              </TouchableOpacity>
 
-                <Text style={styles.label}>Fecha de nacimiento</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="DD/MM/AAAA"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={birthDate}
-                  onChangeText={setBirthDate}
-                  keyboardType="numeric"
-                />
-
-                <Text style={styles.label}>Hora de nacimiento</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="HH:MM (24h)"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={birthTime}
-                  onChangeText={setBirthTime}
-                  keyboardType="numeric"
-                />
-
-                <Text style={styles.label}>Lugar de nacimiento</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ciudad, País"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={birthPlace}
-                  onChangeText={setBirthPlace}
-                />
-
-                <TouchableOpacity onPress={() => setShowChart(true)} activeOpacity={0.8}>
-                  <LinearGradient colors={GRADIENTS.primary} style={styles.calcBtn}>
-                    <Text style={styles.calcBtnText}>Calcular Carta Natal ✨</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </LinearGradient>
-
-              {showChart && (
-                <View>
-                  <Text style={styles.sectionTitle}>🌟 Posiciones Planetarias</Text>
-                  <Text style={styles.chartNote}>
-                    {birthPlace || 'Madrid, España'} · {birthDate || '15/03/1990'} · {birthTime || '14:30'}
-                  </Text>
-                  {NATAL_CHART.map((item, i) => (
-                    <LinearGradient key={i} colors={GRADIENTS.card} style={styles.planetRow}>
-                      <Text style={styles.planetSymbol}>{item.symbol}</Text>
-                      <Text style={styles.planetName}>{item.name}</Text>
-                      <View style={styles.planetDetails}>
-                        <Text style={styles.planetSign}>{item.position}</Text>
-                        <Text style={styles.planetDegree}>{item.degree}</Text>
-                        <Text style={styles.planetHouse}>{item.house}</Text>
-                      </View>
-                    </LinearGradient>
-                  ))}
+              <Text style={styles.sectionLabel}>Posiciones Planetarias</Text>
+              {planets.map((p, i) => (
+                <View key={i} style={styles.planetRow}>
+                  <Text style={styles.planetName}>{p.name}</Text>
+                  <Text style={styles.planetSign}>{p.sign}</Text>
+                  <Text style={styles.planetDegree}>{p.degree}</Text>
                 </View>
-              )}
-            </View>
-          )}
-
-          {/* Tránsitos Tab */}
-          {activeTab === 'transits' && (
-            <View>
-              <Text style={styles.sectionTitle}>🌍 Posiciones Actuales</Text>
-              {TRANSITS.map((item, i) => (
-                <LinearGradient key={i} colors={GRADIENTS.card} style={styles.transitRow}>
-                  <Text style={styles.transitSymbol}>{item.symbol}</Text>
-                  <View style={styles.transitInfo}>
-                    <View style={styles.transitHeader}>
-                      <Text style={styles.transitName}>{item.name}</Text>
-                      <Text style={styles.transitSign}> en {item.position}</Text>
-                    </View>
-                    <Text style={styles.transitNote}>{item.note}</Text>
-                  </View>
-                </LinearGradient>
               ))}
-              <LinearGradient colors={['#1A1035', '#2D1B69']} style={styles.readingCard}>
-                <Text style={styles.readingTitle}>📖 Lectura del Día</Text>
-                <Text style={styles.readingText}>{TRANSIT_READING}</Text>
-              </LinearGradient>
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.sectionLabel}>Tránsitos Actuales</Text>
+              {transits.map((t, i) => (
+                <View key={i} style={styles.transitCard}>
+                  <Text style={styles.transitPlanet}>{t.planet}</Text>
+                  <Text style={styles.transitDescription}>{t.transit}</Text>
+                  <Text style={styles.transitEffect}>{t.effect}</Text>
+                </View>
+              ))}
             </View>
           )}
-
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -165,102 +117,127 @@ export default function AstrologyScreen() {
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 40 },
-  header: { marginBottom: 24, marginTop: 16 },
-  title: { fontSize: 28,  color: COLORS.text, letterSpacing: 1 },
-  subtitle: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
+  gradient: {
+    flex: 1,
+  },
+  safe: {
+    flex: 1,
+  },
+  scroll: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  title: {
+    fontSize: 32,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 24,
+    letterSpacing: 4,
+  },
   tabRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
+    backgroundColor: '#1A1035',
+    borderRadius: 12,
     padding: 4,
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  tabBtn: {
+  tab: {
     flex: 1,
     paddingVertical: 10,
+    borderRadius: 10,
     alignItems: 'center',
-    borderRadius: 11,
   },
-  tabBtnActive: { backgroundColor: COLORS.primary },
-  tabText: { fontSize: 14,  color: COLORS.textMuted },
-  tabTextActive: { color: COLORS.white },
-  formCard: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 24,
+  tabActive: {
+    backgroundColor: '#7C3AED',
   },
-  formTitle: { fontSize: 16,  color: COLORS.text, marginBottom: 20 },
-  label: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  tabText: {
+    color: '#6D6D8A',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
   },
   input: {
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    padding: 14,
-    color: COLORS.text,
-    fontSize: 16,
-    marginBottom: 16,
+    backgroundColor: '#1A1035',
+    color: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#2D1B69',
+    fontSize: 14,
   },
-  calcBtn: { borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 4 },
-  calcBtnText: { color: COLORS.white,  fontSize: 16 },
-  sectionTitle: { fontSize: 17,  color: COLORS.text, marginBottom: 6 },
-  chartNote: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginBottom: 14,
-    fontStyle: 'italic',
+  calcButton: {
+    backgroundColor: '#7C3AED',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  calcButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  sectionLabel: {
+    fontSize: 16,
+    color: '#C4B5FD',
+    fontWeight: 'bold',
+    marginBottom: 12,
+    letterSpacing: 1,
   },
   planetRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    padding: 14,
+    justifyContent: 'space-between',
+    backgroundColor: '#1A1035',
+    borderRadius: 8,
+    padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#2D1B69',
   },
-  planetSymbol: { fontSize: 18, color: COLORS.gold, width: 28 },
-  planetName: { fontSize: 14, color: COLORS.text,  width: 80 },
-  planetDetails: { flex: 1, flexDirection: 'row', justifyContent: 'space-between' },
-  planetSign: { fontSize: 13, color: COLORS.accent,  },
-  planetDegree: { fontSize: 13, color: COLORS.textSecondary },
-  planetHouse: { fontSize: 13, color: COLORS.textMuted },
-  transitRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderRadius: 14,
-    padding: 16,
+  planetName: {
+    color: '#F5F3FF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  planetSign: {
+    color: '#A78BFA',
+    fontSize: 14,
+    flex: 1,
+    textAlign: 'center',
+  },
+  planetDegree: {
+    color: '#C4B5FD',
+    fontSize: 14,
+    flex: 1,
+    textAlign: 'right',
+  },
+  transitCard: {
+    backgroundColor: '#1A1035',
+    borderRadius: 10,
+    padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#2D1B69',
   },
-  transitSymbol: { fontSize: 22, color: COLORS.gold, marginRight: 14, width: 28 },
-  transitInfo: { flex: 1 },
-  transitHeader: { flexDirection: 'row', marginBottom: 4 },
-  transitName: { fontSize: 15,  color: COLORS.text },
-  transitSign: { fontSize: 15, color: COLORS.accent,  },
-  transitNote: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18 },
-  readingCard: {
-    borderRadius: 18,
-    padding: 20,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  transitPlanet: {
+    color: '#F59E0B',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
-  readingTitle: { fontSize: 15,  color: COLORS.text, marginBottom: 10 },
-  readingText: { fontSize: 15, color: COLORS.textSecondary, lineHeight: 24, fontStyle: 'italic' },
+  transitDescription: {
+    color: '#F5F3FF',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  transitEffect: {
+    color: '#A78BFA',
+    fontSize: 12,
+  },
 });

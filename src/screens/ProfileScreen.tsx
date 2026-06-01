@@ -4,122 +4,100 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
-  Alert,
+  TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS } from '../theme';
-
-const LANGUAGES = ['ES', 'EN', 'FR'];
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
-  const [name, setName] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [language, setLanguage] = useState('ES');
+  const [nombre, setNombre] = useState('');
+  const [fechaNac, setFechaNac] = useState('');
+  const [horaNac, setHoraNac] = useState('');
+  const [lugarNac, setLugarNac] = useState('');
+  const [activeLang, setActiveLang] = useState('ES');
 
   return (
-    <LinearGradient colors={GRADIENTS.background} style={styles.gradient}>
+    <LinearGradient
+      colors={['#0F0A1E', '#1A1035', '#2D1B69']}
+      style={styles.gradient}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
+          <Text style={styles.title}>Mi Perfil</Text>
+
+          {/* Avatar */}
+          <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>✨</Text>
+              <Text style={styles.avatarSymbol}>✦</Text>
             </View>
-            <Text style={styles.title}>Mi Perfil</Text>
           </View>
 
-          {/* Profile Section */}
-          <LinearGradient colors={GRADIENTS.card} style={styles.section}>
-            <Text style={styles.sectionTitle}>👤 Información Personal</Text>
-            <Text style={styles.label}>Nombre</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Tu nombre"
-              placeholderTextColor={COLORS.textMuted}
-              value={name}
-              onChangeText={setName}
-            />
-            <Text style={styles.label}>Fecha de nacimiento</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="DD/MM/AAAA"
-              placeholderTextColor={COLORS.textMuted}
-              value={birthDate}
-              onChangeText={setBirthDate}
-              keyboardType="numeric"
-            />
-          </LinearGradient>
+          {/* Form Fields */}
+          <TextInput
+            style={styles.input}
+            placeholder="Nombre"
+            placeholderTextColor="#6D6D8A"
+            value={nombre}
+            onChangeText={setNombre}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Fecha de nacimiento (DD/MM/AAAA)"
+            placeholderTextColor="#6D6D8A"
+            value={fechaNac}
+            onChangeText={setFechaNac}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Hora de nacimiento (HH:MM)"
+            placeholderTextColor="#6D6D8A"
+            value={horaNac}
+            onChangeText={setHoraNac}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Lugar de nacimiento"
+            placeholderTextColor="#6D6D8A"
+            value={lugarNac}
+            onChangeText={setLugarNac}
+          />
 
-          {/* Language Selector */}
-          <LinearGradient colors={GRADIENTS.card} style={styles.section}>
-            <Text style={styles.sectionTitle}>🌐 Idioma</Text>
-            <View style={styles.langRow}>
-              {LANGUAGES.map((lang) => (
-                <TouchableOpacity
-                  key={lang}
-                  style={[styles.langBtn, language === lang && styles.langBtnActive]}
-                  onPress={() => setLanguage(lang)}
-                >
-                  <Text style={[styles.langText, language === lang && styles.langTextActive]}>
-                    {lang}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </LinearGradient>
+          {/* Language */}
+          <Text style={styles.sectionLabel}>Idioma</Text>
+          <View style={styles.langRow}>
+            {['ES', 'EN', 'FR'].map(lang => (
+              <TouchableOpacity
+                key={lang}
+                style={[styles.langButton, activeLang === lang && styles.langButtonActive]}
+                onPress={() => setActiveLang(lang)}
+              >
+                <Text style={[styles.langText, activeLang === lang && styles.langTextActive]}>
+                  {lang}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           {/* Subscription */}
-          <LinearGradient colors={GRADIENTS.card} style={styles.section}>
-            <Text style={styles.sectionTitle}>⭐ Suscripción</Text>
-            <View style={styles.planRow}>
-              <View>
-                <Text style={styles.planName}>Plan Gratuito</Text>
-                <Text style={styles.planDesc}>1 carta del día · Chat limitado</Text>
-              </View>
-              <View style={styles.freeBadge}>
-                <Text style={styles.freeBadgeText}>FREE</Text>
-              </View>
-            </View>
-            <TouchableOpacity activeOpacity={0.8} style={{ marginTop: 14 }}>
-              <LinearGradient colors={GRADIENTS.primary} style={styles.premiumBtn}>
-                <Text style={styles.premiumBtnText}>🚀 Actualizar a Premium</Text>
-              </LinearGradient>
+          <View style={styles.subCard}>
+            <Text style={styles.subLabel}>Plan Gratuito</Text>
+            <Text style={styles.subDesc}>Acceso a funciones básicas de ANIMA</Text>
+            <TouchableOpacity style={styles.upgradeButton}>
+              <Text style={styles.upgradeText}>✨ Actualizar a Premium</Text>
             </TouchableOpacity>
-          </LinearGradient>
+          </View>
 
-          {/* Privacy */}
-          <LinearGradient colors={GRADIENTS.card} style={styles.section}>
-            <Text style={styles.sectionTitle}>🔒 Privacidad y Datos</Text>
-            <TouchableOpacity
-              style={styles.privacyRow}
-              onPress={() => Alert.alert('Exportar datos', 'Recibirás un email con tus datos en 24h.')}
-            >
-              <Ionicons name="download-outline" size={18} color={COLORS.accent} />
-              <Text style={styles.privacyText}>Exportar mis datos</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
-            </TouchableOpacity>
-            <View style={styles.divider} />
-            <TouchableOpacity
-              style={styles.privacyRow}
-              onPress={() =>
-                Alert.alert(
-                  'Eliminar cuenta',
-                  '¿Estás seguro? Esta acción es irreversible.',
-                  [
-                    { text: 'Cancelar', style: 'cancel' },
-                    { text: 'Eliminar', style: 'destructive' },
-                  ]
-                )
-              }
-            >
-              <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-              <Text style={[styles.privacyText, { color: COLORS.error }]}>Eliminar mi cuenta</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          </LinearGradient>
+          {/* Actions */}
+          <TouchableOpacity style={styles.actionButton}>
+            <Text style={styles.actionButtonText}>Exportar mis datos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.actionButton, styles.deleteButton]}>
+            <Text style={[styles.actionButtonText, styles.deleteText]}>Eliminar mi cuenta</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.version}>ANIMA v1.0.0</Text>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -127,76 +105,139 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 28, marginTop: 16 },
+  gradient: {
+    flex: 1,
+  },
+  safe: {
+    flex: 1,
+  },
+  scroll: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  title: {
+    fontSize: 32,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 24,
+    letterSpacing: 4,
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
+    backgroundColor: '#7C3AED',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    marginBottom: 12,
+    alignItems: 'center',
   },
-  avatarText: { fontSize: 36 },
-  title: { fontSize: 22,  color: COLORS.text },
-  section: {
-    borderRadius: 20,
+  avatarSymbol: {
+    fontSize: 36,
+    color: '#FFFFFF',
+  },
+  input: {
+    backgroundColor: '#1A1035',
+    color: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2D1B69',
+    fontSize: 14,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    color: '#C4B5FD',
+    fontWeight: 'bold',
+    marginBottom: 10,
+    marginTop: 4,
+    letterSpacing: 1,
+  },
+  langRow: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    gap: 10,
+  },
+  langButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#1A1035',
+    borderWidth: 1,
+    borderColor: '#2D1B69',
+  },
+  langButtonActive: {
+    backgroundColor: '#7C3AED',
+    borderColor: '#7C3AED',
+  },
+  langText: {
+    color: '#6D6D8A',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  langTextActive: {
+    color: '#FFFFFF',
+  },
+  subCard: {
+    backgroundColor: '#1A1035',
+    borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#2D1B69',
   },
-  sectionTitle: { fontSize: 15,  color: COLORS.text, marginBottom: 16 },
-  label: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  subLabel: {
+    fontSize: 16,
+    color: '#F5F3FF',
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
-  input: {
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    padding: 13,
-    color: COLORS.text,
-    fontSize: 15,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  subDesc: {
+    fontSize: 13,
+    color: '#A78BFA',
+    marginBottom: 16,
   },
-  langRow: { flexDirection: 'row', gap: 10 },
-  langBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+  upgradeButton: {
+    backgroundColor: '#F59E0B',
     borderRadius: 10,
-    backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    padding: 14,
+    alignItems: 'center',
   },
-  langBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  langText: { fontSize: 14, color: COLORS.textMuted,  },
-  langTextActive: { color: COLORS.text },
-  planRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  planName: { fontSize: 16,  color: COLORS.text },
-  planDesc: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
-  freeBadge: {
-    backgroundColor: 'rgba(16,185,129,0.15)',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: COLORS.success,
+  upgradeText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
-  freeBadgeText: { fontSize: 12, color: COLORS.success,  },
-  premiumBtn: { borderRadius: 14, padding: 14, alignItems: 'center' },
-  premiumBtnText: { color: COLORS.text,  fontSize: 15 },
-  privacyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
-  privacyText: { flex: 1, fontSize: 15, color: COLORS.text },
-  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
+  actionButton: {
+    backgroundColor: '#1A1035',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#2D1B69',
+  },
+  actionButtonText: {
+    color: '#A78BFA',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    borderColor: '#EF4444',
+  },
+  deleteText: {
+    color: '#EF4444',
+  },
+  version: {
+    textAlign: 'center',
+    color: '#6D6D8A',
+    fontSize: 12,
+    marginTop: 16,
+  },
 });

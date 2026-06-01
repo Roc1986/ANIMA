@@ -10,182 +10,205 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../theme';
 
 interface Message {
   id: string;
   text: string;
-  from: 'user' | 'anima';
+  isUser: boolean;
 }
 
-const MOCK_RESPONSES = [
-  'Las estrellas sugieren que este es un momento de transición importante en tu vida. Confía en tu intuición.',
-  'Veo que el arcano de La Luna está muy presente en tu energía hoy. Los misterios se revelarán pronto.',
-  'Tu carta astral indica una oportunidad de crecimiento espiritual. Abre tu corazón a lo nuevo.',
-  'El universo te habla a través de señales sutiles. Presta atención a los sueños y sincronías.',
-  'Saturno en tu carta natal sugiere que las lecciones actuales son parte de tu camino de evolución.',
+const ANIMA_RESPONSES = [
+  'Las estrellas iluminan tu camino. Confía en tu intuición y en la sabiduría que llevas dentro.',
+  'El universo siempre conspira a tu favor. Cada experiencia es una lección disfrazada de regalo.',
+  'Tu energía es poderosa. Recuerda que eres un ser de luz capaz de transformar cualquier situación.',
+  'Los planetas están alineados para apoyarte. Es momento de soltar lo que ya no te sirve.',
+  'La luna llena ilumina tus emociones más profundas. Escúchalas con compasión.',
 ];
 
-const WELCOME: Message = {
-  id: '0',
-  text: '✨ Hola, soy ANIMA. Estoy aquí para acompañarte en tu camino espiritual. ¿Qué tienes en mente hoy?',
-  from: 'anima',
-};
+let messageIdCounter = 2;
 
 export default function ChatScreen() {
-  const [messages, setMessages] = useState<Message[]>([WELCOME]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      text: 'Hola, soy ANIMA. ¿Sobre qué te gustaría reflexionar hoy?',
+      isUser: false,
+    },
+  ]);
   const [inputText, setInputText] = useState('');
-  const listRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   const sendMessage = () => {
     const text = inputText.trim();
     if (!text) return;
 
-    const userMsg: Message = { id: Date.now().toString(), text, from: 'user' };
-    const animaResponse = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)];
-    const animaMsg: Message = {
-      id: (Date.now() + 1).toString(),
-      text: animaResponse,
-      from: 'anima',
+    const userMsg: Message = {
+      id: String(messageIdCounter++),
+      text,
+      isUser: true,
     };
-
-    setMessages((prev) => [...prev, userMsg, animaMsg]);
+    setMessages(prev => [...prev, userMsg]);
     setInputText('');
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+
+    setTimeout(() => {
+      const response = ANIMA_RESPONSES[Math.floor(Math.random() * ANIMA_RESPONSES.length)];
+      const animaMsg: Message = {
+        id: String(messageIdCounter++),
+        text: response,
+        isUser: false,
+      };
+      setMessages(prev => [...prev, animaMsg]);
+    }, 800);
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
-    <View style={[styles.bubble, item.from === 'user' ? styles.bubbleUser : styles.bubbleAnima]}>
-      {item.from === 'anima' && <Text style={styles.animaLabel}>ANIMA</Text>}
-      <Text style={[styles.bubbleText, item.from === 'user' && styles.bubbleTextUser]}>
-        {item.text}
-      </Text>
+    <View style={[styles.messageRow, item.isUser ? styles.userRow : styles.animaRow]}>
+      <View style={[styles.bubble, item.isUser ? styles.userBubble : styles.animaBubble]}>
+        <Text style={[styles.bubbleText, item.isUser ? styles.userText : styles.animaText]}>
+          {item.text}
+        </Text>
+      </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        {/* Header */}
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>ANIMA</Text>
-          <View style={styles.privacyRow}>
-            <Ionicons name="lock-closed" size={11} color={COLORS.success} />
-            <Text style={styles.privacyText}>Conversación privada y encriptada</Text>
-          </View>
+          <Text style={styles.headerSubtitle}>🔒 Privado y encriptado</Text>
         </View>
 
-        {/* Messages */}
-        <FlatList
-          ref={listRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messageList}
-          showsVerticalScrollIndicator={false}
-        />
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={item => item.id}
+            renderItem={renderMessage}
+            contentContainerStyle={styles.messageList}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            showsVerticalScrollIndicator={false}
+          />
 
-        {/* Input */}
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
               placeholder="Escribe tu mensaje..."
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor="#6D6D8A"
               value={inputText}
               onChangeText={setInputText}
               multiline
-              maxLength={300}
+              onSubmitEditing={sendMessage}
             />
-            <TouchableOpacity
-              style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
-              onPress={sendMessage}
-              disabled={!inputText.trim()}
-            >
-              <Ionicons name="send" size={18} color={COLORS.text} />
+            <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+              <Text style={styles.sendIcon}>➤</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: '#0F0A1E',
+  },
+  safe: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
   header: {
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: '#2D1B69',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
-    
-    color: COLORS.accent,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
     letterSpacing: 4,
   },
-  privacyRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  privacyText: { fontSize: 11, color: COLORS.textMuted },
-  messageList: { padding: 16, paddingBottom: 8 },
+  headerSubtitle: {
+    fontSize: 11,
+    color: '#6D6D8A',
+    marginTop: 2,
+  },
+  messageList: {
+    padding: 16,
+    paddingBottom: 8,
+  },
+  messageRow: {
+    marginBottom: 12,
+  },
+  userRow: {
+    alignItems: 'flex-end',
+  },
+  animaRow: {
+    alignItems: 'flex-start',
+  },
   bubble: {
     maxWidth: '80%',
     borderRadius: 16,
     padding: 12,
-    marginBottom: 12,
   },
-  bubbleAnima: {
-    backgroundColor: COLORS.surface,
-    alignSelf: 'flex-start',
+  userBubble: {
+    backgroundColor: '#7C3AED',
+  },
+  animaBubble: {
+    backgroundColor: '#1A1035',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderBottomLeftRadius: 4,
+    borderColor: '#2D1B69',
   },
-  bubbleUser: {
-    backgroundColor: COLORS.primary,
-    alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
+  bubbleText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
-  animaLabel: {
-    fontSize: 10,
-    color: COLORS.accent,
-    
-    letterSpacing: 1,
-    marginBottom: 4,
+  userText: {
+    color: '#FFFFFF',
   },
-  bubbleText: { fontSize: 15, color: COLORS.text, lineHeight: 22 },
-  bubbleTextUser: { color: COLORS.text },
+  animaText: {
+    color: '#C4B5FD',
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
-    backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    gap: 8,
+    borderTopColor: '#2D1B69',
+    backgroundColor: '#0F0A1E',
   },
   input: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#1A1035',
+    color: '#FFFFFF',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    color: COLORS.text,
-    fontSize: 15,
-    maxHeight: 100,
+    fontSize: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#2D1B69',
+    maxHeight: 100,
+    marginRight: 8,
   },
-  sendBtn: {
-    backgroundColor: COLORS.primary,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  sendButton: {
+    backgroundColor: '#7C3AED',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendBtnDisabled: { opacity: 0.4 },
+  sendIcon: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
 });

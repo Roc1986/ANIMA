@@ -6,66 +6,42 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, GRADIENTS } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HomeScreen() {
   return (
-    <LinearGradient colors={['#0F0A1E', '#1A1035', '#2D1B69']} style={styles.gradient}>
+    <LinearGradient
+      colors={['#0F0A1E', '#1A1035', '#2D1B69']}
+      style={styles.gradient}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <Text style={styles.title}>ANIMA</Text>
+          <Text style={styles.subtitle}>Tu guía espiritual</Text>
 
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>ANIMA</Text>
-            <Text style={styles.subtitle}>Tu guía espiritual</Text>
-          </View>
-
-          {/* Daily Card Section */}
-          <View style={styles.cardContainer}>
-            <Text style={styles.sectionTitle}>✨ Carta del Día</Text>
-            <View style={styles.tarotCard}>
-              <View style={styles.tarotCardVisual}>
-                <Text style={styles.tarotSymbol}>✦</Text>
-                <Text style={styles.tarotCardName}>La Estrella</Text>
-              </View>
-              <Text style={styles.tarotReading}>
-                La esperanza brilla en la oscuridad. Un período de renovación y fe se acerca a tu vida.
-              </Text>
-              <TouchableOpacity activeOpacity={0.8}>
-                <LinearGradient colors={GRADIENTS.primary} style={styles.listenBtn}>
-                  <Text style={styles.listenBtnText}>Escuchar lectura 🔊</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+          {/* Card del Día */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>✨ Carta del Día</Text>
+            <View style={styles.cardInner}>
+              <Text style={styles.cardSymbol}>✦</Text>
+              <Text style={styles.cardName}>La Estrella</Text>
             </View>
+            <Text style={styles.readingText}>
+              La Estrella te invita a confiar en el universo. Es un momento de renovación y esperanza. Permite que la luz guíe tus pasos hacia tu destino más elevado.
+            </Text>
+            <TouchableOpacity style={styles.listenButton}>
+              <Text style={styles.listenButtonText}>Escuchar lectura 🔊</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Daily Message Section */}
-          <View style={styles.cardContainer}>
-            <Text style={styles.sectionTitle}>🌙 Mensaje del Día</Text>
-            <View style={styles.messageCard}>
-              <Text style={styles.messageDate}>Luna en Cáncer · Energía de introspección</Text>
-              <Text style={styles.messageText}>
-                Hoy el cosmos te invita a mirar hacia adentro. La energía de la Luna en Cáncer potencia
-                tu intuición y tu conexión con el mundo emocional. Es un momento propicio para la
-                meditación, la escritura en tu diario espiritual, y para honrar tus ciclos internos.
-                Confía en lo que sientes — el universo te habla a través de tu corazón.
-              </Text>
-              <View style={styles.energyRow}>
-                <View style={styles.energyTag}>
-                  <Text style={styles.energyTagText}>🌊 Agua</Text>
-                </View>
-                <View style={styles.energyTag}>
-                  <Text style={styles.energyTagText}>🌕 Luna Llena</Text>
-                </View>
-                <View style={styles.energyTag}>
-                  <Text style={styles.energyTagText}>💜 Intuición</Text>
-                </View>
-              </View>
-            </View>
+          {/* Mensaje del Día */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🌙 Mensaje del Día</Text>
+            <Text style={styles.messageText}>
+              "El cosmos susurra secretos a quienes saben escuchar. Hoy, abre tu corazón a las señales que el universo tiene para ti. Cada momento es una oportunidad de crecimiento espiritual."
+            </Text>
           </View>
-
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -73,117 +49,85 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 40 },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-    marginTop: 16,
+  gradient: {
+    flex: 1,
+  },
+  safe: {
+    flex: 1,
+  },
+  scroll: {
+    padding: 20,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 36,
-    
-    color: COLORS.white,
+    color: '#FFFFFF',
     letterSpacing: 8,
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 8,
+    fontWeight: 'bold',
   },
   subtitle: {
-    fontSize: 15,
-    color: COLORS.accent,
-    marginTop: 6,
-    fontStyle: 'italic',
-    letterSpacing: 1,
+    fontSize: 16,
+    color: '#C4B5FD',
+    textAlign: 'center',
+    marginBottom: 32,
+    letterSpacing: 2,
   },
-  cardContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    
-    color: COLORS.gold,
-    marginBottom: 12,
-    letterSpacing: 0.5,
-  },
-  tarotCard: {
+  card: {
     backgroundColor: '#1A1035',
-    borderRadius: 20,
-    padding: 24,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: '#2D1B69',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
   },
-  tarotCardVisual: {
+  cardTitle: {
+    fontSize: 18,
+    color: '#F59E0B',
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  cardInner: {
     backgroundColor: '#0F0A1E',
-    borderRadius: 14,
-    paddingVertical: 32,
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#2D1B69',
   },
-  tarotSymbol: {
-    fontSize: 52,
-    color: COLORS.accent,
-    marginBottom: 10,
+  cardSymbol: {
+    fontSize: 48,
+    color: '#C4B5FD',
+    marginBottom: 8,
   },
-  tarotCardName: {
+  cardName: {
     fontSize: 20,
-    
-    color: COLORS.text,
-    letterSpacing: 1,
+    color: '#F5F3FF',
+    fontWeight: 'bold',
+    letterSpacing: 2,
   },
-  tarotReading: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
-    lineHeight: 23,
-    fontStyle: 'italic',
-    marginBottom: 18,
-    textAlign: 'center',
+  readingText: {
+    fontSize: 14,
+    color: '#A78BFA',
+    lineHeight: 22,
+    marginBottom: 16,
   },
-  listenBtn: {
-    borderRadius: 14,
-    paddingVertical: 14,
+  listenButton: {
+    backgroundColor: '#7C3AED',
+    borderRadius: 12,
+    padding: 14,
     alignItems: 'center',
   },
-  listenBtnText: {
-    color: COLORS.white,
-    
-    fontSize: 15,
-  },
-  messageCard: {
-    backgroundColor: '#1A1035',
-    borderRadius: 20,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: '#2D1B69',
-  },
-  messageDate: {
-    fontSize: 12,
-    color: COLORS.gold,
-    
-    letterSpacing: 0.5,
-    marginBottom: 12,
-    textTransform: 'uppercase',
+  listenButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   messageText: {
     fontSize: 15,
-    color: COLORS.text,
+    color: '#C4B5FD',
     lineHeight: 24,
-    marginBottom: 16,
-  },
-  energyRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  energyTag: {
-    backgroundColor: '#2D1B69',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  energyTagText: {
-    fontSize: 12,
-    color: COLORS.accent,
-    
+    fontStyle: 'italic',
   },
 });
