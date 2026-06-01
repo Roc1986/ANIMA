@@ -2,9 +2,10 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-config.transformer = {
-  ...config.transformer,
-  unstable_allowRequireContext: true,
+// Transform node_modules that use private class fields
+config.resolver = {
+  ...config.resolver,
+  unstable_enablePackageExports: false,
 };
 
 module.exports = config;
