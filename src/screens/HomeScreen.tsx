@@ -8,8 +8,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 
 export default function HomeScreen() {
+  const navigation = useNavigation<any>();
+
   return (
     <LinearGradient
       colors={['#0F0A1E', '#1A1035', '#2D1B69']}
@@ -20,7 +23,7 @@ export default function HomeScreen() {
           <Text style={styles.title}>ANIMA</Text>
           <Text style={styles.subtitle}>Tu guía espiritual</Text>
 
-          {/* Card del Día */}
+          {/* Carta del Día */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>✨ Carta del Día</Text>
             <View style={styles.cardInner}>
@@ -28,10 +31,13 @@ export default function HomeScreen() {
               <Text style={styles.cardName}>La Estrella</Text>
             </View>
             <Text style={styles.readingText}>
-              La Estrella te invita a confiar en el universo. Es un momento de renovación y esperanza. Permite que la luz guíe tus pasos hacia tu destino más elevado.
+              La Estrella te invita a confiar plenamente en el universo y en el camino que se despliega ante ti. Es un momento de renovación profunda, donde la esperanza reemplaza al miedo y la claridad surge donde antes había confusión. Permite que la luz de este arcano ilumine tus pasos y te recuerde que eres guiado en todo momento.
             </Text>
-            <TouchableOpacity style={styles.listenButton}>
-              <Text style={styles.listenButtonText}>Escuchar lectura 🔊</Text>
+            <TouchableOpacity
+              style={styles.listenButton}
+              onPress={() => navigation.navigate('Tarot')}
+            >
+              <Text style={styles.listenButtonText}>Ver tiradas de Tarot 🔮</Text>
             </TouchableOpacity>
           </View>
 
@@ -42,6 +48,37 @@ export default function HomeScreen() {
               "El cosmos susurra secretos a quienes saben escuchar. Hoy, abre tu corazón a las señales que el universo tiene para ti. Cada momento es una oportunidad de crecimiento espiritual."
             </Text>
           </View>
+
+          {/* Acceso Rápido */}
+          <Text style={styles.sectionLabel}>Acceso Rápido</Text>
+          <View style={styles.quickRow}>
+            <TouchableOpacity
+              style={styles.quickButton}
+              onPress={() => navigation.navigate('Tarot')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.quickIcon}>🔮</Text>
+              <Text style={styles.quickLabel}>Nueva Tirada</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickButton}
+              onPress={() => navigation.navigate('Astrology')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.quickIcon}>⭐</Text>
+              <Text style={styles.quickLabel}>Ver Astros</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickButton}
+              onPress={() => navigation.navigate('Chat')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.quickIcon}>💬</Text>
+              <Text style={styles.quickLabel}>Iniciar Chat</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -49,16 +86,9 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  safe: {
-    flex: 1,
-  },
-  scroll: {
-    padding: 20,
-    paddingBottom: 40,
-  },
+  gradient: { flex: 1 },
+  safe: { flex: 1 },
+  scroll: { padding: 20, paddingBottom: 40 },
   title: {
     fontSize: 36,
     color: '#FFFFFF',
@@ -96,11 +126,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  cardSymbol: {
-    fontSize: 48,
-    color: '#C4B5FD',
-    marginBottom: 8,
-  },
+  cardSymbol: { fontSize: 48, color: '#C4B5FD', marginBottom: 8 },
   cardName: {
     fontSize: 20,
     color: '#F5F3FF',
@@ -119,15 +145,39 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
   },
-  listenButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  listenButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
   messageText: {
     fontSize: 15,
     color: '#C4B5FD',
     lineHeight: 24,
     fontStyle: 'italic',
+  },
+  sectionLabel: {
+    fontSize: 16,
+    color: '#C4B5FD',
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  quickRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  quickButton: {
+    flex: 1,
+    backgroundColor: '#1A1035',
+    borderWidth: 1,
+    borderColor: '#7C3AED',
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  quickIcon: { fontSize: 28, marginBottom: 6 },
+  quickLabel: {
+    fontSize: 12,
+    color: '#C4B5FD',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
