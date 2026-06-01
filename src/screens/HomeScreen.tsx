@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 36,
-    fontWeight: 'bold',
+    
     color: COLORS.white,
     letterSpacing: 8,
   },
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    
     color: COLORS.gold,
     marginBottom: 12,
     letterSpacing: 0.5,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   },
   tarotCardName: {
     fontSize: 20,
-    fontWeight: '700',
+    
     color: COLORS.text,
     letterSpacing: 1,
   },
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   listenBtnText: {
     color: COLORS.white,
-    fontWeight: '700',
+    
     fontSize: 15,
   },
   messageCard: {
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   messageDate: {
     fontSize: 12,
     color: COLORS.gold,
-    fontWeight: '600',
+    
     letterSpacing: 0.5,
     marginBottom: 12,
     textTransform: 'uppercase',
@@ -184,6 +184,6 @@ const styles = StyleSheet.create({
   energyTagText: {
     fontSize: 12,
     color: COLORS.accent,
-    fontWeight: '600',
+    
   },
 });

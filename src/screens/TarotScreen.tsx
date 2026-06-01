@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 40 },
   header: { marginBottom: 28, marginTop: 16 },
-  title: { fontSize: 28, fontWeight: '800', color: COLORS.text, letterSpacing: 1 },
+  title: { fontSize: 28,  color: COLORS.text, letterSpacing: 1 },
   subtitle: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
   spreadCard: {
     flexDirection: 'row',
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   },
   spreadIcon: { fontSize: 22, color: COLORS.accent },
   spreadInfo: { flex: 1 },
-  spreadName: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 3 },
+  spreadName: { fontSize: 16,  color: COLORS.text, marginBottom: 3 },
   spreadDesc: { fontSize: 13, color: COLORS.textSecondary },
   badge: {
     borderRadius: 20,
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderWidth: 1,
   },
-  badgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  badgeText: { fontSize: 11,  letterSpacing: 0.5 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.85)',
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    
     color: COLORS.accent,
     marginBottom: 24,
     letterSpacing: 2,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   cardFaceSymbol: { fontSize: 48, color: COLORS.accent, marginBottom: 12 },
   cardFaceName: {
     fontSize: 22,
-    fontWeight: '800',
+    
     color: COLORS.text,
     textAlign: 'center',
     marginBottom: 14,
@@ -236,5 +236,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 36,
     paddingVertical: 14,
   },
-  closeBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 15 },
+  closeBtnText: { color: COLORS.white,  fontSize: 15 },
 });

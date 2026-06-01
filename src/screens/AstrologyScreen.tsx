@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 40 },
   header: { marginBottom: 24, marginTop: 16 },
-  title: { fontSize: 28, fontWeight: '800', color: COLORS.text, letterSpacing: 1 },
+  title: { fontSize: 28,  color: COLORS.text, letterSpacing: 1 },
   subtitle: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
   tabRow: {
     flexDirection: 'row',
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   tabBtnActive: { backgroundColor: COLORS.primary },
-  tabText: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted },
+  tabText: { fontSize: 14,  color: COLORS.textMuted },
   tabTextActive: { color: COLORS.white },
   formCard: {
     borderRadius: 20,
@@ -196,11 +196,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     marginBottom: 24,
   },
-  formTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 20 },
+  formTitle: { fontSize: 16,  color: COLORS.text, marginBottom: 20 },
   label: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    fontWeight: '600',
+    
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   calcBtn: { borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 4 },
-  calcBtnText: { color: COLORS.white, fontWeight: '800', fontSize: 16 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text, marginBottom: 6 },
+  calcBtnText: { color: COLORS.white,  fontSize: 16 },
+  sectionTitle: { fontSize: 17,  color: COLORS.text, marginBottom: 6 },
   chartNote: {
     fontSize: 12,
     color: COLORS.textMuted,
@@ -234,9 +234,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   planetSymbol: { fontSize: 18, color: COLORS.gold, width: 28 },
-  planetName: { fontSize: 14, color: COLORS.text, fontWeight: '600', width: 80 },
+  planetName: { fontSize: 14, color: COLORS.text,  width: 80 },
   planetDetails: { flex: 1, flexDirection: 'row', justifyContent: 'space-between' },
-  planetSign: { fontSize: 13, color: COLORS.accent, fontWeight: '600' },
+  planetSign: { fontSize: 13, color: COLORS.accent,  },
   planetDegree: { fontSize: 13, color: COLORS.textSecondary },
   planetHouse: { fontSize: 13, color: COLORS.textMuted },
   transitRow: {
@@ -251,8 +251,8 @@ const styles = StyleSheet.create({
   transitSymbol: { fontSize: 22, color: COLORS.gold, marginRight: 14, width: 28 },
   transitInfo: { flex: 1 },
   transitHeader: { flexDirection: 'row', marginBottom: 4 },
-  transitName: { fontSize: 15, fontWeight: '700', color: COLORS.text },
-  transitSign: { fontSize: 15, color: COLORS.accent, fontWeight: '600' },
+  transitName: { fontSize: 15,  color: COLORS.text },
+  transitSign: { fontSize: 15, color: COLORS.accent,  },
   transitNote: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18 },
   readingCard: {
     borderRadius: 18,
@@ -261,6 +261,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  readingTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text, marginBottom: 10 },
+  readingTitle: { fontSize: 15,  color: COLORS.text, marginBottom: 10 },
   readingText: { fontSize: 15, color: COLORS.textSecondary, lineHeight: 24, fontStyle: 'italic' },
 });

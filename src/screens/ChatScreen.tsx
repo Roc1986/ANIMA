@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    
     color: COLORS.accent,
     letterSpacing: 4,
   },
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   animaLabel: {
     fontSize: 10,
     color: COLORS.accent,
-    fontWeight: '700',
+    
     letterSpacing: 1,
     marginBottom: 4,
   },
