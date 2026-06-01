@@ -1,315 +1,273 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
+  Animated,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, GRADIENTS } from '../theme';
 
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, GRADIENTS, SHADOW } from '../theme';
-import { TarotCard as TarotCardComponent } from '../components/TarotCard';
-import { VoicePlayer } from '../components/VoicePlayer';
-import { TAROT_DECK } from '../tarot/deck';
-import { getSpreadCards } from '../tarot/readings';
-import { buildTarotPrompt } from '../tarot/prompts';
-import { t } from '../i18n';
-import type { SpreadType, DrawnCard } from '../types/tarot';
-
-interface SpreadOption {
-  type: SpreadType;
-  labelKey: string;
-  description: string;
-  cardCount: number;
-  requiresSubscription: boolean;
-  icon: string;
-}
-
-const SPREAD_OPTIONS: SpreadOption[] = [
+const SPREADS = [
   {
-    type: 'daily',
-    labelKey: 'tarot.daily',
-    description: 'One card to guide your day',
-    cardCount: 1,
-    requiresSubscription: false,
-    icon: '☀️',
+    id: 'daily',
+    name: 'Carta del Día',
+    description: 'Una carta para orientar tu jornada',
+    icon: '🌟',
+    free: true,
   },
   {
-    type: 'yesno',
-    labelKey: 'tarot.yesno',
-    description: 'A clear answer to a burning question',
-    cardCount: 1,
-    requiresSubscription: false,
+    id: 'yesno',
+    name: 'Sí o No',
+    description: 'Respuesta directa a tu pregunta',
+    icon: '⚖️',
+    free: false,
+  },
+  {
+    id: 'past',
+    name: 'Pasado · Presente · Futuro',
+    description: 'Tres cartas para ver tu camino completo',
     icon: '🔮',
+    free: false,
   },
   {
-    type: 'past-present-future',
-    labelKey: 'tarot.pastPresentFuture',
-    description: 'Understand where you have been, are, and are going',
-    cardCount: 3,
-    requiresSubscription: true,
-    icon: '🌊',
-  },
-  {
-    type: 'celtic-cross',
-    labelKey: 'tarot.celticCross',
-    description: 'A deep, comprehensive 10-card reading',
-    cardCount: 10,
-    requiresSubscription: true,
+    id: 'celtic',
+    name: 'Cruz Celta',
+    description: 'Tirada profunda de 10 cartas',
     icon: '✨',
+    free: false,
   },
 ];
 
-export function TarotScreen() {
-  const [selectedSpread, setSelectedSpread] = useState<SpreadType | null>(null);
-  const [drawnCards, setDrawnCards] = useState<DrawnCard[]>([]);
-  const [revealedCards, setRevealedCards] = useState<Set<number>>(new Set());
-  const [reading, setReading] = useState<string | null>(null);
-  const [loadingReading, setLoadingReading] = useState(false);
-  const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
-  // In production, derive from auth + subscription state
-  const isSubscribed = false;
+const MOCK_CARDS = [
+  { name: 'El Mago', number: 'I', meaning: 'Voluntad, habilidad, concentración. Tienes todo lo necesario para manifestar tus deseos.' },
+  { name: 'La Sacerdotisa', number: 'II', meaning: 'Intuición, misterio, sabiduría interior. Escucha tu voz interior.' },
+  { name: 'La Emperatriz', number: 'III', meaning: 'Abundancia, fertilidad, naturaleza. El mundo te ofrece sus dones.' },
+  { name: 'El Loco', number: '0', meaning: 'Nuevos comienzos, inocencia, aventura. Un viaje transformador te espera.' },
+  { name: 'La Estrella', number: 'XVII', meaning: 'Esperanza, inspiración, serenidad. La luz guía tu camino.' },
+  { name: 'La Luna', number: 'XVIII', meaning: 'Ilusión, miedo, el subconsciente. Confía en lo que no ves.' },
+  { name: 'El Sol', number: 'XIX', meaning: 'Alegría, éxito, vitalidad. Un período brillante se avecina.' },
+];
 
-  function handleSpreadSelect(spread: SpreadOption) {
-    if (spread.requiresSubscription && !isSubscribed) {
-      // TODO: Navigate to subscription screen
-      return;
-    }
-    setSelectedSpread(spread.type);
-    const cards = getSpreadCards(spread.type, TAROT_DECK);
-    setDrawnCards(cards);
-    setRevealedCards(new Set());
-    setReading(null);
-  }
+export default function TarotScreen() {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(MOCK_CARDS[0]);
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  const [flipped, setFlipped] = useState(false);
 
-  function handleCardReveal(index: number) {
-    const next = new Set(revealedCards);
-    next.add(index);
-    setRevealedCards(next);
+  const handleDailyCard = () => {
+    const card = MOCK_CARDS[Math.floor(Math.random() * MOCK_CARDS.length)];
+    setSelectedCard(card);
+    setFlipped(false);
+    flipAnim.setValue(0);
+    setModalVisible(true);
+  };
 
-    // When all cards revealed, fetch reading
-    if (next.size === drawnCards.length && !reading) {
-      fetchReading(drawnCards, selectedSpread!);
-    }
-  }
+  const doFlip = () => {
+    if (flipped) return;
+    setFlipped(true);
+    Animated.timing(flipAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  };
 
-  async function fetchReading(cards: DrawnCard[], spreadType: SpreadType) {
-    setLoadingReading(true);
-    try {
-      // Build prompt and call Claude (via backend edge function in production)
-      const prompt = buildTarotPrompt(cards, spreadType);
-      // TODO: Call /api/tarot-reading edge function
-      // const result = await fetch('/api/tarot-reading', { method: 'POST', body: JSON.stringify({ prompt }) });
-      // Simulated response for scaffold:
-      await new Promise((r) => setTimeout(r, 1500));
-      setReading(
-        'The cards speak of transformation and forward movement. Trust the path unfolding before you — what feels uncertain is simply new. Your inner wisdom already knows the way; these cards simply reflect it back to you with clarity and grace.',
-      );
-    } finally {
-      setLoadingReading(false);
-    }
-  }
-
-  function handleReset() {
-    setSelectedSpread(null);
-    setDrawnCards([]);
-    setRevealedCards(new Set());
-    setReading(null);
-    setVoiceUrl(null);
-  }
-
-  if (!selectedSpread) {
-    return (
-      <LinearGradient colors={GRADIENTS.background} style={styles.gradient}>
-        <SafeAreaView style={styles.safeArea}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.title}>{t('tarot.selectSpread')}</Text>
-            {SPREAD_OPTIONS.map((spread) => (
-              <TouchableOpacity
-                key={spread.type}
-                style={[
-                  styles.spreadOption,
-                  spread.requiresSubscription && !isSubscribed && styles.spreadLocked,
-                ]}
-                onPress={() => handleSpreadSelect(spread)}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.spreadIcon}>{spread.icon}</Text>
-                <View style={styles.spreadInfo}>
-                  <View style={styles.spreadTitleRow}>
-                    <Text style={styles.spreadName}>{t(spread.labelKey)}</Text>
-                    {spread.requiresSubscription && !isSubscribed && (
-                      <View style={styles.lockBadge}>
-                        <Text style={styles.lockText}>✦ PRO</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.spreadDesc}>{spread.description}</Text>
-                  <Text style={styles.spreadCardCount}>{spread.cardCount} card{spread.cardCount !== 1 ? 's' : ''}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </SafeAreaView>
-      </LinearGradient>
-    );
-  }
+  const frontRotate = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['0deg', '90deg', '90deg'],
+  });
+  const backRotate = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['90deg', '90deg', '0deg'],
+  });
+  const frontOpacity = flipAnim.interpolate({ inputRange: [0, 0.49, 0.5], outputRange: [1, 1, 0] });
+  const backOpacity = flipAnim.interpolate({ inputRange: [0.49, 0.5, 1], outputRange: [0, 1, 1] });
 
   return (
     <LinearGradient colors={GRADIENTS.background} style={styles.gradient}>
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.spreadHeader}>
-            <TouchableOpacity onPress={handleReset}>
-              <Text style={styles.backLink}>← Choose another spread</Text>
-            </TouchableOpacity>
-            <Text style={styles.title}>{t(`tarot.${selectedSpread === 'past-present-future' ? 'pastPresentFuture' : selectedSpread === 'celtic-cross' ? 'celticCross' : selectedSpread === 'yesno' ? 'yesno' : 'daily'}`)}</Text>
-          </View>
+      <SafeAreaView style={styles.safe}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <Text style={styles.title}>Tiradas de Tarot</Text>
+          <Text style={styles.subtitle}>Elige tu tirada</Text>
 
-          {/* Cards */}
-          <View style={styles.cardsGrid}>
-            {drawnCards.map((drawn, idx) => (
-              <View key={idx} style={styles.cardSlot}>
-                <Text style={styles.positionLabel}>{drawn.position}</Text>
-                <TarotCardComponent
-                  card={drawn.card}
-                  isRevealed={revealedCards.has(idx)}
-                  isReversed={drawn.isReversed}
-                  onPress={() => handleCardReveal(idx)}
-                  size={drawnCards.length > 3 ? 'small' : 'medium'}
-                />
-                {revealedCards.has(idx) && (
-                  <Text style={styles.cardNameLabel}>
-                    {drawn.card.name}
-                    {drawn.isReversed ? ' ↓' : ''}
+          {SPREADS.map((spread) => (
+            <TouchableOpacity
+              key={spread.id}
+              onPress={spread.free ? handleDailyCard : undefined}
+              activeOpacity={spread.free ? 0.7 : 1}
+            >
+              <LinearGradient
+                colors={spread.free ? GRADIENTS.card : ['#0F0A1E', '#1A1035']}
+                style={[styles.spreadCard, !spread.free && styles.spreadCardLocked]}
+              >
+                <View style={styles.spreadLeft}>
+                  <Text style={styles.spreadIcon}>{spread.icon}</Text>
+                </View>
+                <View style={styles.spreadInfo}>
+                  <Text style={[styles.spreadName, !spread.free && styles.textLocked]}>
+                    {spread.name}
                   </Text>
-                )}
-              </View>
-            ))}
-          </View>
-
-          {/* Reading */}
-          {loadingReading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.accent} />
-              <Text style={styles.loadingText}>Reading the cards…</Text>
-            </View>
-          )}
-
-          {reading && (
-            <View style={styles.readingContainer}>
-              <Text style={styles.readingTitle}>{t('tarot.yourReading')}</Text>
-              <Text style={styles.readingText}>{reading}</Text>
-              <TouchableOpacity style={styles.voiceButton}>
-                <Text style={styles.voiceButtonText}>🔊 {t('tarot.getVoiceReading')}</Text>
-              </TouchableOpacity>
-              {voiceUrl && <VoicePlayer url={voiceUrl} />}
-            </View>
-          )}
+                  <Text style={[styles.spreadDesc, !spread.free && styles.descLocked]}>
+                    {spread.description}
+                  </Text>
+                </View>
+                <View style={styles.spreadRight}>
+                  {spread.free ? (
+                    <View style={styles.freeBadge}>
+                      <Text style={styles.freeBadgeText}>GRATIS</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.lockBadge}>
+                      <Ionicons name="lock-closed" size={12} color={COLORS.textMuted} />
+                      <Text style={styles.lockBadgeText}>Premium</Text>
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </SafeAreaView>
+
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <LinearGradient colors={['#1A1035', '#2D1B69']} style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Tu Carta del Día</Text>
+            <TouchableOpacity onPress={doFlip} style={styles.cardContainer}>
+              {/* Back of card */}
+              <Animated.View
+                style={[
+                  styles.card,
+                  styles.cardBack,
+                  { transform: [{ rotateY: frontRotate }], opacity: frontOpacity },
+                ]}
+              >
+                <LinearGradient colors={GRADIENTS.primary} style={styles.cardInner}>
+                  <Text style={styles.cardBackText}>✨</Text>
+                  <Text style={styles.tapHint}>Toca para revelar</Text>
+                </LinearGradient>
+              </Animated.View>
+              {/* Front of card */}
+              <Animated.View
+                style={[
+                  styles.card,
+                  styles.cardFront,
+                  { transform: [{ rotateY: backRotate }], opacity: backOpacity },
+                ]}
+              >
+                <LinearGradient colors={GRADIENTS.card} style={styles.cardInner}>
+                  <Text style={styles.cardFaceEmoji}>🌟</Text>
+                  <Text style={styles.cardFaceName}>{selectedCard.name}</Text>
+                  <Text style={styles.cardFaceNumber}>{selectedCard.number}</Text>
+                  <Text style={styles.cardFaceMeaning}>{selectedCard.meaning}</Text>
+                </LinearGradient>
+              </Animated.View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
+              <Text style={styles.closeBtnText}>Cerrar</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  safeArea: { flex: 1 },
-  scrollContent: { padding: SPACING.md, paddingBottom: SPACING['2xl'] },
+  safe: { flex: 1 },
+  scroll: { padding: 20, paddingBottom: 40 },
   title: {
-    fontSize: TYPOGRAPHY.fontSize['2xl'],
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-    marginVertical: SPACING.lg,
-    letterSpacing: 1,
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginTop: 8,
+    marginBottom: 4,
   },
-  spreadOption: {
+  subtitle: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 24 },
+  spreadCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.primary,
-    ...SHADOW.card,
+    borderColor: COLORS.border,
   },
-  spreadLocked: {
-    opacity: 0.7,
-    borderColor: COLORS.gold,
-  },
-  spreadIcon: { fontSize: 36, marginRight: SPACING.md },
+  spreadCardLocked: { opacity: 0.7 },
+  spreadLeft: { marginRight: 14 },
+  spreadIcon: { fontSize: 32 },
   spreadInfo: { flex: 1 },
-  spreadTitleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: 2 },
-  spreadName: {
-    fontSize: TYPOGRAPHY.fontSize.lg,
-    fontWeight: TYPOGRAPHY.fontWeight.semibold,
-    color: COLORS.textPrimary,
-  },
-  lockBadge: {
-    backgroundColor: COLORS.gold,
-    borderRadius: BORDER_RADIUS.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  lockText: { fontSize: TYPOGRAPHY.fontSize.xs, color: '#000', fontWeight: TYPOGRAPHY.fontWeight.bold },
-  spreadDesc: { fontSize: TYPOGRAPHY.fontSize.sm, color: COLORS.textSecondary, marginBottom: 4 },
-  spreadCardCount: { fontSize: TYPOGRAPHY.fontSize.xs, color: COLORS.textMuted },
-  spreadHeader: { marginBottom: SPACING.md },
-  backLink: { fontSize: TYPOGRAPHY.fontSize.sm, color: COLORS.textSecondary, marginBottom: SPACING.sm },
-  cardsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    marginVertical: SPACING.md,
-  },
-  cardSlot: { alignItems: 'center', width: '30%', minWidth: 90 },
-  positionLabel: {
-    fontSize: TYPOGRAPHY.fontSize.xs,
-    color: COLORS.textMuted,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  cardNameLabel: {
-    fontSize: TYPOGRAPHY.fontSize.xs,
-    color: COLORS.accent,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  loadingContainer: { alignItems: 'center', marginVertical: SPACING.xl },
-  loadingText: { color: COLORS.textSecondary, marginTop: SPACING.sm },
-  readingContainer: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    marginTop: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-  },
-  readingTitle: {
-    fontSize: TYPOGRAPHY.fontSize.lg,
-    fontWeight: TYPOGRAPHY.fontWeight.semibold,
-    color: COLORS.accent,
-    marginBottom: SPACING.md,
-    textAlign: 'center',
-  },
-  readingText: {
-    fontSize: TYPOGRAPHY.fontSize.base,
-    color: COLORS.textPrimary,
-    lineHeight: TYPOGRAPHY.fontSize.base * 1.7,
-  },
-  voiceButton: {
-    marginTop: SPACING.lg,
+  spreadName: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 2 },
+  textLocked: { color: COLORS.textMuted },
+  spreadDesc: { fontSize: 12, color: COLORS.textSecondary },
+  descLocked: { color: COLORS.textMuted },
+  spreadRight: { marginLeft: 8 },
+  freeBadge: {
     backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.full,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    alignSelf: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  voiceButtonText: { color: COLORS.textPrimary, fontSize: TYPOGRAPHY.fontSize.sm },
+  freeBadgeText: { fontSize: 10, color: '#fff', fontWeight: '700' },
+  lockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  lockBadgeText: { fontSize: 10, color: COLORS.textMuted },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalBox: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 20 },
+  cardContainer: { width: 220, height: 300, marginBottom: 20 },
+  card: { position: 'absolute', width: '100%', height: '100%' },
+  cardBack: {},
+  cardFront: {},
+  cardInner: {
+    flex: 1,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cardBackText: { fontSize: 64 },
+  tapHint: { fontSize: 12, color: COLORS.textSecondary, marginTop: 12 },
+  cardFaceEmoji: { fontSize: 48, marginBottom: 8 },
+  cardFaceName: { fontSize: 20, fontWeight: '700', color: COLORS.text, textAlign: 'center' },
+  cardFaceNumber: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 12 },
+  cardFaceMeaning: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center', lineHeight: 18 },
+  closeBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+  },
+  closeBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

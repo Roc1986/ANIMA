@@ -1,97 +1,78 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS, GRADIENTS } from '../theme';
 
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, GRADIENTS, SHADOW } from '../theme';
-import { TarotCard } from '../components/TarotCard';
-import { DailyMessage } from '../components/DailyMessage';
-import { TAROT_DECK } from '../tarot/deck';
-import { drawCards } from '../tarot/readings';
-import { t } from '../i18n';
+const DAILY_MESSAGE =
+  'El universo te invita a confiar en tu intuición hoy. Las estrellas alinean energías de transformación y crecimiento personal a tu alrededor.';
 
-export function HomeScreen() {
-  const [dailyCard, setDailyCard] = useState(() => {
-    const [card] = drawCards(1, TAROT_DECK);
-    return card;
+export default function HomeScreen() {
+  const today = new Date().toLocaleDateString('es-ES', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
-  const [isCardRevealed, setIsCardRevealed] = useState(false);
-  const [dailyMessage, setDailyMessage] = useState<string | null>(null);
-  const [messageLoading, setMessageLoading] = useState(false);
-
-  const greeting = getGreeting();
-
-  useEffect(() => {
-    // In production: load personalized daily message from Claude API
-    setDailyMessage(
-      'Today, the universe invites you to pause and listen to the quiet voice within. What has been waiting for your attention? Trust that the answers you seek are already yours.',
-    );
-  }, []);
 
   return (
     <LinearGradient colors={GRADIENTS.background} style={styles.gradient}>
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+      <SafeAreaView style={styles.safe}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.appName}>ANIMA</Text>
-            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={styles.title}>ANIMA</Text>
+            <Text style={styles.subtitle}>Tu guía espiritual personal</Text>
+            <Text style={styles.date}>{today}</Text>
+          </View>
+
+          {/* Daily Card */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>✨ Carta del Día</Text>
+            <LinearGradient colors={GRADIENTS.card} style={styles.tarotCard}>
+              <Text style={styles.cardEmoji}>✨</Text>
+              <Text style={styles.cardName}>La Estrella</Text>
+              <Text style={styles.cardNumber}>XVII</Text>
+              <Text style={styles.cardKeyword}>Esperanza · Renovación · Inspiración</Text>
+            </LinearGradient>
           </View>
 
           {/* Daily Message */}
-          <DailyMessage
-            message={dailyMessage}
-            loading={messageLoading}
-          />
-
-          {/* Daily Card Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('tarot.daily')}</Text>
-            <Text style={styles.sectionSubtitle}>
-              {isCardRevealed
-                ? dailyCard.name
-                : 'Tap to reveal your card for today'}
-            </Text>
-
-            <View style={styles.cardContainer}>
-              <TarotCard
-                card={dailyCard}
-                isRevealed={isCardRevealed}
-                isReversed={false}
-                onPress={() => setIsCardRevealed(true)}
-                size="medium"
-              />
-            </View>
-
-            {isCardRevealed && (
-              <View style={styles.cardMeaning}>
-                <Text style={styles.cardKeywords}>
-                  {dailyCard.keywords.slice(0, 3).join('  ·  ')}
-                </Text>
-                <Text style={styles.cardMeaningText}>
-                  {dailyCard.uprightMeaning}
-                </Text>
-              </View>
-            )}
+            <Text style={styles.sectionLabel}>🌙 Mensaje del Día</Text>
+            <LinearGradient colors={GRADIENTS.card} style={styles.messageCard}>
+              <Text style={styles.messageText}>{DAILY_MESSAGE}</Text>
+            </LinearGradient>
           </View>
 
           {/* Quick Actions */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Explore</Text>
+            <Text style={styles.sectionLabel}>Explorar</Text>
             <View style={styles.quickActions}>
-              <QuickAction icon="✨" label="Yes or No" />
-              <QuickAction icon="🌙" label="Chat" />
-              <QuickAction icon="⭐" label="Astrology" />
+              <TouchableOpacity style={styles.quickBtn}>
+                <LinearGradient colors={GRADIENTS.primary} style={styles.quickBtnGrad}>
+                  <Text style={styles.quickBtnIcon}>🔮</Text>
+                  <Text style={styles.quickBtnText}>Tirada{'\n'}de Tarot</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickBtn}>
+                <LinearGradient colors={['#1A1035', '#2D1B69']} style={styles.quickBtnGrad}>
+                  <Text style={styles.quickBtnIcon}>⭐</Text>
+                  <Text style={styles.quickBtnText}>Carta{'\n'}Astral</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickBtn}>
+                <LinearGradient colors={['#1A1035', '#2D1B69']} style={styles.quickBtnGrad}>
+                  <Text style={styles.quickBtnIcon}>💬</Text>
+                  <Text style={styles.quickBtnText}>Chat{'\n'}ANIMA</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -100,106 +81,92 @@ export function HomeScreen() {
   );
 }
 
-function QuickAction({ icon, label }: { icon: string; label: string }) {
-  return (
-    <TouchableOpacity style={styles.quickAction} activeOpacity={0.7}>
-      <Text style={styles.quickActionIcon}>{icon}</Text>
-      <Text style={styles.quickActionLabel}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  safeArea: { flex: 1 },
-  scrollContent: { padding: SPACING.md, paddingBottom: SPACING['2xl'] },
-  header: {
-    alignItems: 'center',
-    marginVertical: SPACING.lg,
-  },
-  appName: {
-    fontSize: TYPOGRAPHY.fontSize['3xl'],
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
-    color: COLORS.textPrimary,
-    letterSpacing: 6,
-    marginBottom: SPACING.xs,
-  },
-  greeting: {
-    fontSize: TYPOGRAPHY.fontSize.base,
-    color: COLORS.textSecondary,
-    letterSpacing: 1,
-  },
-  section: {
-    marginTop: SPACING.xl,
-  },
-  sectionTitle: {
-    fontSize: TYPOGRAPHY.fontSize.lg,
-    fontWeight: TYPOGRAPHY.fontWeight.semibold,
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-    letterSpacing: 0.5,
-  },
-  sectionSubtitle: {
-    fontSize: TYPOGRAPHY.fontSize.sm,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-  },
-  cardContainer: {
-    alignItems: 'center',
-    marginVertical: SPACING.md,
-  },
-  cardMeaning: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
-    marginTop: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-  },
-  cardKeywords: {
-    fontSize: TYPOGRAPHY.fontSize.xs,
+  safe: { flex: 1 },
+  scroll: { padding: 20, paddingBottom: 40 },
+  header: { alignItems: 'center', marginBottom: 32, marginTop: 8 },
+  title: {
+    fontSize: 42,
+    fontWeight: '800',
     color: COLORS.accent,
-    textAlign: 'center',
+    letterSpacing: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginTop: 4,
     letterSpacing: 1,
-    marginBottom: SPACING.sm,
+  },
+  date: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 8,
+    textTransform: 'capitalize',
+  },
+  section: { marginBottom: 24 },
+  sectionLabel: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+    marginBottom: 12,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  cardMeaningText: {
-    fontSize: TYPOGRAPHY.fontSize.base,
-    color: COLORS.textPrimary,
-    lineHeight: TYPOGRAPHY.fontSize.base * TYPOGRAPHY.lineHeight.relaxed,
+  tarotCard: {
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cardEmoji: { fontSize: 48, marginBottom: 12 },
+  cardName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text,
+    letterSpacing: 1,
+  },
+  cardNumber: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  cardKeyword: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 12,
     textAlign: 'center',
+  },
+  messageCard: {
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  messageText: {
+    fontSize: 15,
+    color: COLORS.text,
+    lineHeight: 24,
+    fontStyle: 'italic',
   },
   quickActions: {
     flexDirection: 'row',
-    gap: SPACING.md,
-    marginTop: SPACING.sm,
+    gap: 12,
   },
-  quickAction: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
+  quickBtn: { flex: 1 },
+  quickBtnGrad: {
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.primary,
-    ...SHADOW.card,
+    borderColor: COLORS.border,
   },
-  quickActionIcon: {
-    fontSize: 28,
-    marginBottom: SPACING.xs,
-  },
-  quickActionLabel: {
-    fontSize: TYPOGRAPHY.fontSize.xs,
-    color: COLORS.textSecondary,
-    fontWeight: TYPOGRAPHY.fontWeight.medium,
+  quickBtnIcon: { fontSize: 28, marginBottom: 8 },
+  quickBtnText: {
+    fontSize: 12,
+    color: COLORS.text,
     textAlign: 'center',
+    fontWeight: '600',
   },
 });
