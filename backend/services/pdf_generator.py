@@ -3,12 +3,14 @@ PDF Generator using ReportLab for Chilean payroll documents.
 Generates:
   - Liquidación de sueldo (payslip)
   - Libro de remuneraciones mensual
+  - Carta de amonestación
+  - Finiquito
 """
 
 import os
 import uuid
-from datetime import datetime
-from typing import Dict
+from datetime import datetime, date
+from typing import Dict, Optional
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, letter
@@ -16,9 +18,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm, mm
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer,
-    HRFlowable, KeepTogether
+    HRFlowable, KeepTogether, Image
 )
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
 
 from config import settings
