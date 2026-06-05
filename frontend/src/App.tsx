@@ -13,6 +13,8 @@ import LegalUpdates from './pages/LegalUpdates'
 import WarningLetters from './pages/WarningLetters'
 import Finiquito from './pages/Finiquito'
 import CompanySettings from './pages/CompanySettings'
+import Vacations from './pages/Vacations'
+import Contracts from './pages/Contracts'
 
 export default function App() {
   return (
@@ -35,6 +37,8 @@ export default function App() {
           <Route path="attendance" element={<Attendance />} />
           <Route path="reports" element={<Reports />} />
           <Route path="legal" element={<LegalUpdates />} />
+          <Route path="vacations" element={<Vacations />} />
+          <Route path="contracts" element={<Contracts />} />
           <Route path="warning-letters" element={<WarningLetters />} />
           <Route path="finiquito" element={<Finiquito />} />
           <Route path="company-settings" element={<CompanySettings />} />

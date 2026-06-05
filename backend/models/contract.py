@@ -34,6 +34,12 @@ class Contract(Base):
     is_active = Column(Boolean, default=True)
     notes = Column(Text)
     signed_at = Column(Date)
+    work_location = Column(String(255))
+    schedule_details = Column(String(255))
+    services_description = Column(Text)
+    additional_clauses = Column(Text)
+    obra_description = Column(Text)
+    has_confidentiality = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     employee = relationship("Employee", back_populates="contracts")

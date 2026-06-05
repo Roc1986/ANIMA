@@ -520,9 +520,9 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
 
     intro = (
         f"En {city}, a {term_date_str}, entre <b>{company_name}</b>, RUT {company_rut}, "
-        f"domiciliada en {company_address} (en adelante "la Empresa"), representada para estos efectos por su empleador, "
+        f'domiciliada en {company_address} (en adelante "la Empresa"), representada para estos efectos por su empleador, '
         f"y el(la) trabajador(a) <b>{data.get('employee_name', '')}</b>, RUT <b>{data.get('employee_rut', '')}</b>, "
-        f"domiciliado(a) en Chile (en adelante "el(la) Trabajador(a)"), se ha convenido el siguiente finiquito:"
+        f'domiciliado(a) en Chile (en adelante "el(la) Trabajador(a)"), se ha convenido el siguiente finiquito:'
     )
     elements.append(Paragraph(intro, body_style))
     elements.append(Spacer(1, 10))
@@ -706,6 +706,416 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     elements.append(Paragraph(
         f"Generado por ANIMA HR | {datetime.now().strftime('%d/%m/%Y %H:%M')} | "
         f"Documento sujeto a ratificación conforme Art. 177 Código del Trabajo",
+        ParagraphStyle("Footer", fontSize=6, textColor=DARK_GRAY, alignment=TA_CENTER)
+    ))
+
+    doc.build(elements)
+    return filepath
+
+
+def generate_vacation_certificate_pdf(employee, balance_data: dict, requests: list, company) -> str:
+    """Generate a Certificado de Vacaciones PDF per Chilean law (Art. 67 CT)."""
+    filename = f"certificado_vacaciones_{employee.rut}_{uuid.uuid4().hex[:8]}.pdf"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    doc = SimpleDocTemplate(
+        filepath,
+        pagesize=A4,
+        leftMargin=2.5*cm,
+        rightMargin=2.5*cm,
+        topMargin=2*cm,
+        bottomMargin=2*cm,
+    )
+
+    elements = []
+    primary_color, company_name, company_rut, company_address, company_phone, company_city = \
+        _company_header_elements(company, elements, getSampleStyleSheet())
+
+    title_style = ParagraphStyle("VT", fontSize=14, fontName="Helvetica-Bold",
+                                  textColor=primary_color, alignment=TA_CENTER, spaceAfter=4)
+    elements.append(Paragraph("CERTIFICADO DE VACACIONES", title_style))
+    elements.append(Paragraph(
+        "Artículo 67 del Código del Trabajo — Ley N° 18.620",
+        ParagraphStyle("Sub", fontSize=9, textColor=DARK_GRAY, alignment=TA_CENTER)
+    ))
+    elements.append(Spacer(1, 12))
+
+    # Date
+    today = date.today()
+    month_name = MONTH_NAMES.get(today.month, str(today.month))
+    date_str = f"{company_city}, {today.day} de {month_name} de {today.year}"
+    elements.append(Paragraph(date_str, ParagraphStyle("Date", fontSize=10, alignment=TA_RIGHT)))
+    elements.append(Spacer(1, 12))
+
+    full_name = employee.full_name if hasattr(employee, 'full_name') else f"{employee.first_name} {employee.last_name}"
+
+    # Employee data
+    hire_date_str = str(employee.hire_date)
+    emp_data = [
+        ["Trabajador(a):", full_name],
+        ["RUT:", employee.rut],
+        ["Cargo:", employee.position],
+        ["Departamento:", employee.department or "—"],
+        ["Fecha de Ingreso:", hire_date_str],
+    ]
+    emp_table = Table(emp_data, colWidths=[5*cm, 11*cm])
+    emp_table.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("ROWBACKGROUNDS", (0, 0), (-1, -1), [GRAY, colors.white]),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(emp_table)
+    elements.append(Spacer(1, 14))
+
+    body_style = ParagraphStyle("Body", fontSize=10, leading=15, alignment=TA_JUSTIFY)
+
+    # Vacation balance section
+    elements.append(Paragraph("<b>SALDO DE VACACIONES</b>",
+                               ParagraphStyle("SH", fontSize=11, fontName="Helvetica-Bold", textColor=primary_color)))
+    elements.append(Spacer(1, 6))
+
+    days_earned = balance_data.get("days_earned", 0)
+    days_taken = balance_data.get("days_taken", 0)
+    days_pending = balance_data.get("days_pending", 0)
+    months_worked = balance_data.get("months_worked", 0)
+    base_days = balance_data.get("base_days", 15)
+    progressive_days = balance_data.get("progressive_days", 0)
+    years_worked = balance_data.get("years_worked", 0)
+
+    calc_basis = (
+        f"Base legal: {base_days} días hábiles/año (Art. 67 CT)"
+        + (f" + {progressive_days} día(s) feriado progresivo (>{10} años en empresa)" if progressive_days > 0 else "")
+        + f" × {months_worked} meses trabajados / 12 = {days_earned:.2f} días hábiles ganados"
+    )
+
+    balance_data_table = [
+        ["Concepto", "Días Hábiles"],
+        ["Días ganados al " + date_str.split(",")[1].strip(), f"{days_earned:.2f}"],
+        [f"Base de cálculo: {base_days + progressive_days} días/año × {months_worked}/12 meses", ""],
+        ["Días tomados", f"{days_taken:.2f}"],
+        ["Días disponibles (pendientes)", f"{days_pending:.2f}"],
+    ]
+    bal_table = Table(balance_data_table, colWidths=[12*cm, 4*cm])
+    bal_table.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BACKGROUND", (0, 0), (-1, 0), primary_color),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("BACKGROUND", (0, -1), (-1, -1), LIGHT_BLUE),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, GRAY]),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey),
+        ("ALIGN", (1, 0), (1, -1), "CENTER"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("FONTSIZE", (0, 2), (0, 2), 7),
+        ("TEXTCOLOR", (0, 2), (0, 2), DARK_GRAY),
+    ]))
+    elements.append(bal_table)
+    elements.append(Spacer(1, 8))
+    elements.append(Paragraph(calc_basis, ParagraphStyle("Calc", fontSize=7, textColor=DARK_GRAY)))
+    elements.append(Spacer(1, 14))
+
+    # History of approved requests
+    approved = [r for r in requests if r.get("status") == "approved"]
+    if approved:
+        elements.append(Paragraph("<b>PERÍODOS DE VACACIONES TOMADOS</b>",
+                                   ParagraphStyle("SH2", fontSize=11, fontName="Helvetica-Bold", textColor=primary_color)))
+        elements.append(Spacer(1, 6))
+        hist_rows = [["Desde", "Hasta", "Días hábiles", "Estado"]]
+        for req in approved:
+            hist_rows.append([
+                str(req.get("start_date", "")),
+                str(req.get("end_date", "")),
+                f"{req.get('days_requested', 0):.2f}",
+                "Aprobado",
+            ])
+        hist_table = Table(hist_rows, colWidths=[4*cm, 4*cm, 4*cm, 4*cm])
+        hist_table.setStyle(TableStyle([
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("BACKGROUND", (0, 0), (-1, 0), primary_color),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, GRAY]),
+            ("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey),
+            ("ALIGN", (2, 0), (2, -1), "CENTER"),
+            ("ALIGN", (3, 0), (3, -1), "CENTER"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(hist_table)
+        elements.append(Spacer(1, 14))
+
+    # Pending approved request
+    pending_approved = [r for r in requests if r.get("status") == "approved" and r.get("start_date") and str(r.get("start_date")) >= str(date.today())]
+    if pending_approved:
+        req = pending_approved[0]
+        elements.append(Paragraph(
+            f"<b>Período de vacaciones autorizado:</b> desde el {req.get('start_date')} hasta el {req.get('end_date')} "
+            f"({req.get('days_requested', 0):.2f} días hábiles).",
+            body_style
+        ))
+        elements.append(Spacer(1, 10))
+
+    # Legal note
+    legal_note = (
+        "Las vacaciones constituyen un derecho irrenunciable del trabajador, conforme al <b>Artículo 67 del Código del Trabajo</b>. "
+        "No pueden compensarse en dinero mientras subsista la relación laboral, salvo en caso de término del contrato "
+        "(Art. 73 CT). Las vacaciones deben otorgarse dentro de los dos años siguientes a la fecha en que se genere el derecho."
+    )
+    elements.append(Paragraph(legal_note, ParagraphStyle("Legal", fontSize=8, leading=12, alignment=TA_JUSTIFY, textColor=DARK_GRAY)))
+    elements.append(Spacer(1, 20))
+
+    # Signatures
+    sig_data = [
+        ["_______________________________", "_______________________________"],
+        ["Firma Empleador", "Firma Trabajador(a)"],
+        [company_name, full_name],
+        [f"RUT: {company_rut}", f"RUT: {employee.rut}"],
+    ]
+    sig_table = Table(sig_data, colWidths=[9*cm, 9*cm])
+    sig_table.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
+        ("TEXTCOLOR", (0, 2), (-1, -1), DARK_GRAY),
+    ]))
+    elements.append(sig_table)
+    elements.append(Spacer(1, 10))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+    elements.append(Paragraph(
+        f"Generado por ANIMA HR | {datetime.now().strftime('%d/%m/%Y %H:%M')} | "
+        f"Documento emitido conforme al Código del Trabajo de Chile",
+        ParagraphStyle("Footer", fontSize=6, textColor=DARK_GRAY, alignment=TA_CENTER)
+    ))
+
+    doc.build(elements)
+    return filepath
+
+
+def generate_contract_pdf(contract, employee, company) -> str:
+    """Generate a full legal Chilean employment contract per Art. 10 CT."""
+    filename = f"contrato_{employee.rut}_{contract.id}_{uuid.uuid4().hex[:8]}.pdf"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    doc = SimpleDocTemplate(
+        filepath,
+        pagesize=A4,
+        leftMargin=2.5*cm,
+        rightMargin=2.5*cm,
+        topMargin=2*cm,
+        bottomMargin=2*cm,
+    )
+
+    elements = []
+    primary_color, company_name, company_rut, company_address, company_phone, company_city = \
+        _company_header_elements(company, elements, getSampleStyleSheet())
+
+    # Title
+    contract_type_labels = {
+        "indefinido": "CONTRATO DE TRABAJO INDEFINIDO",
+        "plazo_fijo": "CONTRATO DE TRABAJO A PLAZO FIJO",
+        "obra_faena": "CONTRATO DE TRABAJO POR OBRA O FAENA",
+        "part_time": "CONTRATO DE TRABAJO PART-TIME",
+    }
+    ct = str(contract.contract_type.value if hasattr(contract.contract_type, 'value') else contract.contract_type)
+    title = contract_type_labels.get(ct, "CONTRATO DE TRABAJO")
+
+    title_style = ParagraphStyle("CT", fontSize=13, fontName="Helvetica-Bold",
+                                  textColor=primary_color, alignment=TA_CENTER, spaceAfter=4)
+    elements.append(Paragraph(title, title_style))
+    elements.append(Paragraph(
+        "Artículo 10 del Código del Trabajo — República de Chile",
+        ParagraphStyle("Sub", fontSize=9, textColor=DARK_GRAY, alignment=TA_CENTER)
+    ))
+    elements.append(Spacer(1, 12))
+
+    body_style = ParagraphStyle("Body", fontSize=9, leading=14, alignment=TA_JUSTIFY)
+    clause_title_style = ParagraphStyle("CT2", fontSize=10, fontName="Helvetica-Bold", textColor=primary_color, spaceBefore=10, spaceAfter=4)
+
+    # Contract date
+    contract_date = contract.signed_at or contract.start_date
+    if contract_date:
+        cd = contract_date if hasattr(contract_date, 'month') else datetime.strptime(str(contract_date), "%Y-%m-%d").date()
+        month_name = MONTH_NAMES.get(cd.month, str(cd.month))
+        date_str = f"{company_city or 'Santiago'}, {cd.day} de {month_name} de {cd.year}"
+    else:
+        date_str = f"{company_city or 'Santiago'}, {date.today().day} de {MONTH_NAMES[date.today().month]} de {date.today().year}"
+
+    # Full name of employee
+    full_name = employee.full_name if hasattr(employee, 'full_name') else f"{employee.first_name} {employee.last_name}"
+    nationality = employee.nationality or "Chilena"
+    birth_date_str = str(employee.birth_date) if employee.birth_date else "—"
+    marital_status_labels = {
+        "single": "soltero(a)", "married": "casado(a)", "divorced": "divorciado(a)",
+        "widowed": "viudo(a)", "cohabiting": "conviviente civil",
+    }
+    ms = str(employee.marital_status.value if hasattr(employee.marital_status, 'value') else (employee.marital_status or "single"))
+    marital_str = marital_status_labels.get(ms, ms)
+    emp_address = employee.address or company_address or "Santiago, Chile"
+
+    # CLÁUSULA PRIMERA
+    elements.append(Paragraph("CLÁUSULA PRIMERA: PARTES CONTRATANTES", clause_title_style))
+    elements.append(Paragraph(
+        f"En {date_str}, entre <b>{company_name}</b>, RUT {company_rut}, "
+        f'domiciliada en {company_address or "Santiago"} (en adelante "el Empleador"), '
+        f"y <b>{full_name}</b>, RUT {employee.rut}, de nacionalidad {nationality}, "
+        f"estado civil {marital_str}, fecha de nacimiento {birth_date_str}, "
+        f'domiciliado(a) en {emp_address} (en adelante "el Trabajador"), '
+        f"se ha convenido el siguiente Contrato de Trabajo:",
+        body_style
+    ))
+
+    # CLÁUSULA SEGUNDA — Naturaleza de los servicios
+    elements.append(Paragraph("CLÁUSULA SEGUNDA: NATURALEZA DE LOS SERVICIOS (Art. 10 N° 3 CT)", clause_title_style))
+    services_desc = contract.services_description if hasattr(contract, 'services_description') and contract.services_description else (
+        f"El Trabajador se obliga a prestar sus servicios como <b>{employee.position}</b>"
+        + (f", en el departamento de {employee.department}" if employee.department else "")
+        + f", desarrollando todas las funciones propias de dicho cargo y aquellas que el Empleador le encomiende "
+        f"de conformidad a sus necesidades operativas, en la forma que el Empleador lo determine."
+    )
+    elements.append(Paragraph(services_desc, body_style))
+
+    # CLÁUSULA TERCERA — Lugar de prestación de servicios
+    elements.append(Paragraph("CLÁUSULA TERCERA: LUGAR DE PRESTACIÓN DE SERVICIOS (Art. 10 N° 4 CT)", clause_title_style))
+    work_location = contract.work_location if hasattr(contract, 'work_location') and contract.work_location else (company_address or "Santiago, Chile")
+    elements.append(Paragraph(
+        f"Los servicios convenidos en el presente contrato se prestarán en <b>{work_location}</b>, "
+        f"sin perjuicio de que el Empleador pueda requerir al Trabajador que preste servicios en otros "
+        f"lugares o ciudades dentro del territorio nacional, previa coordinación entre las partes.",
+        body_style
+    ))
+
+    # CLÁUSULA CUARTA — Remuneración
+    elements.append(Paragraph("CLÁUSULA CUARTA: REMUNERACIÓN (Art. 10 N° 5 CT)", clause_title_style))
+    from config import settings as cfg
+    base_salary = float(contract.base_salary)
+    gratif_type = contract.gratificacion_type or "legal"
+    gratif_desc = (
+        "conforme al Artículo 50 del Código del Trabajo (25% de las utilidades líquidas, con tope de 4,75 IMM mensual)"
+        if gratif_type == "legal" else
+        "garantizada equivalente al 25% de la remuneración mensual del Trabajador (Art. 50 CT)"
+    )
+
+    elements.append(Paragraph(
+        f"El Empleador pagará al Trabajador una <b>remuneración mensual bruta de ${base_salary:,.0f} (pesos chilenos)</b> "
+        f"por concepto de sueldo base, más gratificación {gratif_desc}. "
+        f"La remuneración se pagará dentro de los primeros cinco días hábiles del mes siguiente al período trabajado, "
+        f"mediante transferencia bancaria o el medio que las partes acuerden. "
+        f"De la remuneración se efectuarán los descuentos previsionales y legales correspondientes "
+        f"(AFP, salud, seguro de cesantía e impuesto único de segunda categoría).",
+        body_style
+    ))
+
+    # CLÁUSULA QUINTA — Jornada de trabajo
+    elements.append(Paragraph("CLÁUSULA QUINTA: JORNADA DE TRABAJO (Art. 10 N° 6 CT)", clause_title_style))
+    weekly_hours = contract.weekly_hours or 40
+    schedule = contract.schedule_details if hasattr(contract, 'schedule_details') and contract.schedule_details else (
+        f"de lunes a viernes, de 9:00 a 18:00 horas, con una hora de colación"
+    )
+    elements.append(Paragraph(
+        f"La jornada ordinaria de trabajo será de <b>{weekly_hours} horas semanales</b>, distribuidas "
+        f"{schedule}, de conformidad a la Ley N° 21.561 que redujo la jornada máxima laboral. "
+        f"Las horas extraordinarias que eventualmente se laboren serán remuneradas con el recargo legal "
+        f"del 50% sobre el valor de la hora ordinaria (Art. 32 CT), debiendo constar en pacto escrito previo.",
+        body_style
+    ))
+
+    # CLÁUSULA SEXTA — Plazo del contrato
+    elements.append(Paragraph("CLÁUSULA SEXTA: PLAZO DEL CONTRATO (Art. 10 N° 7 CT)", clause_title_style))
+    start_str = str(contract.start_date)
+    if ct == "indefinido":
+        plazo_text = (
+            f"El presente contrato tendrá vigencia <b>indefinida</b> a partir del {start_str}. "
+            f"Su terminación procederá únicamente por alguna de las causales establecidas en los "
+            f"Artículos 159, 160 y 161 del Código del Trabajo."
+        )
+    elif ct == "plazo_fijo":
+        end_str = str(contract.end_date) if contract.end_date else "—"
+        plazo_text = (
+            f"El presente contrato tendrá una vigencia de <b>plazo fijo</b>, desde el {start_str} "
+            f"hasta el <b>{end_str}</b>, inclusive. De conformidad al Artículo 159 N° 4 del Código del Trabajo, "
+            f"el contrato a plazo fijo no podrá exceder de un año (dos años para cargos gerenciales y técnicos). "
+            f"Si el Trabajador continuare prestando servicios con conocimiento del Empleador vencido el plazo, "
+            f"el contrato se transformará en indefinido. Del mismo modo, si el trabajador hubiere sido contratado "
+            f"por dos o más veces seguidas mediante contratos a plazo fijo, la relación laboral se considerará "
+            f"de carácter indefinido."
+        )
+    elif ct == "obra_faena":
+        obra_desc = contract.obra_description if hasattr(contract, 'obra_description') and contract.obra_description else "la obra o faena encomendada"
+        plazo_text = (
+            f"El presente contrato tendrá vigencia durante la duración de <b>{obra_desc}</b>, "
+            f"comenzando el {start_str}. El contrato terminará una vez concluida la obra o faena "
+            f"para la cual fue contratado el Trabajador, conforme al Artículo 159 N° 5 del Código del Trabajo."
+        )
+    else:
+        plazo_text = f"El presente contrato regirá desde el {start_str}."
+    elements.append(Paragraph(plazo_text, body_style))
+
+    # CLÁUSULA SÉPTIMA — Otros pactos
+    elements.append(Paragraph("CLÁUSULA SÉPTIMA: OTROS PACTOS Y BENEFICIOS (Art. 10 N° 8 CT)", clause_title_style))
+    additional = contract.additional_clauses if hasattr(contract, 'additional_clauses') and contract.additional_clauses else None
+    base_otros = (
+        "Las partes acuerdan que el Trabajador cumplirá con el Reglamento Interno de Orden, Higiene y Seguridad "
+        "de la empresa, cuya copia le es entregada en este acto. El Trabajador declara conocer y aceptar "
+        "las políticas internas de la empresa. Cualquier modificación al presente contrato deberá constar por escrito "
+        "y ser firmada por ambas partes."
+    )
+    if additional:
+        elements.append(Paragraph(base_otros + " " + additional, body_style))
+    else:
+        elements.append(Paragraph(base_otros, body_style))
+
+    # CLÁUSULA OCTAVA — Confidencialidad (if applicable)
+    if hasattr(contract, 'has_confidentiality') and contract.has_confidentiality:
+        elements.append(Paragraph("CLÁUSULA OCTAVA: CONFIDENCIALIDAD", clause_title_style))
+        elements.append(Paragraph(
+            "El Trabajador se obliga a guardar estricta reserva y confidencialidad respecto de toda la información, "
+            "datos, procesos, fórmulas, estrategias comerciales, información de clientes y demás antecedentes de "
+            "carácter reservado del Empleador a los que tenga acceso con ocasión de sus funciones. "
+            "Esta obligación subsistirá incluso después del término de la relación laboral.",
+            body_style
+        ))
+
+    elements.append(Spacer(1, 16))
+
+    # Closing
+    elements.append(Paragraph(
+        f"El presente contrato se firma en dos ejemplares del mismo tenor y fecha, quedando un ejemplar "
+        f"en poder de cada parte contratante.",
+        body_style
+    ))
+    elements.append(Spacer(1, 24))
+
+    # Signatures
+    sig_data = [
+        ["_______________________________", "_______________________________"],
+        ["Empleador", "Trabajador(a)"],
+        [company_name, full_name],
+        [f"RUT: {company_rut}", f"RUT: {employee.rut}"],
+        [company_address or "", emp_address],
+    ]
+    sig_table = Table(sig_data, colWidths=[9*cm, 9*cm])
+    sig_table.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
+        ("TEXTCOLOR", (0, 2), (-1, -1), DARK_GRAY),
+    ]))
+    elements.append(sig_table)
+    elements.append(Spacer(1, 10))
+    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
+    elements.append(Paragraph(
+        f"Generado por ANIMA HR | {datetime.now().strftime('%d/%m/%Y %H:%M')} | "
+        f"Documento emitido conforme al Artículo 10 del Código del Trabajo de Chile",
         ParagraphStyle("Footer", fontSize=6, textColor=DARK_GRAY, alignment=TA_CENTER)
     ))
 

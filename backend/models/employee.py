@@ -84,6 +84,8 @@ class Employee(Base):
     attendances = relationship("Attendance", back_populates="employee", cascade="all, delete-orphan")
     payroll_entries = relationship("PayrollEntry", back_populates="employee")
     documents = relationship("Document", back_populates="employee", cascade="all, delete-orphan")
+    vacation_balance = relationship("VacationBalance", back_populates="employee", uselist=False, cascade="all, delete-orphan")
+    vacation_requests = relationship("VacationRequest", back_populates="employee", cascade="all, delete-orphan")
 
     @property
     def full_name(self):

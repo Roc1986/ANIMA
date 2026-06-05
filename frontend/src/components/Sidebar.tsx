@@ -11,6 +11,8 @@ import {
   ExclamationTriangleIcon,
   DocumentCheckIcon,
   BuildingOfficeIcon,
+  SunIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline'
 
 const navItems = [
@@ -18,6 +20,8 @@ const navItems = [
   { to: '/employees', label: 'Empleados', icon: UsersIcon },
   { to: '/payroll', label: 'Remuneraciones', icon: CurrencyDollarIcon },
   { to: '/attendance', label: 'Asistencia', icon: ClockIcon },
+  { to: '/vacations', label: 'Vacaciones', icon: SunIcon },
+  { to: '/contracts', label: 'Contratos', icon: ClipboardDocumentListIcon },
   { to: '/reports', label: 'Reportes', icon: DocumentTextIcon },
   { to: '/warning-letters', label: 'Amonestaciones', icon: ExclamationTriangleIcon },
   { to: '/finiquito', label: 'Finiquito', icon: DocumentCheckIcon },

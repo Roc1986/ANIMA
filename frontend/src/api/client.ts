@@ -138,6 +138,32 @@ export const companyApi = {
   getLogo: () => api.get('/api/company/logo', { responseType: 'blob' }),
 }
 
+// --- Vacations ---
+export const vacationsApi = {
+  list: () => api.get('/api/vacations/'),
+  getEmployee: (employeeId: number) => api.get(`/api/vacations/${employeeId}`),
+  getBalance: (employeeId: number) => api.get(`/api/vacations/${employeeId}/balance`),
+  listRequests: (params?: Record<string, unknown>) => api.get('/api/vacations/requests', { params }),
+  createRequest: (data: unknown) => api.post('/api/vacations/requests', data),
+  approveRequest: (id: number, data?: unknown) => api.put(`/api/vacations/requests/${id}/approve`, data || {}),
+  rejectRequest: (id: number, data: unknown) => api.put(`/api/vacations/requests/${id}/reject`, data),
+  getCertificatePdf: (employeeId: number) =>
+    api.get(`/api/vacations/${employeeId}/pdf`, { responseType: 'blob' }),
+}
+
+// --- Contracts ---
+export const contractsApi = {
+  list: (params?: Record<string, unknown>) => api.get('/api/contracts/', { params }),
+  get: (id: number) => api.get(`/api/contracts/${id}`),
+  create: (data: unknown) => api.post('/api/contracts/', data),
+  update: (id: number, data: unknown) => api.put(`/api/contracts/${id}`, data),
+  delete: (id: number) => api.delete(`/api/contracts/${id}`),
+  downloadPdf: (id: number) =>
+    api.get(`/api/contracts/${id}/pdf`, { responseType: 'blob' }),
+  expiringSoon: (days?: number) =>
+    api.get('/api/contracts/expiring-soon', { params: { days: days ?? 30 } }),
+}
+
 // Helper to download blob
 export function downloadBlob(blob: Blob, filename: string) {
   const url = window.URL.createObjectURL(blob)
