@@ -1,0 +1,369 @@
+import { useEffect, useState } from 'react'
+import { payrollApi, reportsApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
+import { useForm } from 'react-hook-form'
+import toast from 'react-hot-toast'
+import {
+  PlusIcon, CalculatorIcon, CheckIcon, DocumentArrowDownIcon,
+  ChevronDownIcon, ChevronRightIcon
+} from '@heroicons/react/24/outline'
+
+interface PayrollRun {
+  id: number
+  period_year: number
+  period_month: number
+  status: string
+  uf_value: number
+  utm_value: number
+  imm_value: number
+  payment_date?: string
+  created_at: string
+}
+
+interface PayrollEntry {
+  id: number
+  employee_id: number
+  base_salary: number
+  gratificacion: number
+  total_haberes: number
+  descuento_afp: number
+  descuento_salud: number
+  descuento_cesantia: number
+  impuesto_unico: number
+  total_descuentos_previsionales: number
+  liquido_pagar: number
+  afp_name: string
+  health_system: string
+  dias_trabajados: number
+}
+
+const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+  draft: { label: 'Borrador', cls: 'badge-gray' },
+  calculated: { label: 'Calculada', cls: 'badge-blue' },
+  approved: { label: 'Aprobada', cls: 'badge-green' },
+  paid: { label: 'Pagada', cls: 'badge-green' },
+  cancelled: { label: 'Cancelada', cls: 'badge-red' },
+}
+
+export default function Payroll() {
+  const { isHR, isAdmin } = useAuth()
+  const [runs, setRuns] = useState<PayrollRun[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+  const [selectedRun, setSelectedRun] = useState<number | null>(null)
+  const [runDetail, setRunDetail] = useState<{ entries: PayrollEntry[]; total_liquido: number; total_costo_empresa: number; total_trabajadores: number } | null>(null)
+  const [processing, setProcessing] = useState(false)
+
+  const { register, handleSubmit, reset } = useForm({
+    defaultValues: {
+      period_year: new Date().getFullYear(),
+      period_month: new Date().getMonth() + 1,
+      uf_value: 38500,
+      utm_value: 67294,
+      imm_value: 500000,
+      payment_date: '',
+    }
+  })
+
+  const fetchRuns = async () => {
+    setLoading(true)
+    try {
+      const res = await payrollApi.list()
+      setRuns(res.data)
+    } catch {
+      toast.error('Error al cargar nóminas')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchRuns() }, [])
+
+  const fetchRunDetail = async (runId: number) => {
+    try {
+      const res = await payrollApi.get(runId)
+      setRunDetail(res.data)
+    } catch {
+      toast.error('Error al cargar detalle')
+    }
+  }
+
+  const toggleRun = (runId: number) => {
+    if (selectedRun === runId) {
+      setSelectedRun(null)
+      setRunDetail(null)
+    } else {
+      setSelectedRun(runId)
+      fetchRunDetail(runId)
+    }
+  }
+
+  const onCreate = async (data: unknown) => {
+    setProcessing(true)
+    try {
+      await payrollApi.create(data)
+      toast.success('Nómina creada')
+      setShowCreate(false)
+      reset()
+      fetchRuns()
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } }
+      toast.error(error.response?.data?.detail || 'Error al crear nómina')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const onCalculate = async (runId: number) => {
+    setProcessing(true)
+    try {
+      await payrollApi.calculate(runId)
+      toast.success('Nómina calculada para todos los empleados activos')
+      fetchRuns()
+      if (selectedRun === runId) fetchRunDetail(runId)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } }
+      toast.error(error.response?.data?.detail || 'Error al calcular')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const onApprove = async (runId: number) => {
+    setProcessing(true)
+    try {
+      await payrollApi.approve(runId)
+      toast.success('Nómina aprobada')
+      fetchRuns()
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } }
+      toast.error(error.response?.data?.detail || 'Error al aprobar')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const downloadLibroPdf = async (runId: number, year: number, month: number) => {
+    try {
+      const res = await reportsApi.libroPdf(runId)
+      downloadBlob(res.data, `libro_remuneraciones_${year}_${month.toString().padStart(2, '0')}.pdf`)
+    } catch {
+      toast.error('Error al generar PDF')
+    }
+  }
+
+  const downloadPrevired = async (runId: number, year: number, month: number) => {
+    try {
+      const res = await reportsApi.previredExcel(runId)
+      downloadBlob(res.data, `previred_${year}_${month.toString().padStart(2, '0')}.xlsx`)
+    } catch {
+      toast.error('Error al generar Excel Previred')
+    }
+  }
+
+  const downloadLiquidacion = async (runId: number, entryId: number, empId: number) => {
+    try {
+      const res = await payrollApi.getLiquidacionPdf(runId, entryId)
+      downloadBlob(res.data, `liquidacion_${empId}_run${runId}.pdf`)
+    } catch {
+      toast.error('Error al generar liquidación')
+    }
+  }
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Remuneraciones</h1>
+          <p className="text-gray-500 text-sm mt-1">Gestión de nóminas y liquidaciones de sueldo</p>
+        </div>
+        {isHR && (
+          <button onClick={() => setShowCreate(true)} className="btn-primary">
+            <PlusIcon className="w-4 h-4" /> Nueva Nómina
+          </button>
+        )}
+      </div>
+
+      {/* Runs list */}
+      <div className="space-y-3">
+        {loading ? (
+          <div className="card text-center text-gray-400 py-8">Cargando nóminas...</div>
+        ) : runs.length === 0 ? (
+          <div className="card text-center py-12">
+            <CalculatorIcon className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+            <p className="text-gray-400">No hay nóminas creadas</p>
+          </div>
+        ) : runs.map(run => {
+          const si = STATUS_LABELS[run.status] || { label: run.status, cls: 'badge-gray' }
+          const isOpen = selectedRun === run.id
+          return (
+            <div key={run.id} className="card p-0 overflow-hidden">
+              {/* Run header */}
+              <div
+                className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50"
+                onClick={() => toggleRun(run.id)}
+              >
+                {isOpen ? <ChevronDownIcon className="w-4 h-4 text-gray-400" /> : <ChevronRightIcon className="w-4 h-4 text-gray-400" />}
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-800">
+                    {MONTHS[run.period_month - 1]} {run.period_year}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    UF: ${Number(run.uf_value).toLocaleString('es-CL')} · UTM: ${Number(run.utm_value).toLocaleString('es-CL')} · IMM: ${Number(run.imm_value).toLocaleString('es-CL')}
+                  </p>
+                </div>
+                <span className={si.cls}>{si.label}</span>
+                <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                  {isHR && run.status === 'draft' && (
+                    <button
+                      onClick={() => onCalculate(run.id)}
+                      disabled={processing}
+                      className="btn-primary text-xs px-2 py-1.5"
+                    >
+                      <CalculatorIcon className="w-3.5 h-3.5" />
+                      Calcular
+                    </button>
+                  )}
+                  {isAdmin && run.status === 'calculated' && (
+                    <button
+                      onClick={() => onApprove(run.id)}
+                      disabled={processing}
+                      className="btn-primary text-xs px-2 py-1.5 bg-green-700 hover:bg-green-800"
+                    >
+                      <CheckIcon className="w-3.5 h-3.5" />
+                      Aprobar
+                    </button>
+                  )}
+                  {run.status !== 'draft' && (
+                    <>
+                      <button onClick={() => downloadLibroPdf(run.id, run.period_year, run.period_month)} className="btn-secondary text-xs px-2 py-1.5">
+                        <DocumentArrowDownIcon className="w-3.5 h-3.5" /> PDF Libro
+                      </button>
+                      <button onClick={() => downloadPrevired(run.id, run.period_year, run.period_month)} className="btn-secondary text-xs px-2 py-1.5">
+                        <DocumentArrowDownIcon className="w-3.5 h-3.5" /> Previred
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Run detail */}
+              {isOpen && runDetail && (
+                <div className="border-t border-gray-100">
+                  {/* Summary */}
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50">
+                    <div className="text-center">
+                      <p className="text-xl font-bold text-gray-800">{runDetail.total_trabajadores}</p>
+                      <p className="text-xs text-gray-500">Trabajadores</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-bold text-blue-700">{formatCLP(runDetail.total_liquido)}</p>
+                      <p className="text-xs text-gray-500">Total Líquido</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-bold text-orange-600">{formatCLP(runDetail.total_costo_empresa)}</p>
+                      <p className="text-xs text-gray-500">Costo Empresa</p>
+                    </div>
+                  </div>
+
+                  {/* Entries table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50">
+                          <th className="table-header text-xs">Emp. ID</th>
+                          <th className="table-header text-xs">Días</th>
+                          <th className="table-header text-xs">Sueldo Base</th>
+                          <th className="table-header text-xs">Gratif.</th>
+                          <th className="table-header text-xs">Total Hab.</th>
+                          <th className="table-header text-xs">AFP</th>
+                          <th className="table-header text-xs">Salud</th>
+                          <th className="table-header text-xs">Ces.</th>
+                          <th className="table-header text-xs">IUSC</th>
+                          <th className="table-header text-xs">Líquido</th>
+                          <th className="table-header text-xs"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {runDetail.entries.map(entry => (
+                          <tr key={entry.id} className="border-b border-gray-50 hover:bg-gray-50">
+                            <td className="table-cell text-xs">#{entry.employee_id}</td>
+                            <td className="table-cell text-xs">{entry.dias_trabajados}</td>
+                            <td className="table-cell text-xs">{formatCLP(entry.base_salary)}</td>
+                            <td className="table-cell text-xs">{formatCLP(entry.gratificacion)}</td>
+                            <td className="table-cell text-xs font-medium">{formatCLP(entry.total_haberes)}</td>
+                            <td className="table-cell text-xs text-red-600">-{formatCLP(entry.descuento_afp)}</td>
+                            <td className="table-cell text-xs text-red-600">-{formatCLP(entry.descuento_salud)}</td>
+                            <td className="table-cell text-xs text-red-600">-{formatCLP(entry.descuento_cesantia)}</td>
+                            <td className="table-cell text-xs text-red-600">-{formatCLP(entry.impuesto_unico)}</td>
+                            <td className="table-cell text-xs font-bold text-green-700">{formatCLP(entry.liquido_pagar)}</td>
+                            <td className="table-cell text-xs">
+                              <button
+                                onClick={() => downloadLiquidacion(run.id, entry.id, entry.employee_id)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Descargar liquidación"
+                              >
+                                <DocumentArrowDownIcon className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Create modal */}
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-6 border-b">
+              <h2 className="text-lg font-semibold">Nueva Nómina</h2>
+            </div>
+            <form onSubmit={handleSubmit(onCreate)} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Año</label>
+                  <input className="input" type="number" {...register('period_year', { required: true, valueAsNumber: true })} />
+                </div>
+                <div>
+                  <label className="label">Mes</label>
+                  <select className="input" {...register('period_month', { valueAsNumber: true })}>
+                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Valor UF (CLP)</label>
+                  <input className="input" type="number" {...register('uf_value', { required: true, valueAsNumber: true })} />
+                </div>
+                <div>
+                  <label className="label">Valor UTM (CLP)</label>
+                  <input className="input" type="number" {...register('utm_value', { required: true, valueAsNumber: true })} />
+                </div>
+                <div>
+                  <label className="label">IMM (CLP)</label>
+                  <input className="input" type="number" {...register('imm_value', { required: true, valueAsNumber: true })} />
+                </div>
+                <div>
+                  <label className="label">Fecha de Pago</label>
+                  <input className="input" type="date" {...register('payment_date')} />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary">Cancelar</button>
+                <button type="submit" disabled={processing} className="btn-primary">
+                  {processing ? 'Creando...' : 'Crear Nómina'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
