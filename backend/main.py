@@ -6,7 +6,7 @@ import os
 from database import engine, Base
 from models import *  # noqa - ensures all models are registered
 
-from routers import auth, employees, payroll, attendance, documents, reports, ai_legal
+from routers import auth, employees, payroll, attendance, documents, reports, ai_legal, warning_letters, finiquito, company
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -37,6 +37,9 @@ app.include_router(attendance.router, prefix="/api/attendance", tags=["Asistenci
 app.include_router(documents.router, prefix="/api/documents", tags=["Documentos"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reportes"])
 app.include_router(ai_legal.router, prefix="/api/ai-legal", tags=["IA Legal"])
+app.include_router(warning_letters.router, prefix="/api/warning-letters", tags=["Cartas de Amonestación"])
+app.include_router(finiquito.router, prefix="/api/finiquito", tags=["Finiquito"])
+app.include_router(company.router, prefix="/api/company", tags=["Configuración Empresa"])
 
 
 @app.get("/")

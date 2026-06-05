@@ -10,6 +10,9 @@ import Payroll from './pages/Payroll'
 import Attendance from './pages/Attendance'
 import Reports from './pages/Reports'
 import LegalUpdates from './pages/LegalUpdates'
+import WarningLetters from './pages/WarningLetters'
+import Finiquito from './pages/Finiquito'
+import CompanySettings from './pages/CompanySettings'
 
 export default function App() {
   return (
@@ -32,6 +35,9 @@ export default function App() {
           <Route path="attendance" element={<Attendance />} />
           <Route path="reports" element={<Reports />} />
           <Route path="legal" element={<LegalUpdates />} />
+          <Route path="warning-letters" element={<WarningLetters />} />
+          <Route path="finiquito" element={<Finiquito />} />
+          <Route path="company-settings" element={<CompanySettings />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

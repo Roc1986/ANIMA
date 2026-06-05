@@ -8,6 +8,9 @@ import {
   DocumentTextIcon,
   ScaleIcon,
   ArrowRightOnRectangleIcon,
+  ExclamationTriangleIcon,
+  DocumentCheckIcon,
+  BuildingOfficeIcon,
 } from '@heroicons/react/24/outline'
 
 const navItems = [
@@ -16,7 +19,10 @@ const navItems = [
   { to: '/payroll', label: 'Remuneraciones', icon: CurrencyDollarIcon },
   { to: '/attendance', label: 'Asistencia', icon: ClockIcon },
   { to: '/reports', label: 'Reportes', icon: DocumentTextIcon },
+  { to: '/warning-letters', label: 'Amonestaciones', icon: ExclamationTriangleIcon },
+  { to: '/finiquito', label: 'Finiquito', icon: DocumentCheckIcon },
   { to: '/legal', label: 'IA Legal', icon: ScaleIcon },
+  { to: '/company-settings', label: 'Empresa', icon: BuildingOfficeIcon },
 ]
 
 export function Sidebar() {

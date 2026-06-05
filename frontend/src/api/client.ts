@@ -106,6 +106,38 @@ export const aiLegalApi = {
   getLegalSummary: () => api.get('/api/ai-legal/analyze', { params: { query: 'resumen cambios 2024-2025' } }),
 }
 
+// --- Warning Letters ---
+export const warningLettersApi = {
+  list: (params?: Record<string, unknown>) =>
+    api.get('/api/warning-letters/', { params }),
+  get: (id: number) => api.get(`/api/warning-letters/${id}`),
+  create: (data: unknown) => api.post('/api/warning-letters/', data),
+  delete: (id: number) => api.delete(`/api/warning-letters/${id}`),
+  downloadPdf: (id: number) =>
+    api.get(`/api/warning-letters/${id}/pdf`, { responseType: 'blob' }),
+}
+
+// --- Finiquito ---
+export const finiquitoApi = {
+  calculate: (data: unknown) => api.post('/api/finiquito/calculate', data),
+  generatePdf: (data: unknown) =>
+    api.post('/api/finiquito/generate-pdf', data, { responseType: 'blob' }),
+}
+
+// --- Company ---
+export const companyApi = {
+  get: () => api.get('/api/company/'),
+  update: (data: unknown) => api.put('/api/company/', data),
+  uploadLogo: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/api/company/logo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  getLogo: () => api.get('/api/company/logo', { responseType: 'blob' }),
+}
+
 // Helper to download blob
 export function downloadBlob(blob: Blob, filename: string) {
   const url = window.URL.createObjectURL(blob)
