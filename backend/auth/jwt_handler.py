@@ -53,12 +53,23 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role not in ("admin", "hr_manager"):
+    if current_user.role not in ("super_admin", "company_admin", "admin", "hr_manager"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado")
     return current_user
 
 
 def require_admin_only(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != "admin":
+    if current_user.role not in ("super_admin", "company_admin", "admin"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo administradores")
     return current_user
+
+
+def require_super_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "super_admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo super administradores")
+    return current_user
+
+
+def get_current_company_id(token: str = Depends(oauth2_scheme)) -> Optional[int]:
+    payload = decode_token(token)
+    return payload.get("company_id")

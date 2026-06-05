@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { SuperAdminRoute } from './components/SuperAdminRoute'
 import { Layout } from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -15,6 +16,8 @@ import Finiquito from './pages/Finiquito'
 import CompanySettings from './pages/CompanySettings'
 import Vacations from './pages/Vacations'
 import Contracts from './pages/Contracts'
+import SuperDashboard from './pages/SuperDashboard'
+import CompanyList from './pages/CompanyList'
 
 export default function App() {
   return (
@@ -42,6 +45,10 @@ export default function App() {
           <Route path="warning-letters" element={<WarningLetters />} />
           <Route path="finiquito" element={<Finiquito />} />
           <Route path="company-settings" element={<CompanySettings />} />
+
+          {/* Super Admin routes */}
+          <Route path="super/dashboard" element={<SuperDashboard />} />
+          <Route path="super/companies" element={<CompanyList />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

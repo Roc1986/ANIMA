@@ -17,13 +17,17 @@ from models.user import User
 from services.payroll_calculator import ChileanPayrollCalculator
 from services.pdf_generator import generate_liquidacion_pdf
 from fastapi.responses import FileResponse
+from dependencies import filter_by_company
 import os
 
 router = APIRouter()
 
 
 def _get_legal_params(db: Session) -> dict:
-    params = db.query(LegalParameter).filter(LegalParameter.is_active == True).all()
+    params = db.query(LegalParameter).filter(
+        LegalParameter.is_active == True,
+        LegalParameter.company_id == None,
+    ).all()
     return {p.key: float(p.value) for p in params}
 
 
@@ -32,7 +36,9 @@ def list_payroll_runs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(PayrollRun).order_by(PayrollRun.period_year.desc(), PayrollRun.period_month.desc()).all()
+    q = db.query(PayrollRun)
+    q = filter_by_company(q, PayrollRun, current_user)
+    return q.order_by(PayrollRun.period_year.desc(), PayrollRun.period_month.desc()).all()
 
 
 @router.post("/", response_model=PayrollRunOut, status_code=201)
@@ -41,13 +47,21 @@ def create_payroll_run(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
+    company_id = current_user.company_id
+    if not company_id:
+        raise HTTPException(status_code=400, detail="Se requiere company_id")
+
     existing = db.query(PayrollRun).filter(
+        PayrollRun.company_id == company_id,
         PayrollRun.period_year == data.period_year,
         PayrollRun.period_month == data.period_month,
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Ya existe una nómina para ese período")
-    run = PayrollRun(**data.model_dump())
+
+    run_data = data.model_dump()
+    run_data['company_id'] = company_id
+    run = PayrollRun(**run_data)
     db.add(run)
     db.commit()
     db.refresh(run)
@@ -60,7 +74,9 @@ def get_payroll_run(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
+    q = db.query(PayrollRun).filter(PayrollRun.id == run_id)
+    q = filter_by_company(q, PayrollRun, current_user)
+    run = q.first()
     if not run:
         raise HTTPException(status_code=404, detail="Nómina no encontrada")
     entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id == run_id).all()
@@ -81,8 +97,9 @@ def calculate_payroll(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Calculate payroll for all active employees for this run."""
-    run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
+    q = db.query(PayrollRun).filter(PayrollRun.id == run_id)
+    q = filter_by_company(q, PayrollRun, current_user)
+    run = q.first()
     if not run:
         raise HTTPException(status_code=404, detail="Nómina no encontrada")
     if run.status not in (PayrollStatus.draft,):
@@ -96,17 +113,18 @@ def calculate_payroll(
         legal_params=legal_params,
     )
 
-    employees = db.query(Employee).filter(Employee.is_active == True).all()
+    employees = db.query(Employee).filter(
+        Employee.company_id == run.company_id,
+        Employee.is_active == True,
+    ).all()
     created_entries = []
 
     for emp in employees:
-        # Remove any existing entry for this run/employee
         db.query(PayrollEntry).filter(
             PayrollEntry.payroll_run_id == run_id,
             PayrollEntry.employee_id == emp.id,
         ).delete()
 
-        # Get active contract
         contract = db.query(Contract).filter(
             Contract.employee_id == emp.id,
             Contract.is_active == True,
@@ -147,8 +165,9 @@ def add_or_update_entry(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Add or recalculate a single employee entry in a payroll run."""
-    run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
+    q = db.query(PayrollRun).filter(PayrollRun.id == run_id)
+    q = filter_by_company(q, PayrollRun, current_user)
+    run = q.first()
     if not run:
         raise HTTPException(status_code=404, detail="Nómina no encontrada")
 
@@ -184,7 +203,6 @@ def add_or_update_entry(
         descuento_otros=float(req.descuento_otros),
     )
 
-    # Upsert entry
     existing = db.query(PayrollEntry).filter(
         PayrollEntry.payroll_run_id == run_id,
         PayrollEntry.employee_id == req.employee_id,
@@ -207,7 +225,9 @@ def approve_payroll(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
+    q = db.query(PayrollRun).filter(PayrollRun.id == run_id)
+    q = filter_by_company(q, PayrollRun, current_user)
+    run = q.first()
     if not run:
         raise HTTPException(status_code=404, detail="Nómina no encontrada")
     if run.status != PayrollStatus.calculated:

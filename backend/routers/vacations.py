@@ -130,7 +130,10 @@ def list_vacations_summary(
     current_user: User = Depends(get_current_user),
 ):
     """List all active employees with their vacation balance summary."""
-    employees = db.query(Employee).filter(Employee.is_active == True).all()
+    emp_q = db.query(Employee).filter(Employee.is_active == True)
+    if current_user.role != "super_admin" and current_user.company_id:
+        emp_q = emp_q.filter(Employee.company_id == current_user.company_id)
+    employees = emp_q.all()
     result = []
     for emp in employees:
         calc = calculate_vacation_balance(emp)

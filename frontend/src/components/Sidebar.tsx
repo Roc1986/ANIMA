@@ -13,9 +13,11 @@ import {
   BuildingOfficeIcon,
   SunIcon,
   ClipboardDocumentListIcon,
+  GlobeAltIcon,
+  BuildingStorefrontIcon,
 } from '@heroicons/react/24/outline'
 
-const navItems = [
+const hrNavItems = [
   { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
   { to: '/employees', label: 'Empleados', icon: UsersIcon },
   { to: '/payroll', label: 'Remuneraciones', icon: CurrencyDollarIcon },
@@ -29,14 +31,21 @@ const navItems = [
   { to: '/company-settings', label: 'Empresa', icon: BuildingOfficeIcon },
 ]
 
+const superNavItems = [
+  { to: '/super/dashboard', label: 'Dashboard Global', icon: GlobeAltIcon },
+  { to: '/super/companies', label: 'Empresas', icon: BuildingStorefrontIcon },
+]
+
 export function Sidebar() {
-  const { user, logout } = useAuth()
+  const { user, logout, isSuperAdmin, companyName } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
+
+  const navItems = isSuperAdmin() ? superNavItems : hrNavItems
 
   return (
     <aside className="w-64 min-h-screen bg-anima-blue flex flex-col">
@@ -48,7 +57,11 @@ export function Sidebar() {
           </div>
           <div>
             <h1 className="text-white font-bold text-lg leading-tight">ANIMA HR</h1>
-            <p className="text-blue-300 text-xs">Sistema de RRHH Chile</p>
+            {isSuperAdmin() ? (
+              <p className="text-yellow-300 text-xs font-semibold">Super Admin</p>
+            ) : (
+              <p className="text-blue-300 text-xs truncate">{companyName || 'Sistema de RRHH Chile'}</p>
+            )}
           </div>
         </div>
       </div>
@@ -76,14 +89,14 @@ export function Sidebar() {
       {/* User info */}
       <div className="px-4 py-4 border-t border-blue-800">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSuperAdmin() ? 'bg-yellow-500' : 'bg-blue-600'}`}>
             <span className="text-white text-sm font-medium">
               {user?.full_name?.charAt(0) || 'U'}
             </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-medium truncate">{user?.full_name}</p>
-            <p className="text-blue-300 text-xs capitalize">{user?.role?.replace('_', ' ')}</p>
+            <p className="text-blue-300 text-xs capitalize">{user?.role?.replace(/_/g, ' ')}</p>
           </div>
         </div>
         <button

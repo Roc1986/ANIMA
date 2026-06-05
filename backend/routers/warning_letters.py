@@ -65,6 +65,11 @@ def list_warning_letters(
     q = db.query(WarningLetter)
     if employee_id:
         q = q.filter(WarningLetter.employee_id == employee_id)
+    elif current_user.role != "super_admin" and current_user.company_id:
+        # Filter by company via employee join
+        q = q.join(Employee, WarningLetter.employee_id == Employee.id).filter(
+            Employee.company_id == current_user.company_id
+        )
     return q.order_by(WarningLetter.date.desc()).all()
 
 

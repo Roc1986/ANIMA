@@ -5,6 +5,7 @@ from datetime import date
 
 from database import get_db
 from models.attendance import Attendance
+from models.employee import Employee
 from schemas.attendance import AttendanceCreate, AttendanceUpdate, AttendanceOut, AttendanceBulkCreate
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
@@ -25,6 +26,10 @@ def list_attendance(
     q = db.query(Attendance)
     if employee_id:
         q = q.filter(Attendance.employee_id == employee_id)
+    elif current_user.role != "super_admin" and current_user.company_id:
+        q = q.join(Employee, Attendance.employee_id == Employee.id).filter(
+            Employee.company_id == current_user.company_id
+        )
     if date_from:
         q = q.filter(Attendance.date >= date_from)
     if date_to:

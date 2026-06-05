@@ -6,6 +6,7 @@ from models.employee import Gender, MaritalStatus, AFP, HealthSystem
 
 
 class EmployeeCreate(BaseModel):
+    company_id: Optional[int] = None  # set by router from current_user if not provided
     rut: str
     first_name: str
     last_name: str

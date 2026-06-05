@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Boolean, DateTime, Enum, Numeric, Text
+from sqlalchemy import Column, Integer, String, Date, Boolean, DateTime, Enum, Numeric, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -38,11 +38,12 @@ class Employee(Base):
     __tablename__ = "employees"
 
     id = Column(Integer, primary_key=True, index=True)
-    rut = Column(String(12), unique=True, index=True, nullable=False)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    rut = Column(String(12), index=True, nullable=False)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     second_last_name = Column(String(100))
-    email = Column(String(150), unique=True)
+    email = Column(String(150))
     phone = Column(String(20))
     address = Column(String(255))
     city = Column(String(100))
@@ -80,6 +81,7 @@ class Employee(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
+    company = relationship("Company", back_populates="employees")
     contracts = relationship("Contract", back_populates="employee", cascade="all, delete-orphan")
     attendances = relationship("Attendance", back_populates="employee", cascade="all, delete-orphan")
     payroll_entries = relationship("PayrollEntry", back_populates="employee")

@@ -34,7 +34,10 @@ def get_legal_parameters(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    params = db.query(LegalParameter).filter(LegalParameter.is_active == True).all()
+    params = db.query(LegalParameter).filter(
+        LegalParameter.is_active == True,
+        LegalParameter.company_id == None,
+    ).all()
     return params
 
 
@@ -102,7 +105,11 @@ def update_legal_parameter(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin_only),
 ):
-    param = db.query(LegalParameter).filter(LegalParameter.key == key, LegalParameter.is_active == True).first()
+    param = db.query(LegalParameter).filter(
+        LegalParameter.key == key,
+        LegalParameter.is_active == True,
+        LegalParameter.company_id == None,
+    ).first()
     if not param:
         raise HTTPException(status_code=404, detail="Parámetro no encontrado")
 
@@ -150,7 +157,7 @@ async def analyze_legal_changes(
 ):
     """Use Claude AI to analyze Chilean labor law changes and propose parameter updates."""
     service = AILegalService()
-    current_params = {p.key: float(p.value) for p in db.query(LegalParameter).filter(LegalParameter.is_active == True).all()}
+    current_params = {p.key: float(p.value) for p in db.query(LegalParameter).filter(LegalParameter.is_active == True, LegalParameter.company_id == None).all()}
 
     result = await service.analyze_legal_changes(query=query, current_params=current_params)
     return result
@@ -166,7 +173,7 @@ async def propose_parameter_update(
     current_user: User = Depends(require_admin),
 ):
     """Propose a parameter update (pending admin approval)."""
-    param = db.query(LegalParameter).filter(LegalParameter.key == key, LegalParameter.is_active == True).first()
+    param = db.query(LegalParameter).filter(LegalParameter.key == key, LegalParameter.is_active == True, LegalParameter.company_id == None).first()
     if not param:
         raise HTTPException(status_code=404, detail="Parámetro no encontrado")
 

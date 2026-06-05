@@ -8,6 +8,7 @@ from models.contract import Contract
 from schemas.employee import EmployeeCreate, EmployeeUpdate, EmployeeOut, EmployeeListOut
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
+from dependencies import filter_by_company
 
 router = APIRouter()
 
@@ -23,6 +24,7 @@ def list_employees(
     current_user: User = Depends(get_current_user),
 ):
     q = db.query(Employee)
+    q = filter_by_company(q, Employee, current_user)
     if is_active is not None:
         q = q.filter(Employee.is_active == is_active)
     if department:
@@ -43,10 +45,22 @@ def create_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    existing = db.query(Employee).filter(Employee.rut == data.rut).first()
+    if not current_user.company_id and current_user.role != "super_admin":
+        raise HTTPException(status_code=400, detail="Usuario sin empresa asignada")
+    company_id = data.company_id if hasattr(data, 'company_id') and data.company_id else current_user.company_id
+    if not company_id:
+        raise HTTPException(status_code=400, detail="Se requiere company_id")
+
+    existing = db.query(Employee).filter(
+        Employee.rut == data.rut,
+        Employee.company_id == company_id,
+    ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="RUT ya registrado")
-    emp = Employee(**data.model_dump())
+        raise HTTPException(status_code=400, detail="RUT ya registrado en esta empresa")
+
+    emp_data = data.model_dump()
+    emp_data['company_id'] = company_id
+    emp = Employee(**emp_data)
     db.add(emp)
     db.commit()
     db.refresh(emp)
@@ -70,7 +84,9 @@ def get_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    emp = db.query(Employee).filter(Employee.id == employee_id).first()
+    q = db.query(Employee).filter(Employee.id == employee_id)
+    q = filter_by_company(q, Employee, current_user)
+    emp = q.first()
     if not emp:
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
     return emp
@@ -83,7 +99,9 @@ def update_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    emp = db.query(Employee).filter(Employee.id == employee_id).first()
+    q = db.query(Employee).filter(Employee.id == employee_id)
+    q = filter_by_company(q, Employee, current_user)
+    emp = q.first()
     if not emp:
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
     for field, value in data.model_dump(exclude_unset=True).items():
@@ -99,7 +117,9 @@ def deactivate_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    emp = db.query(Employee).filter(Employee.id == employee_id).first()
+    q = db.query(Employee).filter(Employee.id == employee_id)
+    q = filter_by_company(q, Employee, current_user)
+    emp = q.first()
     if not emp:
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
     emp.is_active = False
@@ -113,5 +133,11 @@ def get_employee_contracts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Verify employee belongs to company
+    q = db.query(Employee).filter(Employee.id == employee_id)
+    q = filter_by_company(q, Employee, current_user)
+    emp = q.first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
     contracts = db.query(Contract).filter(Contract.employee_id == employee_id).all()
     return contracts

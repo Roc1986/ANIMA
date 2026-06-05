@@ -35,7 +35,20 @@ export const authApi = {
     api.post('/api/auth/login', { email, password }),
   me: () => api.get('/api/auth/me'),
   seedAdmin: () => api.post('/api/auth/seed-admin'),
+  seedSuperAdmin: () => api.post('/api/auth/seed-superadmin'),
   listUsers: () => api.get('/api/auth/users'),
+}
+
+// --- Super Admin ---
+export const superAdminApi = {
+  dashboard: () => api.get('/api/super/dashboard'),
+  listCompanies: () => api.get('/api/super/companies'),
+  createCompany: (data: unknown) => api.post('/api/super/companies', data),
+  updateCompany: (id: number, data: unknown) => api.put(`/api/super/companies/${id}`, data),
+  deactivateCompany: (id: number) => api.delete(`/api/super/companies/${id}`),
+  companyStats: (id: number) => api.get(`/api/super/companies/${id}/stats`),
+  createCompanyAdmin: (companyId: number, data: unknown) =>
+    api.post(`/api/super/companies/${companyId}/admin`, data),
 }
 
 // --- Employees ---

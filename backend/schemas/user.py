@@ -22,6 +22,7 @@ class UserOut(BaseModel):
     full_name: str
     role: UserRole
     is_active: bool
+    company_id: Optional[int] = None
     created_at: Optional[datetime]
 
     class Config:

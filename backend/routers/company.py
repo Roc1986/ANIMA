@@ -28,13 +28,15 @@ class CompanyUpdate(BaseModel):
     primary_color: Optional[str] = None
 
 
-def _get_or_create_company(db: Session) -> Company:
-    company = db.query(Company).first()
+def _get_company(db: Session, current_user: User) -> Company:
+    if current_user.role == "super_admin":
+        company = db.query(Company).first()
+    else:
+        if not current_user.company_id:
+            raise HTTPException(status_code=400, detail="Usuario sin empresa asignada")
+        company = db.query(Company).filter(Company.id == current_user.company_id).first()
     if not company:
-        company = Company(name="Mi Empresa", primary_color="#1e3a5f")
-        db.add(company)
-        db.commit()
-        db.refresh(company)
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
     return company
 
 
@@ -43,7 +45,7 @@ def get_company(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return _get_or_create_company(db)
+    return _get_company(db, current_user)
 
 
 @router.put("/")
@@ -52,7 +54,7 @@ def update_company(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    company = _get_or_create_company(db)
+    company = _get_company(db, current_user)
     for field, value in data.model_dump(exclude_unset=True).items():
         if value is not None:
             setattr(company, field, value)
@@ -74,8 +76,7 @@ def upload_logo(
     filepath = os.path.join(LOGOS_DIR, filename)
     with open(filepath, "wb") as f:
         shutil.copyfileobj(file.file, f)
-    company = _get_or_create_company(db)
-    # Remove old logo
+    company = _get_company(db, current_user)
     if company.logo_path and os.path.exists(company.logo_path):
         try:
             os.remove(company.logo_path)
@@ -92,7 +93,7 @@ def get_logo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    company = _get_or_create_company(db)
+    company = _get_company(db, current_user)
     if not company.logo_path or not os.path.exists(company.logo_path):
         raise HTTPException(status_code=404, detail="Logo no configurado")
     return FileResponse(company.logo_path)

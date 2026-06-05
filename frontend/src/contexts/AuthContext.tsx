@@ -7,6 +7,7 @@ interface User {
   full_name: string
   role: string
   is_active: boolean
+  company_id: number | null
 }
 
 interface AuthContextType {
@@ -17,13 +18,26 @@ interface AuthContextType {
   logout: () => void
   isAdmin: boolean
   isHR: boolean
+  isSuperAdmin: () => boolean
+  companyId: number | null
+  companyName: string | null
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+function parseCompanyNameFromToken(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.company_name || null
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const [companyName, setCompanyName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   const logout = useCallback(() => {
@@ -31,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('user')
     setUser(null)
     setToken(null)
+    setCompanyName(null)
   }, [])
 
   useEffect(() => {
@@ -38,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedUser = localStorage.getItem('user')
     if (savedToken && savedUser) {
       setToken(savedToken)
+      setCompanyName(parseCompanyNameFromToken(savedToken))
       try {
         setUser(JSON.parse(savedUser))
       } catch {
@@ -54,13 +70,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('user', JSON.stringify(userData))
     setToken(access_token)
     setUser(userData)
+    setCompanyName(parseCompanyNameFromToken(access_token))
   }
 
-  const isAdmin = user?.role === 'admin'
-  const isHR = user?.role === 'admin' || user?.role === 'hr_manager'
+  const isAdmin = user?.role === 'admin' || user?.role === 'company_admin' || user?.role === 'super_admin'
+  const isHR = isAdmin || user?.role === 'hr_manager'
+  const isSuperAdmin = () => user?.role === 'super_admin'
+  const companyId = user?.company_id ?? null
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, isAdmin, isHR }}>
+    <AuthContext.Provider value={{
+      user, token, loading, login, logout,
+      isAdmin, isHR, isSuperAdmin, companyId, companyName
+    }}>
       {children}
     </AuthContext.Provider>
   )

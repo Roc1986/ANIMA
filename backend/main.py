@@ -6,7 +6,10 @@ import os
 from database import engine, Base
 from models import *  # noqa - ensures all models are registered
 
-from routers import auth, employees, payroll, attendance, documents, reports, ai_legal, warning_letters, finiquito, company, vacations, contracts
+from routers import (
+    auth, employees, payroll, attendance, documents, reports,
+    ai_legal, warning_letters, finiquito, company, vacations, contracts, super_admin
+)
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -14,7 +17,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="ANIMA HR - Sistema de RRHH y Nóminas Chile",
     description="Sistema integral de gestión de recursos humanos y nóminas para empresas chilenas",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -42,11 +45,12 @@ app.include_router(finiquito.router, prefix="/api/finiquito", tags=["Finiquito"]
 app.include_router(company.router, prefix="/api/company", tags=["Configuración Empresa"])
 app.include_router(vacations.router, prefix="/api/vacations", tags=["Control de Vacaciones"])
 app.include_router(contracts.router, prefix="/api/contracts", tags=["Contratos de Trabajo"])
+app.include_router(super_admin.router, prefix="/api/super", tags=["Super Administración"])
 
 
 @app.get("/")
 def root():
-    return {"message": "ANIMA HR API v1.0", "docs": "/docs"}
+    return {"message": "ANIMA HR API v2.0 - Multi-empresa", "docs": "/docs"}
 
 
 @app.get("/api/health")

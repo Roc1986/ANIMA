@@ -117,6 +117,10 @@ def list_contracts(
     q = db.query(Contract)
     if employee_id:
         q = q.filter(Contract.employee_id == employee_id)
+    elif current_user.role != "super_admin" and current_user.company_id:
+        q = q.join(Employee, Contract.employee_id == Employee.id).filter(
+            Employee.company_id == current_user.company_id
+        )
     if is_active is not None:
         q = q.filter(Contract.is_active == is_active)
     if contract_type:
@@ -140,17 +144,17 @@ def list_expiring_contracts(
     """List plazo fijo contracts expiring within the next N days."""
     today = date.today()
     cutoff = today + timedelta(days=days)
-    contracts = (
-        db.query(Contract)
-        .filter(
-            Contract.is_active == True,
-            Contract.end_date != None,
-            Contract.end_date >= today,
-            Contract.end_date <= cutoff,
-        )
-        .order_by(Contract.end_date.asc())
-        .all()
+    q = db.query(Contract).filter(
+        Contract.is_active == True,
+        Contract.end_date != None,
+        Contract.end_date >= today,
+        Contract.end_date <= cutoff,
     )
+    if current_user.role != "super_admin" and current_user.company_id:
+        q = q.join(Employee, Contract.employee_id == Employee.id).filter(
+            Employee.company_id == current_user.company_id
+        )
+    contracts = q.order_by(Contract.end_date.asc()).all()
     result = []
     for c in contracts:
         emp = db.query(Employee).filter(Employee.id == c.employee_id).first()

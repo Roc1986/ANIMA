@@ -17,6 +17,7 @@ class PayrollRun(Base):
     __tablename__ = "payroll_runs"
 
     id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
     period_year = Column(Integer, nullable=False)
     period_month = Column(Integer, nullable=False)
     status = Column(Enum(PayrollStatus), default=PayrollStatus.draft)
@@ -30,6 +31,7 @@ class PayrollRun(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    company = relationship("Company", back_populates="payroll_runs")
     entries = relationship("PayrollEntry", back_populates="payroll_run", cascade="all, delete-orphan")
 
 
@@ -41,36 +43,36 @@ class PayrollEntry(Base):
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
 
     # Haberes
-    base_salary = Column(Numeric(12, 2), default=0)           # Sueldo base
-    overtime_weekday = Column(Numeric(12, 2), default=0)       # HH.EE días hábiles
-    overtime_sunday = Column(Numeric(12, 2), default=0)        # HH.EE domingos/festivos
-    gratificacion = Column(Numeric(12, 2), default=0)          # Gratificación legal
-    bono_colacion = Column(Numeric(12, 2), default=0)          # Colación (no imponible)
-    bono_movilizacion = Column(Numeric(12, 2), default=0)      # Movilización (no imponible)
-    bono_otros = Column(Numeric(12, 2), default=0)             # Otros bonos imponibles
-    asignacion_familiar = Column(Numeric(12, 2), default=0)    # Asignación familiar
-    total_haberes = Column(Numeric(12, 2), default=0)          # Total haberes
+    base_salary = Column(Numeric(12, 2), default=0)
+    overtime_weekday = Column(Numeric(12, 2), default=0)
+    overtime_sunday = Column(Numeric(12, 2), default=0)
+    gratificacion = Column(Numeric(12, 2), default=0)
+    bono_colacion = Column(Numeric(12, 2), default=0)
+    bono_movilizacion = Column(Numeric(12, 2), default=0)
+    bono_otros = Column(Numeric(12, 2), default=0)
+    asignacion_familiar = Column(Numeric(12, 2), default=0)
+    total_haberes = Column(Numeric(12, 2), default=0)
 
     # Imponible / No imponible
-    remuneracion_imponible = Column(Numeric(12, 2), default=0) # Base cálculo descuentos
-    remuneracion_tributable = Column(Numeric(12, 2), default=0)# Base IUSC
+    remuneracion_imponible = Column(Numeric(12, 2), default=0)
+    remuneracion_tributable = Column(Numeric(12, 2), default=0)
 
-    # Descuentos previsionales (cargo trabajador)
+    # Descuentos previsionales
     descuento_afp = Column(Numeric(12, 2), default=0)
     descuento_salud = Column(Numeric(12, 2), default=0)
-    descuento_cesantia = Column(Numeric(12, 2), default=0)     # Cargo trabajador 0.6%
+    descuento_cesantia = Column(Numeric(12, 2), default=0)
     total_descuentos_previsionales = Column(Numeric(12, 2), default=0)
 
     # Impuesto
-    impuesto_unico = Column(Numeric(12, 2), default=0)         # IUSC
+    impuesto_unico = Column(Numeric(12, 2), default=0)
 
     # Otros descuentos
     descuento_otros = Column(Numeric(12, 2), default=0)
     adelanto = Column(Numeric(12, 2), default=0)
 
     # Aportes empleador
-    aporte_cesantia_empleador = Column(Numeric(12, 2), default=0)  # 2.4% o 3%
-    aporte_sis = Column(Numeric(12, 2), default=0)                  # 1.49%
+    aporte_cesantia_empleador = Column(Numeric(12, 2), default=0)
+    aporte_sis = Column(Numeric(12, 2), default=0)
     total_costo_empleador = Column(Numeric(12, 2), default=0)
 
     # Líquido
@@ -86,7 +88,7 @@ class PayrollEntry(Base):
     afp_rate = Column(Numeric(6, 4))
     health_system = Column(String(20))
     contract_type = Column(String(20))
-    breakdown = Column(JSON)  # Desglose detallado para liquidación
+    breakdown = Column(JSON)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

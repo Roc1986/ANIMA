@@ -76,10 +76,15 @@ def dashboard_stats(
     current_user: User = Depends(get_current_user),
 ):
     from models.employee import Employee as Emp
-    total_employees = db.query(Emp).filter(Emp.is_active == True).count()
-    total_all = db.query(Emp).count()
+    emp_q = db.query(Emp)
+    run_q = db.query(PayrollRun)
+    if current_user.role != "super_admin" and current_user.company_id:
+        emp_q = emp_q.filter(Emp.company_id == current_user.company_id)
+        run_q = run_q.filter(PayrollRun.company_id == current_user.company_id)
+    total_employees = emp_q.filter(Emp.is_active == True).count()
+    total_all = emp_q.count()
 
-    latest_run = db.query(PayrollRun).order_by(
+    latest_run = run_q.order_by(
         PayrollRun.period_year.desc(), PayrollRun.period_month.desc()
     ).first()
 

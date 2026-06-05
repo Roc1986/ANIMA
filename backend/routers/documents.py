@@ -8,6 +8,7 @@ import uuid
 
 from database import get_db
 from models.document import Document, DocumentType
+from models.employee import Employee
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 
@@ -27,6 +28,10 @@ def list_documents(
     q = db.query(Document)
     if employee_id:
         q = q.filter(Document.employee_id == employee_id)
+    elif current_user.role != "super_admin" and current_user.company_id:
+        q = q.join(Employee, Document.employee_id == Employee.id, isouter=True).filter(
+            (Employee.company_id == current_user.company_id) | (Document.employee_id == None)
+        )
     if document_type:
         q = q.filter(Document.document_type == document_type)
     return q.order_by(Document.created_at.desc()).all()
