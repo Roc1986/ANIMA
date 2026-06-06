@@ -178,7 +178,7 @@ def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
     ])
 
     def style_detail_table(rows, color=BLUE):
-        t = Table(rows, colWidths=[7.5*cm, 3*cm])
+        t = Table(rows, colWidths=[6.5*cm, 2.5*cm])
         style = [
             ("FONTSIZE", (0, 0), (-1, -1), 8),
             ("ALIGN", (1, 0), (1, -1), "RIGHT"),
@@ -197,7 +197,7 @@ def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
     desc_table = style_detail_table(descuentos_rows, GREEN)
 
     # Side by side
-    combined = Table([[hab_table, desc_table]], colWidths=[10.5*cm, 10.5*cm])
+    combined = Table([[hab_table, desc_table]], colWidths=[9.2*cm, 9.2*cm])
     combined.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (1, 0), (1, -1), 8),
@@ -213,7 +213,7 @@ def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
         [Paragraph("<b>TOTAL COSTO EMPRESA</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold")),
          Paragraph(f"<b>{_fmt_clp(entry.total_costo_empleador)}</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold", alignment=TA_RIGHT))],
     ]
-    emp_cost_table = Table(employer_data, colWidths=[14*cm, 4*cm])
+    emp_cost_table = Table(employer_data, colWidths=[14.2*cm, 4*cm])
     emp_cost_table.setStyle(TableStyle([
         ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
