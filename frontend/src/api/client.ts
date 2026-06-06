@@ -72,6 +72,13 @@ export const payrollApi = {
   approve: (id: number) => api.post(`/api/payroll/${id}/approve`),
   getLiquidacionPdf: (runId: number, entryId: number) =>
     api.get(`/api/payroll/${runId}/entry/${entryId}/pdf`, { responseType: 'blob' }),
+  reverseCalculate: (data: {
+    liquido_deseado: number
+    afp: string
+    health_system: string
+    contract_type: string
+    isapre_monthly_amount: number
+  }) => api.post('/api/payroll/reverse-calculate', data),
 }
 
 // --- Attendance ---

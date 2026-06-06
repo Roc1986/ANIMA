@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import {
   PlusIcon, CalculatorIcon, CheckIcon, DocumentArrowDownIcon,
-  ChevronDownIcon, ChevronRightIcon
+  ChevronDownIcon, ChevronRightIcon, ArrowsRightLeftIcon
 } from '@heroicons/react/24/outline'
 
 interface PayrollRun {
@@ -45,14 +45,45 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   cancelled: { label: 'Cancelada', cls: 'badge-red' },
 }
 
+interface ReverseCalcResult {
+  liquido_deseado: number
+  sueldo_base_requerido: number
+  remuneracion_imponible: number
+  gratificacion: number
+  descuento_afp: number
+  descuento_salud: number
+  descuento_cesantia: number
+  impuesto_unico: number
+  total_descuentos: number
+  liquido_resultante: number
+  diferencia: number
+}
+
 export default function Payroll() {
   const { isHR, isAdmin } = useAuth()
   const [runs, setRuns] = useState<PayrollRun[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
+  const [showReverseCalc, setShowReverseCalc] = useState(false)
+  const [reverseCalcResult, setReverseCalcResult] = useState<ReverseCalcResult | null>(null)
+  const [reverseCalcProcessing, setReverseCalcProcessing] = useState(false)
   const [selectedRun, setSelectedRun] = useState<number | null>(null)
   const [runDetail, setRunDetail] = useState<{ entries: PayrollEntry[]; total_liquido: number; total_costo_empresa: number; total_trabajadores: number } | null>(null)
   const [processing, setProcessing] = useState(false)
+
+  const {
+    register: registerReverse,
+    handleSubmit: handleSubmitReverse,
+    reset: resetReverse,
+  } = useForm({
+    defaultValues: {
+      liquido_deseado: 600000,
+      afp: 'Habitat',
+      health_system: 'FONASA',
+      contract_type: 'indefinido',
+      isapre_monthly_amount: 0,
+    }
+  })
 
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
@@ -170,6 +201,20 @@ export default function Payroll() {
     }
   }
 
+  const onReverseCalculate = async (data: unknown) => {
+    setReverseCalcProcessing(true)
+    setReverseCalcResult(null)
+    try {
+      const res = await payrollApi.reverseCalculate(data as Parameters<typeof payrollApi.reverseCalculate>[0])
+      setReverseCalcResult(res.data)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } }
+      toast.error(error.response?.data?.detail || 'Error al calcular')
+    } finally {
+      setReverseCalcProcessing(false)
+    }
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -177,11 +222,16 @@ export default function Payroll() {
           <h1 className="text-2xl font-bold text-gray-900">Remuneraciones</h1>
           <p className="text-gray-500 text-sm mt-1">Gestión de nóminas y liquidaciones de sueldo</p>
         </div>
-        {isHR && (
-          <button onClick={() => setShowCreate(true)} className="btn-primary">
-            <PlusIcon className="w-4 h-4" /> Nueva Nómina
+        <div className="flex gap-2">
+          <button onClick={() => { setShowReverseCalc(true); setReverseCalcResult(null); resetReverse() }} className="btn-secondary">
+            <ArrowsRightLeftIcon className="w-4 h-4" /> Calcular Sueldo Base
           </button>
-        )}
+          {isHR && (
+            <button onClick={() => setShowCreate(true)} className="btn-primary">
+              <PlusIcon className="w-4 h-4" /> Nueva Nómina
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Runs list */}
@@ -317,6 +367,141 @@ export default function Payroll() {
           )
         })}
       </div>
+
+      {/* Reverse Calculator Modal */}
+      {showReverseCalc && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <h2 className="text-lg font-semibold">Calculadora de Sueldo Base</h2>
+              <p className="text-sm text-gray-500 mt-1">Ingresa el líquido que debe recibir el trabajador</p>
+            </div>
+            <form onSubmit={handleSubmitReverse(onReverseCalculate)} className="p-6 space-y-4">
+              <div>
+                <label className="label">Líquido Deseado (CLP)</label>
+                <input
+                  className="input"
+                  type="number"
+                  min={500000}
+                  step={1000}
+                  {...registerReverse('liquido_deseado', { required: true, valueAsNumber: true, min: 500000 })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">AFP</label>
+                  <select className="input" {...registerReverse('afp')}>
+                    <option value="Habitat">Habitat</option>
+                    <option value="Provida">Provida</option>
+                    <option value="Capital">Capital</option>
+                    <option value="Cuprum">Cuprum</option>
+                    <option value="Planvital">Planvital</option>
+                    <option value="Model">Model</option>
+                    <option value="Uno">Uno</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Sistema de Salud</label>
+                  <select className="input" {...registerReverse('health_system')}>
+                    <option value="FONASA">FONASA</option>
+                    <option value="ISAPRE">ISAPRE</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Tipo de Contrato</label>
+                  <select className="input" {...registerReverse('contract_type')}>
+                    <option value="indefinido">Indefinido</option>
+                    <option value="plazo_fijo">Plazo Fijo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Monto ISAPRE (CLP)</label>
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    step={1000}
+                    {...registerReverse('isapre_monthly_amount', { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowReverseCalc(false); setReverseCalcResult(null) }}
+                  className="btn-secondary"
+                >
+                  Cerrar
+                </button>
+                <button type="submit" disabled={reverseCalcProcessing} className="btn-primary">
+                  {reverseCalcProcessing ? 'Calculando...' : 'Calcular'}
+                </button>
+              </div>
+            </form>
+
+            {reverseCalcResult && (
+              <div className="px-6 pb-6">
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold text-gray-800 mb-3">Resultado</h3>
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-gray-100">
+                      <tr className="py-2">
+                        <td className="py-2 text-gray-600">Sueldo Base Requerido</td>
+                        <td className="py-2 text-right font-semibold">{formatCLP(reverseCalcResult.sueldo_base_requerido)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600">Gratificación Legal</td>
+                        <td className="py-2 text-right">{formatCLP(reverseCalcResult.gratificacion)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600">Remuneración Imponible</td>
+                        <td className="py-2 text-right">{formatCLP(reverseCalcResult.remuneracion_imponible)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 text-red-600">AFP</td>
+                        <td className="py-2 text-right text-red-600">-{formatCLP(reverseCalcResult.descuento_afp)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 text-red-600">Salud</td>
+                        <td className="py-2 text-right text-red-600">-{formatCLP(reverseCalcResult.descuento_salud)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 text-red-600">Cesantía</td>
+                        <td className="py-2 text-right text-red-600">-{formatCLP(reverseCalcResult.descuento_cesantia)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 text-red-600">Impuesto Único</td>
+                        <td className="py-2 text-right text-red-600">-{formatCLP(reverseCalcResult.impuesto_unico)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 text-gray-600 font-medium text-red-700">Total Descuentos</td>
+                        <td className="py-2 text-right font-medium text-red-700">-{formatCLP(reverseCalcResult.total_descuentos)}</td>
+                      </tr>
+                      <tr className="bg-green-50 rounded">
+                        <td className="py-2 px-2 text-green-800 font-bold">Líquido a Pagar</td>
+                        <td className="py-2 px-2 text-right font-bold text-green-700">{formatCLP(reverseCalcResult.liquido_resultante)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <p className="text-xs text-gray-400">Valores aproximados, pueden variar ±$1 por redondeo</p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(String(reverseCalcResult.sueldo_base_requerido))
+                        toast.success('Sueldo base copiado al portapapeles')
+                      }}
+                      className="btn-secondary text-xs"
+                    >
+                      Usar este sueldo base
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Create modal */}
       {showCreate && (

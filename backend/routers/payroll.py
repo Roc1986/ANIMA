@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from decimal import Decimal
+from pydantic import BaseModel
 
 from database import get_db
 from models.payroll import PayrollRun, PayrollEntry, PayrollStatus
@@ -240,6 +241,119 @@ def approve_payroll(
     run.approved_at = datetime.utcnow()
     db.commit()
     return {"message": "Nómina aprobada"}
+
+
+class ReverseCalculateRequest(BaseModel):
+    liquido_deseado: float
+    afp: str = "Habitat"
+    health_system: str = "FONASA"
+    contract_type: str = "indefinido"
+    isapre_monthly_amount: float = 0
+
+
+class MockEmployee:
+    def __init__(self, base_salary, afp, health_system, isapre_monthly_amount=0):
+        self.base_salary = base_salary
+        self.afp = afp
+        self.health_system = health_system
+        self.isapre_monthly_amount = isapre_monthly_amount
+        self.second_last_name = None
+
+
+@router.post("/reverse-calculate")
+def reverse_calculate(
+    req: ReverseCalculateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Calculates the required gross salary (sueldo base) to achieve a desired net pay (líquido).
+    Uses iterative bisection to converge within $1.
+    """
+    legal_params = _get_legal_params(db)
+
+    # Use current reference values (approximate if no run context available)
+    uf_value = legal_params.get("UF_VALUE", 38500.0)
+    utm_value = legal_params.get("UTM_VALUE", 67294.0)
+    imm_value = legal_params.get("IMM_VALUE", 500000.0)
+
+    # Fallback defaults if not in legal_params
+    if uf_value == 38500.0 and "UF_VALUE" not in legal_params:
+        uf_value = 38500.0
+    if utm_value == 67294.0 and "UTM_VALUE" not in legal_params:
+        utm_value = 67294.0
+    if imm_value == 500000.0 and "IMM_VALUE" not in legal_params:
+        imm_value = 500000.0
+
+    calculator = ChileanPayrollCalculator(
+        uf_value=uf_value,
+        utm_value=utm_value,
+        imm_value=imm_value,
+        legal_params=legal_params,
+    )
+
+    liquido_deseado = req.liquido_deseado
+
+    def calc_liquido(sueldo_base: float) -> dict:
+        emp = MockEmployee(
+            base_salary=sueldo_base,
+            afp=req.afp,
+            health_system=req.health_system,
+            isapre_monthly_amount=req.isapre_monthly_amount,
+        )
+        return calculator.calculate(emp, contract_type=req.contract_type)
+
+    # Bisection search
+    lo = liquido_deseado * 0.9
+    hi = liquido_deseado * 2.0
+
+    # Expand hi if needed
+    for _ in range(20):
+        result = calc_liquido(hi)
+        if result["liquido_pagar"] >= liquido_deseado:
+            break
+        hi *= 1.5
+
+    best_result = None
+    best_sueldo = hi
+
+    for _ in range(50):
+        mid = (lo + hi) / 2.0
+        result = calc_liquido(mid)
+        liquido = result["liquido_pagar"]
+
+        if abs(liquido - liquido_deseado) <= 1:
+            best_result = result
+            best_sueldo = mid
+            break
+
+        if liquido < liquido_deseado:
+            lo = mid
+        else:
+            hi = mid
+            best_result = result
+            best_sueldo = mid
+
+    if best_result is None:
+        best_result = calc_liquido(best_sueldo)
+
+    sueldo_base_requerido = int(round(best_sueldo))
+    # Recalculate with rounded value for clean output
+    final_result = calc_liquido(sueldo_base_requerido)
+
+    return {
+        "liquido_deseado": int(liquido_deseado),
+        "sueldo_base_requerido": sueldo_base_requerido,
+        "remuneracion_imponible": final_result["remuneracion_imponible"],
+        "gratificacion": final_result["gratificacion"],
+        "descuento_afp": final_result["descuento_afp"],
+        "descuento_salud": final_result["descuento_salud"],
+        "descuento_cesantia": final_result["descuento_cesantia"],
+        "impuesto_unico": final_result["impuesto_unico"],
+        "total_descuentos": final_result["total_descuentos_previsionales"] + final_result["impuesto_unico"],
+        "liquido_resultante": final_result["liquido_pagar"],
+        "diferencia": final_result["liquido_pagar"] - int(liquido_deseado),
+    }
 
 
 @router.get("/{run_id}/entry/{entry_id}/pdf")
