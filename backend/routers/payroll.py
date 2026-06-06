@@ -192,19 +192,22 @@ def add_or_update_entry(
         legal_params=legal_params,
     )
 
-    result = calculator.calculate(
-        employee=emp,
-        contract_type=str(contract_type),
-        dias_trabajados=req.dias_trabajados,
-        horas_extra_habiles=float(req.horas_extra_habiles),
-        horas_extra_domingo=float(req.horas_extra_domingo),
-        bono_colacion=float(req.bono_colacion),
-        bono_movilizacion=float(req.bono_movilizacion),
-        bono_otros=float(req.bono_otros),
-        asignacion_familiar=float(req.asignacion_familiar),
-        adelanto=float(req.adelanto),
-        descuento_otros=float(req.descuento_otros),
-    )
+    try:
+        result = calculator.calculate(
+            employee=emp,
+            contract_type=str(contract_type),
+            dias_trabajados=req.dias_trabajados,
+            horas_extra_habiles=float(req.horas_extra_habiles),
+            horas_extra_domingo=float(req.horas_extra_domingo),
+            bono_colacion=float(req.bono_colacion),
+            bono_movilizacion=float(req.bono_movilizacion),
+            bono_otros=float(req.bono_otros),
+            asignacion_familiar=float(req.asignacion_familiar),
+            adelanto=float(req.adelanto),
+            descuento_otros=float(req.descuento_otros),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al calcular nómina del empleado: {str(e)}")
 
     existing = db.query(PayrollEntry).filter(
         PayrollEntry.payroll_run_id == run_id,
