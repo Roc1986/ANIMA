@@ -140,7 +140,7 @@ export default function EmployeeDetail() {
             <div>
               <label className="label">Fecha Ingreso</label>
               {editing
-                ? <input className="input" type="date" defaultValue={employee?.hire_date || ''} {...register('hire_date')} />
+                ? <input className="input" type="date" {...register('hire_date')} />
                 : <p className="text-sm text-gray-800 py-2">{employee.hire_date}</p>
               }
             </div>
