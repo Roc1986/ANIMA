@@ -110,6 +110,8 @@ export const reportsApi = {
     api.get(`/api/reports/libro-remuneraciones/${runId}/pdf`, { responseType: 'blob' }),
   previredExcel: (runId: number) =>
     api.get(`/api/reports/previred/${runId}/excel`, { responseType: 'blob' }),
+  previredTxt: (runId: number) =>
+    api.get(`/api/reports/previred/${runId}/txt`, { responseType: 'blob' }),
   dj1887Excel: (year: number) =>
     api.get(`/api/reports/dj1887/${year}/excel`, { responseType: 'blob' }),
 }

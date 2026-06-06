@@ -11,7 +11,7 @@ from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 from models.company import Company
 from services.pdf_generator import generate_libro_remuneraciones_pdf
-from services.excel_generator import generate_previred_excel, generate_dj1887_excel
+from services.excel_generator import generate_previred_excel, generate_previred_txt, generate_dj1887_excel
 
 router = APIRouter()
 
@@ -51,6 +51,27 @@ def previred_excel(
     excel_path = generate_previred_excel(run=run, entries=entries, employees=employees)
     return FileResponse(excel_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         filename=f"previred_{run.period_year}_{run.period_month:02d}.xlsx")
+
+
+@router.get("/previred/{run_id}/txt")
+def previred_txt(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Nómina no encontrada")
+
+    entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id == run_id).all()
+    employees = {e.id: e for e in db.query(Employee).all()}
+
+    txt_path = generate_previred_txt(run=run, entries=entries, employees=employees)
+    return FileResponse(
+        txt_path,
+        media_type="text/plain",
+        filename=f"previred_{run.period_year}_{run.period_month:02d}.txt",
+    )
 
 
 @router.get("/dj1887/{year}/excel")

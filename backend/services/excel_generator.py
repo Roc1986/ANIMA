@@ -8,6 +8,7 @@ Generates:
 import os
 import uuid
 from typing import Dict, List
+from datetime import date as date_type
 from datetime import datetime
 
 import openpyxl
@@ -153,6 +154,125 @@ def generate_previred_excel(run, entries, employees: Dict) -> str:
         ws2.cell(row=i, column=2, value=value)
 
     wb.save(filepath)
+    return filepath
+
+
+# ---------------------------------------------------------------------------
+# AFP codes used by Previred (código institución previsional)
+# ---------------------------------------------------------------------------
+AFP_CODES = {
+    "habitat":   33,
+    "provida":   34,
+    "capital":   26,
+    "cuprum":    28,
+    "planvital": 35,
+    "modelo":    36,
+    "uno":       37,
+}
+
+ISAPRE_CODES = {
+    "banmedica":   2,
+    "colmena":     5,
+    "consalud":    6,
+    "cruz blanca": 3,
+    "masvida":     9,
+    "nueva masvida": 9,
+    "vida tres":   10,
+    "esencial":    11,
+}
+
+
+def _fmt_date(d) -> str:
+    if d is None:
+        return ""
+    if isinstance(d, str):
+        try:
+            d = date_type.fromisoformat(d)
+        except Exception:
+            return ""
+    try:
+        return d.strftime("%d%m%Y")
+    except Exception:
+        return ""
+
+
+def generate_previred_txt(run, entries, employees: Dict) -> str:
+    """
+    Generate Previred 'Estándar por Separador 105 campos' text file.
+    Each row = 105 fields separated by semicolons.
+    """
+    filename = f"previred_{run.period_year}_{run.period_month:02d}_{uuid.uuid4().hex[:8]}.txt"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    lines = []
+    for entry in entries:
+        emp = employees.get(entry.employee_id)
+        if not emp:
+            continue
+
+        afp_raw = str(emp.afp).split(".")[-1].lower()
+        afp_code = AFP_CODES.get(afp_raw, 33)
+        renta_imp_afp = int(float(entry.remuneracion_imponible))
+        cot_afp = int(float(entry.descuento_afp))
+
+        hs_raw = str(emp.health_system).split(".")[-1].upper()
+        if hs_raw == "FONASA":
+            salud_codigo = 7
+            rut_isapre = 0
+        else:
+            isapre_name = str(emp.isapre_name or "").lower()
+            salud_codigo = ISAPRE_CODES.get(isapre_name, 8)
+            rut_isapre = 0
+        cot_salud = int(float(entry.descuento_salud))
+
+        ces_trab = int(float(entry.descuento_cesantia))
+        ces_emp = int(float(entry.aporte_cesantia_empleador))
+        sis = int(float(entry.aporte_sis))
+
+        renta_bruta = int(float(entry.total_haberes))
+        renta_trib = int(float(entry.remuneracion_tributable))
+        iusc = int(float(entry.impuesto_unico))
+
+        nacimiento = _fmt_date(getattr(emp, "birth_date", None))
+        ingreso = _fmt_date(getattr(emp, "hire_date", None))
+        rut = emp.rut.replace(".", "")
+
+        # 105 fields — unused fields = 0
+        f = [0] * 105
+
+        f[0]  = rut
+        f[1]  = emp.first_name
+        f[2]  = emp.last_name
+        f[3]  = emp.second_last_name or ""
+        f[4]  = 0                            # sexo (0=no declarado)
+        f[5]  = nacimiento
+        f[6]  = int(entry.dias_trabajados)
+        f[7]  = afp_code
+        f[8]  = renta_imp_afp
+        f[9]  = cot_afp
+        f[10] = 0                            # cotiz voluntaria AFP
+        f[11] = 0                            # depósito convenido
+        f[12] = 0                            # APV A
+        f[13] = 0                            # APV B
+        f[14] = salud_codigo
+        f[15] = rut_isapre
+        f[16] = renta_imp_afp               # renta imponible salud = misma base
+        f[17] = cot_salud
+        f[18] = 0                            # cotiz adicional ISAPRE
+        f[19] = 0                            # ISAPRE GES
+        f[20] = ces_trab
+        f[21] = ces_emp
+        f[22] = sis
+        f[23] = renta_bruta
+        f[24] = renta_trib
+        f[25] = iusc
+        f[26] = ingreso
+
+        lines.append(";".join(str(v) for v in f))
+
+    with open(filepath, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lines))
+
     return filepath
 
 

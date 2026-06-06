@@ -192,6 +192,15 @@ export default function Payroll() {
     }
   }
 
+  const downloadPreviredTxt = async (runId: number, year: number, month: number) => {
+    try {
+      const res = await reportsApi.previredTxt(runId)
+      downloadBlob(res.data, `previred_${year}_${month.toString().padStart(2, '0')}.txt`)
+    } catch {
+      toast.error('Error al generar archivo Previred')
+    }
+  }
+
   const downloadLiquidacion = async (runId: number, entryId: number, empId: number) => {
     try {
       const res = await payrollApi.getLiquidacionPdf(runId, entryId)
@@ -290,7 +299,10 @@ export default function Payroll() {
                         <DocumentArrowDownIcon className="w-3.5 h-3.5" /> PDF Libro
                       </button>
                       <button onClick={() => downloadPrevired(run.id, run.period_year, run.period_month)} className="btn-secondary text-xs px-2 py-1.5">
-                        <DocumentArrowDownIcon className="w-3.5 h-3.5" /> Previred
+                        <DocumentArrowDownIcon className="w-3.5 h-3.5" /> Previred XLS
+                      </button>
+                      <button onClick={() => downloadPreviredTxt(run.id, run.period_year, run.period_month)} className="btn-secondary text-xs px-2 py-1.5">
+                        <DocumentArrowDownIcon className="w-3.5 h-3.5" /> Previred TXT
                       </button>
                     </>
                   )}
