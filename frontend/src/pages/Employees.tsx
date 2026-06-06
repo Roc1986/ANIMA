@@ -37,7 +37,7 @@ export default function Employees() {
     setLoading(true)
     try {
       const res = await employeesApi.list({ search: search || undefined })
-      setEmployees(res.data)
+      setEmployees(Array.isArray(res.data) ? res.data : [])
     } catch {
       toast.error('Error al cargar empleados')
     } finally {
@@ -147,8 +147,8 @@ export default function Employees() {
                     <p className="text-xs">{emp.afp}</p>
                     <p className="text-xs text-gray-400">{emp.health_system}</p>
                   </td>
-                  <td className="table-cell font-medium">{formatCLP(emp.base_salary)}</td>
-                  <td className="table-cell text-gray-500 text-xs">{emp.hire_date}</td>
+                  <td className="table-cell font-medium">{formatCLP(Number(emp.base_salary))}</td>
+                  <td className="table-cell text-gray-500 text-xs">{String(emp.hire_date)}</td>
                   <td className="table-cell">
                     <span className={emp.is_active ? 'badge-green' : 'badge-red'}>
                       {emp.is_active ? 'Activo' : 'Inactivo'}
