@@ -199,7 +199,36 @@ def _fmt_date(d) -> str:
 def generate_previred_txt(run, entries, employees: Dict) -> str:
     """
     Generate Previred 'Estándar por Separador 105 campos' text file.
-    Each row = 105 fields separated by semicolons.
+
+    Field order (Largo Variable por Separador):
+    1  RUT trabajador (sin puntos, con guión)
+    2  Apellido paterno
+    3  Apellido materno
+    4  Nombres
+    5  Sexo (0=no declarado, 1=M, 2=F)
+    6  Fecha nacimiento (DDMMAAAA, "00000000" si no disponible)
+    7  Fecha inicio labores (DDMMAAAA)
+    8  Código AFP (26=Capital, 28=Cuprum, 33=Habitat, 34=Provida, 35=Planvital, 36=Modelo, 37=Uno)
+    9  Renta imponible AFP
+    10 Cotización obligatoria AFP trabajador
+    11 Cotización voluntaria AFP
+    12 Depósito convenido
+    13 APV/APVC régimen A
+    14 Tipo de línea (0=línea principal)
+    15 Código institución salud (7=FONASA)
+    16 RUT ISAPRE (0 si FONASA)
+    17 Renta imponible salud
+    18 Cotización salud trabajador
+    19 Cotización adicional ISAPRE
+    20 Monto plan ISAPRE (GES)
+    21 Cotización AFC trabajador (cesantía)
+    22 Cotización AFC empleador
+    23 Aporte SIS empleador
+    24 Renta bruta (total haberes)
+    25 Renta tributable
+    26 IUSC
+    27 Días trabajados
+    28-105 zeros (campos adicionales no aplicables)
     """
     filename = f"previred_{run.period_year}_{run.period_month:02d}_{uuid.uuid4().hex[:8]}.txt"
     filepath = os.path.join(UPLOAD_DIR, filename)
@@ -212,8 +241,6 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
 
         afp_raw = str(emp.afp).split(".")[-1].lower()
         afp_code = AFP_CODES.get(afp_raw, 33)
-        renta_imp_afp = int(float(entry.remuneracion_imponible))
-        cot_afp = int(float(entry.descuento_afp))
 
         hs_raw = str(emp.health_system).split(".")[-1].upper()
         if hs_raw == "FONASA":
@@ -223,54 +250,53 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
             isapre_name = str(emp.isapre_name or "").lower()
             salud_codigo = ISAPRE_CODES.get(isapre_name, 8)
             rut_isapre = 0
-        cot_salud = int(float(entry.descuento_salud))
 
-        ces_trab = int(float(entry.descuento_cesantia))
-        ces_emp = int(float(entry.aporte_cesantia_empleador))
-        sis = int(float(entry.aporte_sis))
-
-        renta_bruta = int(float(entry.total_haberes))
-        renta_trib = int(float(entry.remuneracion_tributable))
-        iusc = int(float(entry.impuesto_unico))
-
-        nacimiento = _fmt_date(getattr(emp, "birth_date", None))
-        ingreso = _fmt_date(getattr(emp, "hire_date", None))
+        nacimiento = _fmt_date(getattr(emp, "birth_date", None)) or "00000000"
+        ingreso = _fmt_date(getattr(emp, "hire_date", None)) or "00000000"
         rut = emp.rut.replace(".", "")
 
-        # 105 fields — unused fields = 0
         f = [0] * 105
 
+        # Identificación (campos 1-7)
         f[0]  = rut
-        f[1]  = emp.first_name
-        f[2]  = emp.last_name
-        f[3]  = emp.second_last_name or ""
-        f[4]  = 0                            # sexo (0=no declarado)
-        f[5]  = nacimiento
-        f[6]  = int(entry.dias_trabajados)
-        f[7]  = afp_code
-        f[8]  = renta_imp_afp
-        f[9]  = cot_afp
-        f[10] = 0                            # cotiz voluntaria AFP
-        f[11] = 0                            # depósito convenido
-        f[12] = 0                            # APV A
-        f[13] = 0                            # APV B
-        f[14] = salud_codigo
-        f[15] = rut_isapre
-        f[16] = renta_imp_afp               # renta imponible salud = misma base
-        f[17] = cot_salud
-        f[18] = 0                            # cotiz adicional ISAPRE
-        f[19] = 0                            # ISAPRE GES
-        f[20] = ces_trab
-        f[21] = ces_emp
-        f[22] = sis
-        f[23] = renta_bruta
-        f[24] = renta_trib
-        f[25] = iusc
-        f[26] = ingreso
+        f[1]  = emp.last_name                          # 2  Apellido paterno
+        f[2]  = emp.second_last_name or ""             # 3  Apellido materno
+        f[3]  = emp.first_name                         # 4  Nombres
+        f[4]  = 0                                      # 5  Sexo
+        f[5]  = nacimiento                             # 6  Fecha nacimiento
+        f[6]  = ingreso                                # 7  Fecha inicio labores
+
+        # AFP (campos 8-14)
+        f[7]  = afp_code                               # 8  Código AFP
+        f[8]  = int(float(entry.remuneracion_imponible))  # 9  Renta imponible AFP
+        f[9]  = int(float(entry.descuento_afp))        # 10 Cotización AFP
+        f[10] = 0                                      # 11 Cotización voluntaria AFP
+        f[11] = 0                                      # 12 Depósito convenido
+        f[12] = 0                                      # 13 APV A
+        f[13] = 0                                      # 14 Tipo de línea (0=principal)
+
+        # Salud (campos 15-20)
+        f[14] = salud_codigo                           # 15 Código institución salud
+        f[15] = rut_isapre                             # 16 RUT ISAPRE
+        f[16] = int(float(entry.remuneracion_imponible))  # 17 Renta imponible salud
+        f[17] = int(float(entry.descuento_salud))      # 18 Cotización salud
+        f[18] = 0                                      # 19 Cotización adicional ISAPRE
+        f[19] = 0                                      # 20 Monto plan ISAPRE
+
+        # Cesantía y SIS (campos 21-23)
+        f[20] = int(float(entry.descuento_cesantia))   # 21 AFC trabajador
+        f[21] = int(float(entry.aporte_cesantia_empleador))  # 22 AFC empleador
+        f[22] = int(float(entry.aporte_sis))           # 23 SIS empleador
+
+        # Remuneraciones (campos 24-27)
+        f[23] = int(float(entry.total_haberes))        # 24 Renta bruta
+        f[24] = int(float(entry.remuneracion_tributable))  # 25 Renta tributable
+        f[25] = int(float(entry.impuesto_unico))       # 26 IUSC
+        f[26] = int(entry.dias_trabajados)             # 27 Días trabajados
 
         lines.append(";".join(str(v) for v in f))
 
-    with open(filepath, "w", encoding="utf-8") as fh:
+    with open(filepath, "w", encoding="iso-8859-1") as fh:
         fh.write("\n".join(lines))
 
     return filepath
