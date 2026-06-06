@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propuesta Comercial — ANIMA HR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #2563EB;
+      --blue-dark: #1d4ed8;
+      --blue-light: #eff6ff;
+      --green: #10B981;
+      --green-light: #ecfdf5;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-900: #111827;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--gray-900);
+      background: #e5e7eb;
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── PRINT BUTTON (screen only) ── */
+    .print-bar {
+      background: var(--gray-900); color: white;
+      padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .print-bar span { font-size: 13px; opacity: .7; }
+    .btn-print {
+      background: var(--blue); color: white;
+      border: none; padding: 9px 22px; border-radius: 7px;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-print:hover { background: var(--blue-dark); }
+
+    /* ── PAGE ── */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 24px auto;
+      background: white;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12);
+      padding: 0;
+      position: relative;
+    }
+
+    /* ── HEADER ── */
+    .doc-header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563EB 60%, #1d4ed8 100%);
+      padding: 36px 48px 32px;
+      position: relative; overflow: hidden;
+    }
+    .doc-header::after {
+      content: '';
+      position: absolute; bottom: -20px; right: -20px;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.06);
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .logo { color: white; font-size: 26px; font-weight: 800; letter-spacing: -.5px; }
+    .logo span { color: #6ee7b7; }
+    .logo-tagline { color: rgba(255,255,255,.6); font-size: 11px; font-weight: 500; margin-top: 3px; }
+    .doc-meta { text-align: right; }
+    .doc-meta .doc-num { color: rgba(255,255,255,.5); font-size: 11px; }
+    .doc-meta .doc-date { color: white; font-weight: 600; font-size: 13px; margin-top: 4px; }
+    .doc-title {
+      margin-top: 28px;
+      color: white; font-size: 22px; font-weight: 800; letter-spacing: -.03em;
+    }
+    .doc-subtitle { color: rgba(255,255,255,.7); font-size: 13px; margin-top: 6px; }
+
+    /* ── BODY ── */
+    .doc-body { padding: 40px 48px 48px; }
+
+    /* ── GREETING ── */
+    .greeting { margin-bottom: 28px; }
+    .greeting p { margin-bottom: 12px; color: var(--gray-700); line-height: 1.75; }
+    .client-name {
+      display: inline-block;
+      background: var(--blue-light); color: var(--blue);
+      padding: 2px 10px; border-radius: 6px;
+      font-weight: 700; font-size: 15px;
+    }
+
+    /* ── SECTION TITLES ── */
+    .section-title {
+      font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
+      color: var(--blue); margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--blue-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::before {
+      content: '';
+      display: inline-block; width: 4px; height: 16px;
+      background: var(--blue); border-radius: 2px;
+    }
+    .section-block { margin-bottom: 32px; }
+
+    /* ── SERVICES TABLE ── */
+    table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    thead th {
+      background: var(--gray-900); color: white;
+      padding: 10px 14px; text-align: left;
+      font-weight: 600; font-size: 12px; letter-spacing: .03em;
+    }
+    thead th:last-child { text-align: center; }
+    tbody tr { border-bottom: 1px solid var(--gray-100); }
+    tbody tr:nth-child(even) { background: var(--gray-50); }
+    tbody td { padding: 10px 14px; color: var(--gray-700); vertical-align: top; }
+    tbody td:first-child { font-weight: 600; color: var(--gray-900); }
+    tbody td:last-child { text-align: center; }
+    .included { color: var(--green); font-weight: 700; font-size: 16px; }
+    .not-included { color: var(--gray-400); font-size: 14px; }
+
+    /* ── PLAN CARDS ── */
+    .plans-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;
+      margin-bottom: 6px;
+    }
+    .plan-box {
+      border: 2px solid var(--gray-200); border-radius: 10px;
+      padding: 18px 16px; position: relative;
+    }
+    .plan-box.recommended {
+      border-color: var(--blue);
+      background: var(--blue-light);
+      box-shadow: 0 4px 12px rgba(37,99,235,.15);
+    }
+    .plan-rec-badge {
+      position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+      background: var(--blue); color: white;
+      padding: 3px 12px; border-radius: 100px;
+      font-size: 10px; font-weight: 700; white-space: nowrap;
+    }
+    .plan-box-name { font-weight: 800; font-size: 14px; margin-bottom: 4px; }
+    .plan-box.recommended .plan-box-name { color: var(--blue); }
+    .plan-box-price { font-size: 18px; font-weight: 900; color: var(--blue); letter-spacing: -.03em; }
+    .plan-box-period { font-size: 10px; color: var(--gray-400); margin-bottom: 10px; }
+    .plan-box-features { list-style: none; font-size: 11.5px; color: var(--gray-600); }
+    .plan-box-features li { padding: 3px 0; display: flex; gap: 6px; }
+    .plan-box-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+
+    /* ── INVESTMENT ── */
+    .investment-box {
+      background: var(--blue-light); border: 2px solid rgba(37,99,235,.2);
+      border-radius: 12px; padding: 24px;
+    }
+    .investment-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid rgba(37,99,235,.15);
+      font-size: 13px;
+    }
+    .investment-row:last-child { border-bottom: none; }
+    .investment-row.total {
+      font-weight: 800; font-size: 16px;
+      border-top: 2px solid rgba(37,99,235,.3); margin-top: 6px;
+      padding-top: 14px;
+    }
+    .investment-row.total .price { color: var(--blue); }
+    .investment-label { color: var(--gray-700); }
+    .investment-label.muted { color: var(--gray-400); font-size: 12px; }
+    .price { font-weight: 700; color: var(--gray-900); }
+
+    /* ── INCLUDES / EXCLUDES ── */
+    .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .list-box { background: var(--gray-50); border-radius: 10px; padding: 18px; }
+    .list-box h4 { font-size: 12px; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .list-box.green h4 { color: var(--green); }
+    .list-box.red h4 { color: #ef4444; }
+    .list-box ul { list-style: none; font-size: 12.5px; color: var(--gray-700); }
+    .list-box ul li { padding: 4px 0; display: flex; gap: 8px; }
+    .list-box.green ul li::before { content: '✓'; color: var(--green); font-weight: 700; }
+    .list-box.red ul li::before { content: '✗'; color: #ef4444; font-weight: 700; }
+
+    /* ── NEXT STEPS ── */
+    .steps-list { list-style: none; }
+    .steps-list li {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 12px 0; border-bottom: 1px solid var(--gray-100);
+    }
+    .steps-list li:last-child { border-bottom: none; }
+    .step-num-badge {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--blue); color: white;
+      font-weight: 800; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .step-content strong { display: block; font-size: 13px; color: var(--gray-900); margin-bottom: 2px; }
+    .step-content span { font-size: 12px; color: var(--gray-600); }
+
+    /* ── VALIDITY ── */
+    .validity-box {
+      background: #fefce8; border: 1px solid #fde68a;
+      border-radius: 10px; padding: 16px 20px;
+      display: flex; align-items: center; gap: 14px;
+      font-size: 13px; color: #92400e; margin-top: 28px;
+    }
+    .validity-icon { font-size: 1.5rem; flex-shrink: 0; }
+
+    /* ── SIGNATURE BLOCK ── */
+    .signature-section {
+      margin-top: 40px; padding-top: 28px;
+      border-top: 2px solid var(--gray-100);
+    }
+    .sig-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-400); margin-bottom: 24px; }
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+    .sig-box { }
+    .sig-line { border-bottom: 1.5px solid var(--gray-300); margin-bottom: 8px; height: 48px; }
+    .sig-name { font-size: 13px; font-weight: 700; }
+    .sig-role { font-size: 11px; color: var(--gray-400); }
+
+    /* ── FOOTER ── */
+    .doc-footer {
+      background: var(--gray-900); padding: 16px 48px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .doc-footer-logo { color: white; font-weight: 800; font-size: 13px; }
+    .doc-footer-logo span { color: #6ee7b7; }
+    .doc-footer-text { color: var(--gray-400); font-size: 11px; }
+    .doc-footer-contact { color: var(--gray-400); font-size: 11px; text-align: right; }
+
+    /* ── PRINT STYLES ── */
+    @media print {
+      body { background: white; font-size: 13px; }
+      .print-bar { display: none !important; }
+      .page {
+        width: 100%; margin: 0;
+        box-shadow: none;
+        min-height: auto;
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PRINT BAR (screen only) -->
+  <div class="print-bar">
+    <span>Vista previa de propuesta — ANIMA HR</span>
+    <button class="btn-print" onclick="window.print()">🖨 Guardar como PDF</button>
+  </div>
+
+  <!-- PAGE -->
+  <div class="page">
+
+    <!-- HEADER -->
+    <div class="doc-header">
+      <div class="header-top">
+        <div>
+          <div class="logo">ANIMA <span>HR</span></div>
+          <div class="logo-tagline">Gestión de personas simple, legal y sin sorpresas</div>
+        </div>
+        <div class="doc-meta">
+          <div class="doc-num">PROPUESTA N° <span id="propNum"></span></div>
+          <div class="doc-date" id="docDate"></div>
+        </div>
+      </div>
+      <div class="doc-title">Propuesta de Servicios de Gestión de Personas</div>
+      <div class="doc-subtitle">Externalización de RRHH para empresas chilenas · Confidencial</div>
+    </div>
+
+    <!-- BODY -->
+    <div class="doc-body">
+
+      <!-- GREETING -->
+      <div class="greeting">
+        <p>Estimado/a <span class="client-name">[NOMBRE DEL CLIENTE]</span>,</p>
+        <p>
+          Nos complace presentarle esta propuesta de servicios de gestión de personas, diseñada específicamente para cubrir las necesidades de su empresa conforme a la normativa laboral chilena vigente.
+        </p>
+        <p>
+          <strong>ANIMA HR</strong> es un servicio especializado de externalización de recursos humanos, operado desde Canadá con estándares internacionales de calidad y privacidad. Trabajamos exclusivamente con empresas chilenas, lo que nos permite mantener un conocimiento profundo del Código del Trabajo, las instrucciones de la Dirección del Trabajo y los cambios normativos que afectan a su negocio.
+        </p>
+        <p>
+          A continuación encontrará el detalle de los servicios incluidos, el plan recomendado según el tamaño de su empresa y los próximos pasos para iniciar la relación comercial.
+        </p>
+      </div>
+
+      <!-- SERVICES TABLE -->
+      <div class="section-block">
+        <div class="section-title">Servicios disponibles</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:28%">Servicio</th>
+              <th>Descripción</th>
+              <th style="width:14%; text-align:center;">Incluido</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Liquidaciones de sueldo</td>
+              <td>Cálculo mensual con AFP, salud, impuesto único, gratificación y variables. Documento listo para firma.</td>
+              <td><span class="included">✓</span></td>
+            </tr>
+            <tr>
+              <td>Contratos de trabajo</td>
+              <td>Indefinido, plazo fijo y obra o faena. Redactados conforme al Código del Trabajo, con opción de firma digital.</td>
+              <td><span class="included">✓</span></td>
+            </tr>
+            <tr>
+              <td>Finiquitos</td>
+              <td>Cálculo legal según causal de despido. Documento listo para firma ante notario.</td>
+              <td><span class="included" id="fin-included">✓</span></td>
+            </tr>
+            <tr>
+              <td>Cartas de amonestación</td>
+              <td>Verbal, escrita y grave. Con respaldo legal para proteger a la empresa ante eventuales disputas.</td>
+              <td><span class="included" id="amon-included">✓</span></td>
+            </tr>
+            <tr>
+              <td>Control de vacaciones</td>
+              <td>Registro de saldos, solicitudes y certificados. Cálculo automático conforme al Art. 67 CT.</td>
+              <td><span class="included" id="vac-included">✓</span></td>
+            </tr>
+            <tr>
+              <td>Asesoría laboral con IA</td>
+              <td>Consultas sobre normativa laboral chilena respondidas en minutos mediante sistema de IA especializado.</td>
+              <td><span class="included" id="ia-included">✓</span></td>
+            </tr>
+            <tr>
+              <td>Libro de remuneraciones</td>
+              <td>Confección y mantención del libro de remuneraciones electrónico para el SII.</td>
+              <td><span class="included" id="libro-included">✓</span></td>
+            </tr>
+            <tr>
+              <td>Archivo Previred mensual</td>
+              <td>Generación del archivo de cotizaciones previsionales para subir directamente a Previred.</td>
+              <td><span class="included" id="prev-included">✓</span></td>
+            </tr>
+            <tr>
+              <td>Declaración Jurada F1887</td>
+              <td>Preparación de la DJ de rentas y retenciones para presentación ante el SII.</td>
+              <td><span class="included" id="dj-included">✓</span></td>
+            </tr>
+            <tr>
+              <td>Reunión mensual de revisión</td>
+              <td>Videollamada mensual de 30 minutos para revisar indicadores y novedades del período.</td>
+              <td><span class="included" id="reunion-included">✓</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PLANS -->
+      <div class="section-block">
+        <div class="section-title">Plan recomendado</div>
+        <div class="plans-row">
+          <div class="plan-box">
+            <div class="plan-box-name">Básico</div>
+            <div class="plan-box-price">$89.990</div>
+            <div class="plan-box-period">CLP/mes · hasta 10 trabajadores</div>
+            <ul class="plan-box-features">
+              <li>Liquidaciones mensuales</li>
+              <li>Contratos básicos</li>
+              <li>Soporte por email</li>
+            </ul>
+          </div>
+          <div class="plan-box recommended">
+            <div class="plan-rec-badge">⭐ RECOMENDADO</div>
+            <div class="plan-box-name">Profesional</div>
+            <div class="plan-box-price">$179.990</div>
+            <div class="plan-box-period">CLP/mes · hasta 30 trabajadores</div>
+            <ul class="plan-box-features">
+              <li>Todo lo del plan básico</li>
+              <li>Finiquitos y amonestaciones</li>
+              <li>Control de vacaciones</li>
+              <li>Asesoría laboral con IA</li>
+              <li>Soporte prioritario WhatsApp</li>
+            </ul>
+          </div>
+          <div class="plan-box">
+            <div class="plan-box-name">Empresa</div>
+            <div class="plan-box-price">$299.990</div>
+            <div class="plan-box-period">CLP/mes · hasta 80 trabajadores</div>
+            <ul class="plan-box-features">
+              <li>Todo lo del plan profesional</li>
+              <li>Libro de remuneraciones</li>
+              <li>Archivo Previred mensual</li>
+              <li>Declaración Jurada F1887</li>
+              <li>Reunión mensual de revisión</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVESTMENT -->
+      <div class="section-block">
+        <div class="section-title">Inversión mensual</div>
+        <div class="investment-box">
+          <div class="investment-row">
+            <span class="investment-label">Plan seleccionado</span>
+            <span class="price" id="inv-plan">Plan Profesional</span>
+          </div>
+          <div class="investment-row">
+            <span class="investment-label">N° de trabajadores estimados</span>
+            <span class="price" id="inv-workers">[N° trabajadores]</span>
+          </div>
+          <div class="investment-row">
+            <span class="investment-label">Valor mensual (neto, sin IVA)</span>
+            <span class="price" id="inv-neto">$179.990 CLP</span>
+          </div>
+          <div class="investment-row">
+            <span class="investment-label">IVA (19%)</span>
+            <span class="price" id="inv-iva">$34.198 CLP</span>
+          </div>
+          <div class="investment-row total">
+            <span class="investment-label">Total mensual con IVA</span>
+            <span class="price" id="inv-total">$214.188 CLP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- INCLUDES / EXCLUDES -->
+      <div class="section-block">
+        <div class="section-title">¿Qué incluye y qué no incluye?</div>
+        <div class="two-cols">
+          <div class="list-box green">
+            <h4>Incluido en el servicio</h4>
+            <ul>
+              <li>Liquidaciones mensuales de todos los trabajadores</li>
+              <li>Contratos de trabajo (indefinido, plazo fijo, obra)</li>
+              <li>Finiquitos con cálculo legal</li>
+              <li>Cartas de amonestación</li>
+              <li>Control y certificados de vacaciones</li>
+              <li>Asesoría laboral con IA (disponible 24/7)</li>
+              <li>Soporte prioritario por WhatsApp</li>
+              <li>Actualización automática ante cambios legales</li>
+            </ul>
+          </div>
+          <div class="list-box red">
+            <h4>No incluido</h4>
+            <ul>
+              <li>Representación ante la Dirección del Trabajo</li>
+              <li>Defensa legal en tribunales laborales</li>
+              <li>Pago de cotizaciones previsionales</li>
+              <li>Declaración y pago de impuestos (SII)</li>
+              <li>Servicio de contabilidad y tributario</li>
+              <li>Trabajadores fuera de Chile</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEXT STEPS -->
+      <div class="section-block">
+        <div class="section-title">Próximos pasos</div>
+        <ul class="steps-list">
+          <li>
+            <div class="step-num-badge">1</div>
+            <div class="step-content">
+              <strong>Firma del contrato de servicios</strong>
+              <span>Le enviaremos el contrato de servicios por correo electrónico para firma digital. El proceso toma menos de 5 minutos.</span>
+            </div>
+          </li>
+          <li>
+            <div class="step-num-badge">2</div>
+            <div class="step-content">
+              <strong>Envío de datos de trabajadores</strong>
+              <span>Completarás un formulario con los datos de sus trabajadores: RUT, remuneración, AFP, isapre/Fonasa y fecha de inicio de contrato.</span>
+            </div>
+          </li>
+          <li>
+            <div class="step-num-badge">3</div>
+            <div class="step-content">
+              <strong>Inicio de operaciones</strong>
+              <span>En un plazo máximo de 48 horas hábiles, su empresa estará operativa en el sistema. A partir del siguiente período, recibirá todos sus documentos de RRHH de forma automática.</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- VALIDITY -->
+      <div class="validity-box">
+        <div class="validity-icon">⏳</div>
+        <div>
+          <strong>Validez de la propuesta:</strong> Esta propuesta tiene validez de 30 días a partir de la fecha de emisión. Los precios están expresados en pesos chilenos (CLP) y pueden ajustarse según el IPC vigente al momento de renovación anual.
+        </div>
+      </div>
+
+      <!-- SIGNATURE -->
+      <div class="signature-section">
+        <div class="sig-title">Firma de aceptación</div>
+        <div class="sig-grid">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-name">ANIMA HR</div>
+            <div class="sig-role">Proveedor de servicios · contacto@animahr.cl</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-name">[NOMBRE CLIENTE]</div>
+            <div class="sig-role">Representante legal · [RUT empresa]</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /doc-body -->
+
+    <!-- FOOTER -->
+    <div class="doc-footer">
+      <div class="doc-footer-logo">ANIMA <span>HR</span></div>
+      <div class="doc-footer-text">Servicio operado desde Canadá para empresas chilenas · Documento confidencial</div>
+      <div class="doc-footer-contact">contacto@animahr.cl</div>
+    </div>
+
+  </div><!-- /page -->
+
+  <script>
+    // Auto-fill date and proposal number
+    const now = new Date();
+    const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const dateStr = `${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
+    document.getElementById('docDate').textContent = dateStr;
+
+    // Generate a proposal number based on date
+    const pad = n => String(n).padStart(2, '0');
+    const propNum = `AHR-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-001`;
+    document.getElementById('propNum').textContent = propNum;
+  </script>
+
+</body>
+</html>

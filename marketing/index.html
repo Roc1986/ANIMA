@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ANIMA HR — Gestión de personas simple, legal y sin sorpresas</title>
+  <meta name="description" content="Tu equipo de RRHH externo para empresas chilenas. Liquidaciones, contratos, finiquitos y toda la gestión de personas por una fracción del costo." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #2563EB;
+      --blue-dark: #1d4ed8;
+      --blue-light: #eff6ff;
+      --green: #10B981;
+      --green-light: #ecfdf5;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --white: #ffffff;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.1), 0 8px 10px -6px rgba(0,0,0,.06);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--gray-900);
+      background: var(--white);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--gray-200);
+      transition: box-shadow .2s;
+    }
+    nav.scrolled { box-shadow: var(--shadow-lg); }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 64px;
+    }
+    .nav-logo {
+      font-weight: 800; font-size: 1.375rem; color: var(--blue);
+      letter-spacing: -.5px; text-decoration: none;
+    }
+    .nav-logo span { color: var(--green); }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a {
+      text-decoration: none; color: var(--gray-700);
+      font-size: .9rem; font-weight: 500; transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--blue); }
+    .nav-cta {
+      background: var(--blue); color: var(--white);
+      padding: 9px 20px; border-radius: 8px;
+      font-size: .875rem; font-weight: 600; text-decoration: none;
+      transition: background .15s, transform .1s;
+    }
+    .nav-cta:hover { background: var(--blue-dark); transform: translateY(-1px); }
+    .nav-mobile-toggle {
+      display: none; flex-direction: column; gap: 5px; background: none;
+      border: none; cursor: pointer; padding: 4px;
+    }
+    .nav-mobile-toggle span {
+      display: block; width: 22px; height: 2px;
+      background: var(--gray-700); border-radius: 2px; transition: .2s;
+    }
+
+    /* ── HERO ── */
+    #inicio {
+      padding-top: 64px;
+      background: linear-gradient(135deg, #f0f7ff 0%, #e8f4fd 40%, #f0fdf4 100%);
+      min-height: 100vh;
+      display: flex; align-items: center;
+      position: relative; overflow: hidden;
+    }
+    #inicio::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 70% 40%, rgba(37,99,235,.06) 0%, transparent 70%),
+                  radial-gradient(ellipse 60% 40% at 20% 80%, rgba(16,185,129,.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-inner {
+      max-width: 1200px; margin: 0 auto; padding: 80px 24px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue-light); color: var(--blue);
+      padding: 6px 14px; border-radius: 100px;
+      font-size: .8rem; font-weight: 600; margin-bottom: 20px;
+      border: 1px solid rgba(37,99,235,.2);
+    }
+    .hero-badge::before { content: '🇨🇱'; }
+    h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 900; line-height: 1.15;
+      letter-spacing: -.03em; color: var(--gray-900);
+      margin-bottom: 20px;
+    }
+    h1 em { font-style: normal; color: var(--blue); }
+    .hero-sub {
+      font-size: 1.125rem; color: var(--gray-600);
+      line-height: 1.7; margin-bottom: 36px;
+    }
+    .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 36px; }
+    .btn-primary {
+      background: var(--blue); color: var(--white);
+      padding: 14px 28px; border-radius: 10px;
+      font-size: 1rem; font-weight: 700; text-decoration: none;
+      transition: background .15s, transform .1s, box-shadow .15s;
+      box-shadow: 0 4px 14px rgba(37,99,235,.35);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: var(--blue-dark); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,.45); }
+    .btn-secondary {
+      background: var(--white); color: var(--blue);
+      padding: 14px 28px; border-radius: 10px;
+      font-size: 1rem; font-weight: 700; text-decoration: none;
+      border: 2px solid var(--blue);
+      transition: background .15s, transform .1s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-secondary:hover { background: var(--blue-light); transform: translateY(-2px); }
+    .trust-badges { display: flex; flex-direction: column; gap: 10px; }
+    .trust-badge {
+      display: flex; align-items: center; gap: 10px;
+      font-size: .9rem; color: var(--gray-700); font-weight: 500;
+    }
+    .trust-badge-icon {
+      width: 22px; height: 22px; background: var(--green);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: white; font-size: .75rem; font-weight: 700;
+    }
+    .hero-visual {
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hero-card {
+      background: var(--white); border-radius: 20px;
+      box-shadow: var(--shadow-xl); padding: 32px;
+      width: 100%; max-width: 420px;
+      border: 1px solid var(--gray-100);
+    }
+    .hero-card-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 28px;
+    }
+    .hero-card-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 1.2rem;
+    }
+    .hero-card-title { font-weight: 700; font-size: 1rem; }
+    .hero-card-sub { font-size: .8rem; color: var(--gray-400); }
+    .hero-stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    .hero-stat {
+      background: var(--gray-50); border-radius: 10px;
+      padding: 16px; text-align: center;
+    }
+    .hero-stat-num {
+      font-size: 1.5rem; font-weight: 800; color: var(--blue);
+      display: block; line-height: 1;
+    }
+    .hero-stat-label { font-size: .75rem; color: var(--gray-600); margin-top: 4px; }
+    .hero-pill {
+      background: var(--green-light); color: var(--green);
+      padding: 10px 16px; border-radius: 10px;
+      font-size: .85rem; font-weight: 600; text-align: center;
+    }
+
+    /* ── SECTIONS COMMON ── */
+    section { padding: 96px 24px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .section-tag {
+      display: inline-block;
+      background: var(--blue-light); color: var(--blue);
+      padding: 4px 14px; border-radius: 100px;
+      font-size: .8rem; font-weight: 700;
+      letter-spacing: .05em; text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(1.75rem, 3vw, 2.5rem);
+      font-weight: 800; letter-spacing: -.03em;
+      line-height: 1.2; margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 1.05rem; color: var(--gray-600);
+      max-width: 620px; line-height: 1.7;
+    }
+    .section-header { margin-bottom: 56px; }
+    .section-header.center { text-align: center; }
+    .section-header.center .section-sub { margin: 0 auto; }
+
+    /* ── PAIN POINTS ── */
+    #problemas { background: var(--gray-50); }
+    .pain-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+    .pain-card {
+      background: var(--white); border-radius: var(--radius);
+      padding: 28px; box-shadow: var(--shadow);
+      border: 1px solid var(--gray-100);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .pain-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .pain-icon {
+      font-size: 2rem; margin-bottom: 16px; display: block;
+    }
+    .pain-card p { font-size: .975rem; color: var(--gray-700); line-height: 1.6; font-weight: 500; }
+
+    /* ── SERVICES ── */
+    #servicios { background: var(--white); }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    .service-card {
+      background: var(--gray-50); border-radius: var(--radius);
+      padding: 28px; border: 1px solid var(--gray-100);
+      transition: transform .2s, box-shadow .2s, background .2s;
+    }
+    .service-card:hover {
+      background: var(--white); transform: translateY(-4px);
+      box-shadow: var(--shadow-lg); border-color: var(--gray-200);
+    }
+    .service-icon {
+      width: 52px; height: 52px;
+      background: var(--blue-light); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin-bottom: 18px;
+    }
+    .service-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .service-card p { font-size: .9rem; color: var(--gray-600); line-height: 1.65; }
+
+    /* ── PRICING ── */
+    #planes { background: var(--gray-50); }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px; align-items: stretch;
+    }
+    .plan-card {
+      background: var(--white); border-radius: 16px;
+      padding: 36px 28px; box-shadow: var(--shadow);
+      border: 2px solid var(--gray-100);
+      display: flex; flex-direction: column;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .plan-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-xl); }
+    .plan-card.featured {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(37,99,235,.1), var(--shadow-xl);
+      transform: scale(1.02);
+      position: relative;
+    }
+    .plan-card.featured:hover { transform: scale(1.02) translateY(-4px); }
+    .plan-badge {
+      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+      background: var(--blue); color: white;
+      padding: 5px 18px; border-radius: 100px;
+      font-size: .8rem; font-weight: 700;
+      white-space: nowrap;
+    }
+    .plan-name { font-size: 1.25rem; font-weight: 800; margin-bottom: 8px; }
+    .plan-price {
+      font-size: 2.25rem; font-weight: 900; color: var(--blue);
+      letter-spacing: -.03em; margin-bottom: 4px; line-height: 1;
+    }
+    .plan-price span { font-size: 1rem; font-weight: 600; color: var(--gray-600); }
+    .plan-period { font-size: .85rem; color: var(--gray-400); margin-bottom: 28px; }
+    .plan-features { list-style: none; flex: 1; margin-bottom: 32px; }
+    .plan-features li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: .9rem; color: var(--gray-700);
+      padding: 7px 0; border-bottom: 1px solid var(--gray-100);
+    }
+    .plan-features li:last-child { border-bottom: none; }
+    .plan-check {
+      color: var(--green); font-size: 1rem; font-weight: 700;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .btn-plan-primary {
+      background: var(--blue); color: white;
+      padding: 14px; border-radius: 10px;
+      font-weight: 700; font-size: 1rem; text-align: center;
+      text-decoration: none; display: block;
+      transition: background .15s, transform .1s;
+    }
+    .btn-plan-primary:hover { background: var(--blue-dark); transform: translateY(-1px); }
+    .btn-plan-secondary {
+      background: var(--blue-light); color: var(--blue);
+      padding: 14px; border-radius: 10px;
+      font-weight: 700; font-size: 1rem; text-align: center;
+      text-decoration: none; display: block;
+      border: 2px solid transparent;
+      transition: background .15s, border-color .15s, transform .1s;
+    }
+    .btn-plan-secondary:hover { background: white; border-color: var(--blue); transform: translateY(-1px); }
+    .pricing-note {
+      text-align: center; margin-top: 40px;
+      color: var(--gray-600); font-size: .95rem;
+    }
+    .pricing-note a { color: var(--blue); font-weight: 600; text-decoration: none; }
+
+    /* ── HOW IT WORKS ── */
+    #como-funciona { background: var(--white); }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+    }
+    .step {
+      text-align: center;
+      opacity: 0; transform: translateY(30px);
+      transition: opacity .5s, transform .5s;
+    }
+    .step.visible { opacity: 1; transform: translateY(0); }
+    .step-num {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--blue); color: white;
+      font-size: 1.5rem; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 6px 16px rgba(37,99,235,.35);
+    }
+    .step-icon { font-size: 1.5rem; display: block; margin-bottom: 14px; }
+    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .step p { font-size: .9rem; color: var(--gray-600); line-height: 1.6; }
+
+    /* ── TRUST ── */
+    #nosotros { background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #0f766e 100%); }
+    #nosotros h2, #nosotros .section-tag, #nosotros .section-sub { color: white; }
+    #nosotros .section-tag { background: rgba(255,255,255,.15); color: white; }
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+    .trust-item {
+      background: rgba(255,255,255,.1); border-radius: var(--radius);
+      padding: 28px; border: 1px solid rgba(255,255,255,.15);
+      backdrop-filter: blur(4px);
+    }
+    .trust-item-icon { font-size: 2rem; margin-bottom: 16px; display: block; }
+    .trust-item h3 { color: white; font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .trust-item p { color: rgba(255,255,255,.75); font-size: .9rem; line-height: 1.65; }
+
+    /* ── CONTACT ── */
+    #contacto { background: var(--gray-50); }
+    .contact-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start;
+    }
+    .contact-info h2 { margin-bottom: 16px; }
+    .contact-info p { color: var(--gray-600); font-size: 1rem; line-height: 1.7; margin-bottom: 32px; }
+    .contact-detail {
+      display: flex; align-items: center; gap: 12px;
+      font-size: .95rem; color: var(--gray-700); font-weight: 500;
+      margin-bottom: 14px;
+    }
+    .contact-detail-icon {
+      width: 40px; height: 40px; background: var(--blue-light);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; flex-shrink: 0;
+    }
+    .contact-form-card {
+      background: var(--white); border-radius: 16px;
+      padding: 36px; box-shadow: var(--shadow-xl);
+      border: 1px solid var(--gray-100);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block; font-size: .875rem; font-weight: 600;
+      color: var(--gray-700); margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid var(--gray-200); border-radius: 8px;
+      font-family: inherit; font-size: .95rem; color: var(--gray-900);
+      background: var(--white); outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .btn-submit {
+      width: 100%; background: var(--blue); color: white;
+      padding: 15px; border: none; border-radius: 10px;
+      font-family: inherit; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: background .15s, transform .1s;
+      box-shadow: 0 4px 14px rgba(37,99,235,.35);
+    }
+    .btn-submit:hover { background: var(--blue-dark); transform: translateY(-2px); }
+    .form-note {
+      text-align: center; margin-top: 16px;
+      font-size: .85rem; color: var(--gray-400);
+    }
+    .form-note a { color: var(--blue); font-weight: 600; text-decoration: none; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--gray-900); color: var(--gray-400);
+      padding: 40px 24px;
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 20px;
+    }
+    .footer-logo { color: white; font-weight: 800; font-size: 1.1rem; }
+    .footer-logo span { color: var(--green); }
+    .footer-copy { font-size: .85rem; }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a {
+      color: var(--gray-400); text-decoration: none;
+      font-size: .85rem; transition: color .15s;
+    }
+    .footer-links a:hover { color: white; }
+
+    /* ── ANIMATE ON SCROLL ── */
+    .animate {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity .55s ease, transform .55s ease;
+    }
+    .animate.visible { opacity: 1; transform: translateY(0); }
+    .animate-delay-1 { transition-delay: .1s; }
+    .animate-delay-2 { transition-delay: .2s; }
+    .animate-delay-3 { transition-delay: .3s; }
+    .animate-delay-4 { transition-delay: .4s; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      .nav-links, .nav-cta { display: none; }
+      .nav-mobile-toggle { display: flex; }
+      .nav-links.open {
+        display: flex; flex-direction: column; gap: 0;
+        position: fixed; top: 64px; left: 0; right: 0;
+        background: white; border-bottom: 1px solid var(--gray-200);
+        padding: 16px 24px; box-shadow: var(--shadow-lg);
+      }
+      .nav-links.open li { border-bottom: 1px solid var(--gray-100); }
+      .nav-links.open a { display: block; padding: 12px 0; font-size: 1rem; }
+      .hero-inner { grid-template-columns: 1fr; gap: 40px; padding: 48px 24px; }
+      .hero-visual { order: -1; }
+      .hero-card { max-width: 100%; }
+      .contact-grid { grid-template-columns: 1fr; gap: 40px; }
+      .form-row { grid-template-columns: 1fr; }
+      .plan-card.featured { transform: none; }
+      .plan-card.featured:hover { transform: translateY(-4px); }
+      section { padding: 64px 24px; }
+    }
+    @media (max-width: 480px) {
+      .hero-stat-row { grid-template-columns: 1fr 1fr; }
+      .footer-inner { flex-direction: column; text-align: center; }
+      .footer-links { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a href="#inicio" class="nav-logo">ANIMA <span>HR</span></a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#inicio">Inicio</a></li>
+        <li><a href="#servicios">Servicios</a></li>
+        <li><a href="#planes">Planes</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+      </ul>
+      <a href="#contacto" class="nav-cta">Cotizar gratis</a>
+      <button class="nav-mobile-toggle" id="mobileToggle" aria-label="Abrir menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="inicio">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <div class="hero-badge">Especialistas en normativa laboral chilena 2025</div>
+        <h1>Tu equipo de RRHH externo, por una <em>fracción del costo</em></h1>
+        <p class="hero-sub">
+          Liquidaciones, contratos, finiquitos y toda la gestión de personas para tu empresa
+          — nosotros nos encargamos de todo, para que tú te enfoques en crecer.
+        </p>
+        <div class="hero-ctas">
+          <a href="#contacto" class="btn-primary">
+            ✉ Solicitar cotización gratuita
+          </a>
+          <a href="#planes" class="btn-secondary">
+            Ver planes ↓
+          </a>
+        </div>
+        <div class="trust-badges">
+          <div class="trust-badge">
+            <div class="trust-badge-icon">✓</div>
+            Normativa laboral chilena 2025
+          </div>
+          <div class="trust-badge">
+            <div class="trust-badge-icon">✓</div>
+            Documentos con validez legal
+          </div>
+          <div class="trust-badge">
+            <div class="trust-badge-icon">✓</div>
+            Respuesta en 24 horas
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-card">
+          <div class="hero-card-header">
+            <div class="hero-card-avatar">AH</div>
+            <div>
+              <div class="hero-card-title">ANIMA HR Dashboard</div>
+              <div class="hero-card-sub">Gestión completa de tu equipo</div>
+            </div>
+          </div>
+          <div class="hero-stat-row">
+            <div class="hero-stat">
+              <span class="hero-stat-num">12</span>
+              <div class="hero-stat-label">Trabajadores activos</div>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-num">100%</span>
+              <div class="hero-stat-label">Liquidaciones al día</div>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-num">0</span>
+              <div class="hero-stat-label">Multas laborales</div>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-stat-num">24h</span>
+              <div class="hero-stat-label">Tiempo de respuesta</div>
+            </div>
+          </div>
+          <div class="hero-pill">✅ Próxima liquidación: lista el 30 de junio</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAIN POINTS -->
+  <section id="problemas">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-tag">¿Te identificas?</div>
+        <h2>¿Reconoces alguna de estas situaciones?</h2>
+        <p class="section-sub">Muchos dueños de pymes enfrentan los mismos desafíos con la gestión de personas. No deberías lidiar con esto solo.</p>
+      </div>
+      <div class="pain-grid">
+        <div class="pain-card animate">
+          <span class="pain-icon">⏰</span>
+          <p>Pierdes horas calculando liquidaciones a fin de mes, cuando ese tiempo podría dedicarlo a tu negocio.</p>
+        </div>
+        <div class="pain-card animate animate-delay-1">
+          <span class="pain-icon">📋</span>
+          <p>Te preocupa no estar al día con los cambios legales y exponerte a multas de la Dirección del Trabajo.</p>
+        </div>
+        <div class="pain-card animate animate-delay-2">
+          <span class="pain-icon">💸</span>
+          <p>No puedes pagar un profesional de RRHH interno que cuesta entre $1.500.000 y $2.500.000 al mes.</p>
+        </div>
+        <div class="pain-card animate animate-delay-3">
+          <span class="pain-icon">🤷</span>
+          <p>Tu contador hace lo mínimo y no te asesora en temas laborales como contratos, vacaciones o despidos.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section id="servicios">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Servicios</div>
+        <h2>Todo lo que necesitas, sin contratar a nadie</h2>
+        <p class="section-sub">Un equipo completo de RRHH a tu disposición, con la tecnología y el conocimiento para mantener tu empresa siempre en regla.</p>
+      </div>
+      <div class="services-grid">
+        <div class="service-card animate">
+          <div class="service-icon">📊</div>
+          <h3>Liquidaciones de sueldo</h3>
+          <p>Cálculo mensual preciso con AFP, salud, impuesto único, gratificación y todas las variables. Entregamos el documento listo para firmar.</p>
+        </div>
+        <div class="service-card animate animate-delay-1">
+          <div class="service-icon">📝</div>
+          <h3>Contratos de trabajo</h3>
+          <p>Indefinido, plazo fijo y obra o faena. Redactados conforme al Código del Trabajo, con opción de firma digital.</p>
+        </div>
+        <div class="service-card animate animate-delay-2">
+          <div class="service-icon">🤝</div>
+          <h3>Finiquitos</h3>
+          <p>Cálculo legal del finiquito según causal de despido, con el documento listo para firmar ante notario sin errores.</p>
+        </div>
+        <div class="service-card animate animate-delay-3">
+          <div class="service-icon">⚠️</div>
+          <h3>Cartas de amonestación</h3>
+          <p>Verbal, escrita y grave. Te entregamos la carta correcta con el respaldo legal necesario para proteger a tu empresa.</p>
+        </div>
+        <div class="service-card animate">
+          <div class="service-icon">🏖️</div>
+          <h3>Control de vacaciones</h3>
+          <p>Registro de saldos, solicitudes y certificados automáticos. Siempre sabrás cuántos días le quedan a cada trabajador.</p>
+        </div>
+        <div class="service-card animate animate-delay-1">
+          <div class="service-icon">🤖</div>
+          <h3>Asesoría laboral con IA</h3>
+          <p>Respuestas sobre normativa chilena vigente en minutos. ¿Puedo despedir por esto? ¿Cuánto vale el bono de vacaciones? Te respondemos al instante.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="planes">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-tag">Precios</div>
+        <h2>Planes claros, sin letra chica</h2>
+        <p class="section-sub">Elige el plan que se ajusta al tamaño de tu empresa. Sin costos ocultos, sin contratos de largo plazo.</p>
+      </div>
+      <div class="pricing-grid">
+
+        <!-- Básico -->
+        <div class="plan-card animate">
+          <div class="plan-name">Básico</div>
+          <div class="plan-price">$89.990 <span>CLP</span></div>
+          <div class="plan-period">por mes, sin IVA</div>
+          <ul class="plan-features">
+            <li><span class="plan-check">✓</span> Hasta 10 trabajadores</li>
+            <li><span class="plan-check">✓</span> Liquidaciones mensuales</li>
+            <li><span class="plan-check">✓</span> Contratos básicos</li>
+            <li><span class="plan-check">✓</span> Soporte por email</li>
+          </ul>
+          <a href="#contacto" class="btn-plan-secondary">Empezar ahora</a>
+        </div>
+
+        <!-- Profesional -->
+        <div class="plan-card featured animate animate-delay-1">
+          <div class="plan-badge">⭐ Más popular</div>
+          <div class="plan-name">Profesional</div>
+          <div class="plan-price">$179.990 <span>CLP</span></div>
+          <div class="plan-period">por mes, sin IVA</div>
+          <ul class="plan-features">
+            <li><span class="plan-check">✓</span> Hasta 30 trabajadores</li>
+            <li><span class="plan-check">✓</span> Todo lo del plan básico</li>
+            <li><span class="plan-check">✓</span> Finiquitos y amonestaciones</li>
+            <li><span class="plan-check">✓</span> Control de vacaciones</li>
+            <li><span class="plan-check">✓</span> Asesoría laboral con IA</li>
+            <li><span class="plan-check">✓</span> Soporte prioritario WhatsApp</li>
+          </ul>
+          <a href="#contacto" class="btn-plan-primary">Empezar ahora</a>
+        </div>
+
+        <!-- Empresa -->
+        <div class="plan-card animate animate-delay-2">
+          <div class="plan-name">Empresa</div>
+          <div class="plan-price">$299.990 <span>CLP</span></div>
+          <div class="plan-period">por mes, sin IVA</div>
+          <ul class="plan-features">
+            <li><span class="plan-check">✓</span> Hasta 80 trabajadores</li>
+            <li><span class="plan-check">✓</span> Todo lo del plan profesional</li>
+            <li><span class="plan-check">✓</span> Libro de remuneraciones</li>
+            <li><span class="plan-check">✓</span> Archivo Previred mensual</li>
+            <li><span class="plan-check">✓</span> Declaración Jurada F1887</li>
+            <li><span class="plan-check">✓</span> Reunión mensual de revisión</li>
+          </ul>
+          <a href="#contacto" class="btn-plan-secondary">Contactar</a>
+        </div>
+
+      </div>
+      <p class="pricing-note animate">
+        ¿Más de 80 trabajadores? <a href="#contacto">Solicita una cotización personalizada →</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="como-funciona">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-tag">Proceso</div>
+        <h2>Así de simple</h2>
+        <p class="section-sub">En menos de 48 horas ya puedes tener tu gestión de personas en manos de expertos.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">1</div>
+          <span class="step-icon">📋</span>
+          <h3>Nos cuentas sobre tu empresa</h3>
+          <p>Completas un formulario de 5 minutos con los datos básicos de tu empresa y trabajadores.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <span class="step-icon">📨</span>
+          <h3>Te enviamos tu propuesta en 24 horas</h3>
+          <p>Recibes una propuesta personalizada con el plan recomendado según tu tamaño y necesidades.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <span class="step-icon">⚙️</span>
+          <h3>Subimos los datos al sistema</h3>
+          <p>Nos encargamos de configurar todo: datos de tus trabajadores, remuneraciones y beneficios.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <span class="step-icon">📁</span>
+          <h3>Cada mes recibes tus documentos</h3>
+          <p>Liquidaciones, contratos y todos los documentos de RRHH, listos para firmar mes a mes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST -->
+  <section id="nosotros">
+    <div class="container">
+      <div class="section-header center">
+        <div class="section-tag">Por qué elegirnos</div>
+        <h2>¿Por qué ANIMA HR?</h2>
+        <p class="section-sub">Combinamos experiencia en ley laboral chilena con tecnología de punta y estándares internacionales.</p>
+      </div>
+      <div class="trust-grid">
+        <div class="trust-item animate">
+          <span class="trust-item-icon">⚖️</span>
+          <h3>Especialistas en ley laboral chilena</h3>
+          <p>Conocemos el Código del Trabajo, las circulares de la DT y todos los cambios normativos que afectan a tu empresa.</p>
+        </div>
+        <div class="trust-item animate animate-delay-1">
+          <span class="trust-item-icon">🤖</span>
+          <h3>Tecnología con IA actualizada</h3>
+          <p>Usamos inteligencia artificial para mantenernos al día con los cambios legislativos y detectar errores antes de que ocurran.</p>
+        </div>
+        <div class="trust-item animate animate-delay-2">
+          <span class="trust-item-icon">💬</span>
+          <h3>Atención personalizada</h3>
+          <p>Sin call centers ni robots. Tienes un consultor asignado que conoce tu empresa y responde en WhatsApp.</p>
+        </div>
+        <div class="trust-item animate animate-delay-3">
+          <span class="trust-item-icon">🌎</span>
+          <h3>Basados en Canadá, estándares internacionales</h3>
+          <p>Operamos con los más altos estándares de calidad y privacidad de datos, al servicio de las empresas chilenas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contacto">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="contact-info">
+          <div class="section-tag">Contacto</div>
+          <h2>Solicita tu cotización gratuita</h2>
+          <p>Cuéntanos sobre tu empresa y te enviamos una propuesta personalizada en menos de 24 horas. Sin compromisos.</p>
+          <div class="contact-detail">
+            <div class="contact-detail-icon">✉️</div>
+            contacto@animahr.cl
+          </div>
+          <div class="contact-detail">
+            <div class="contact-detail-icon">💬</div>
+            WhatsApp disponible en planes Profesional y Empresa
+          </div>
+          <div class="contact-detail">
+            <div class="contact-detail-icon">⏱️</div>
+            Respuesta garantizada en 24 horas hábiles
+          </div>
+          <div class="contact-detail">
+            <div class="contact-detail-icon">🌎</div>
+            Operamos desde Canadá para toda Chile
+          </div>
+        </div>
+        <div class="contact-form-card animate">
+          <form id="contactForm" onsubmit="handleSubmit(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="nombre">Nombre *</label>
+                <input type="text" id="nombre" name="nombre" placeholder="Tu nombre" required />
+              </div>
+              <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" placeholder="tu@empresa.cl" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="telefono">Teléfono (WhatsApp)</label>
+                <input type="tel" id="telefono" name="telefono" placeholder="+56 9 1234 5678" />
+              </div>
+              <div class="form-group">
+                <label for="empresa">Nombre empresa *</label>
+                <input type="text" id="empresa" name="empresa" placeholder="Tu empresa SpA" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="trabajadores">N° de trabajadores *</label>
+              <select id="trabajadores" name="trabajadores" required>
+                <option value="" disabled selected>Selecciona un rango</option>
+                <option value="1-10">1 – 10 trabajadores</option>
+                <option value="11-30">11 – 30 trabajadores</option>
+                <option value="31-80">31 – 80 trabajadores</option>
+                <option value="+80">Más de 80 trabajadores</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="mensaje">Mensaje (opcional)</label>
+              <textarea id="mensaje" name="mensaje" placeholder="Cuéntanos qué necesitas o cualquier consulta adicional..."></textarea>
+            </div>
+            <button type="submit" class="btn-submit">Enviar solicitud →</button>
+          </form>
+          <p class="form-note">
+            También puedes escribirnos directamente a <a href="mailto:contacto@animahr.cl">contacto@animahr.cl</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-logo">ANIMA <span>HR</span></div>
+      <p class="footer-copy">ANIMA HR © 2025 — Servicio operado desde Canadá para empresas chilenas</p>
+      <nav class="footer-links">
+        <a href="#inicio">Inicio</a>
+        <a href="#servicios">Servicios</a>
+        <a href="#planes">Planes</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    // Nav scroll effect
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 20);
+    });
+
+    // Mobile nav toggle
+    const toggle = document.getElementById('mobileToggle');
+    const navLinks = document.getElementById('navLinks');
+    toggle.addEventListener('click', () => {
+      navLinks.classList.toggle('open');
+    });
+    navLinks.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => navLinks.classList.remove('open'));
+    });
+
+    // Intersection observer for scroll animations
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    document.querySelectorAll('.animate, .step').forEach(el => observer.observe(el));
+
+    // Form submission
+    function handleSubmit(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('.btn-submit');
+      btn.textContent = '✅ Solicitud enviada — te contactamos pronto';
+      btn.disabled = true;
+      btn.style.background = '#10B981';
+      // In production: send form data to backend/email service
+    }
+  </script>
+</body>
+</html>
