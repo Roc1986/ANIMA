@@ -13,7 +13,7 @@ from datetime import datetime, date
 from typing import Dict, Optional
 
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.pagesizes import A4, A3, letter, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm, mm
 from reportlab.platypus import (
@@ -1130,7 +1130,7 @@ def generate_libro_remuneraciones_pdf(run, entries, employees: Dict) -> str:
 
     month_name = MONTH_NAMES.get(run.period_month, str(run.period_month))
 
-    doc = SimpleDocTemplate(filepath, pagesize=A4, leftMargin=1*cm, rightMargin=1*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
+    doc = SimpleDocTemplate(filepath, pagesize=landscape(A3), leftMargin=1*cm, rightMargin=1*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
 
     styles = getSampleStyleSheet()
     elements = []
@@ -1206,8 +1206,8 @@ def generate_libro_remuneraciones_pdf(run, entries, employees: Dict) -> str:
         _fmt_clp(totals["desc"]), _fmt_clp(totals["liquido"]),
     ])
 
-    col_widths = [2.2*cm, 4.5*cm, 3*cm, 2.2*cm, 2.2*cm, 2*cm, 2*cm,
-                  2.3*cm, 2.2*cm, 2.2*cm, 2*cm, 2.2*cm, 2.2*cm, 2.3*cm]
+    col_widths = [2.5*cm, 5.5*cm, 3.5*cm, 2.5*cm, 2.5*cm, 2.2*cm, 2.2*cm,
+                  2.8*cm, 2.5*cm, 2.5*cm, 2.2*cm, 2.5*cm, 2.5*cm, 2.8*cm]
 
     table = Table(data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
