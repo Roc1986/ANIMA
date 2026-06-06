@@ -70,6 +70,7 @@ export const payrollApi = {
   calculate: (id: number) => api.post(`/api/payroll/${id}/calculate`),
   addEntry: (id: number, data: unknown) => api.post(`/api/payroll/${id}/entry`, data),
   approve: (id: number) => api.post(`/api/payroll/${id}/approve`),
+  reopen: (id: number) => api.post(`/api/payroll/${id}/reopen`),
   getLiquidacionPdf: (runId: number, entryId: number) =>
     api.get(`/api/payroll/${runId}/entry/${entryId}/pdf`, { responseType: 'blob' }),
   reverseCalculate: (data: {

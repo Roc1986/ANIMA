@@ -174,6 +174,21 @@ export default function Payroll() {
     }
   }
 
+  const onReopen = async (runId: number) => {
+    if (!confirm('¿Reabrir esta nómina? Quedará en estado "calculada" para poder modificarla.')) return
+    setProcessing(true)
+    try {
+      await payrollApi.reopen(runId)
+      toast.success('Nómina reabierta — ya puedes agregar o modificar entradas')
+      fetchRuns()
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } }
+      toast.error(error.response?.data?.detail || 'Error al reabrir')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   const downloadLibroPdf = async (runId: number, year: number, month: number) => {
     try {
       const res = await reportsApi.libroPdf(runId)
@@ -291,6 +306,15 @@ export default function Payroll() {
                     >
                       <CheckIcon className="w-3.5 h-3.5" />
                       Aprobar
+                    </button>
+                  )}
+                  {isAdmin && run.status === 'approved' && (
+                    <button
+                      onClick={() => onReopen(run.id)}
+                      disabled={processing}
+                      className="btn-secondary text-xs px-2 py-1.5 text-orange-700 border-orange-300 hover:bg-orange-50"
+                    >
+                      Reabrir
                     </button>
                   )}
                   {run.status !== 'draft' && (

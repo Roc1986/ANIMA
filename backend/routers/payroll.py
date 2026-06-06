@@ -243,6 +243,26 @@ def approve_payroll(
     return {"message": "Nómina aprobada"}
 
 
+@router.post("/{run_id}/reopen")
+def reopen_payroll(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    q = db.query(PayrollRun).filter(PayrollRun.id == run_id)
+    q = filter_by_company(q, PayrollRun, current_user)
+    run = q.first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Nómina no encontrada")
+    if run.status != PayrollStatus.approved:
+        raise HTTPException(status_code=400, detail="Solo se pueden reabrir nóminas aprobadas")
+    run.status = PayrollStatus.calculated
+    run.approved_by = None
+    run.approved_at = None
+    db.commit()
+    return {"message": "Nómina reabierta — puede agregar o modificar entradas y volver a aprobar"}
+
+
 class ReverseCalculateRequest(BaseModel):
     liquido_deseado: float
     afp: str = "Habitat"
