@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { payrollApi, reportsApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
+import { payrollApi, employeesApi, reportsApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -70,6 +70,14 @@ export default function Payroll() {
   const [selectedRun, setSelectedRun] = useState<number | null>(null)
   const [runDetail, setRunDetail] = useState<{ entries: PayrollEntry[]; total_liquido: number; total_costo_empresa: number; total_trabajadores: number } | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [showAddEmployee, setShowAddEmployee] = useState<number | null>(null) // run_id
+  const [employees, setEmployees] = useState<{ id: number; first_name: string; last_name: string }[]>([])
+
+  const {
+    register: registerAdd,
+    handleSubmit: handleSubmitAdd,
+    reset: resetAdd,
+  } = useForm({ defaultValues: { employee_id: '', dias_trabajados: 30, horas_extra_habiles: 0, horas_extra_domingo: 0, bono_colacion: 0, bono_movilizacion: 0, bono_otros: 0, asignacion_familiar: 0, adelanto: 0, descuento_otros: 0 } })
 
   const {
     register: registerReverse,
@@ -108,7 +116,32 @@ export default function Payroll() {
     }
   }
 
-  useEffect(() => { fetchRuns() }, [])
+  useEffect(() => {
+    fetchRuns()
+    employeesApi.list({ is_active: true }).then(r => setEmployees(r.data)).catch(() => {})
+  }, [])
+
+  const openAddEmployee = (runId: number) => {
+    resetAdd({ employee_id: '', dias_trabajados: 30, horas_extra_habiles: 0, horas_extra_domingo: 0, bono_colacion: 0, bono_movilizacion: 0, bono_otros: 0, asignacion_familiar: 0, adelanto: 0, descuento_otros: 0 })
+    setShowAddEmployee(runId)
+  }
+
+  const onAddEmployee = async (data: Record<string, unknown>) => {
+    if (!showAddEmployee) return
+    setProcessing(true)
+    try {
+      await payrollApi.addEntry(showAddEmployee, { ...data, employee_id: Number(data.employee_id) })
+      toast.success('Empleado agregado a la nómina')
+      setShowAddEmployee(null)
+      fetchRunDetail(showAddEmployee)
+      fetchRuns()
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } }
+      toast.error(e.response?.data?.detail || 'Error al agregar empleado')
+    } finally {
+      setProcessing(false)
+    }
+  }
 
   const fetchRunDetail = async (runId: number) => {
     try {
@@ -397,12 +430,77 @@ export default function Payroll() {
                       </tbody>
                     </table>
                   </div>
+                  {isAdmin && run.status === 'calculated' && (
+                    <div className="px-4 pb-4">
+                      <button
+                        onClick={() => openAddEmployee(run.id)}
+                        className="btn-secondary text-sm flex items-center gap-2"
+                      >
+                        <PlusIcon className="w-4 h-4" /> Agregar empleado a esta nómina
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )
         })}
       </div>
+
+      {/* Add Employee to Run Modal */}
+      {showAddEmployee && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h2 className="text-lg font-bold">Agregar Empleado a la Nómina</h2>
+              <button onClick={() => setShowAddEmployee(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <form onSubmit={handleSubmitAdd(onAddEmployee)} className="p-6 space-y-4">
+              <div>
+                <label className="label">Empleado</label>
+                <select className="input" {...registerAdd('employee_id', { required: true })}>
+                  <option value="">Seleccionar empleado...</option>
+                  {employees.map(e => (
+                    <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Días trabajados</label>
+                  <input className="input" type="number" {...registerAdd('dias_trabajados')} />
+                </div>
+                <div>
+                  <label className="label">Bono colación</label>
+                  <input className="input" type="number" {...registerAdd('bono_colacion')} />
+                </div>
+                <div>
+                  <label className="label">Bono movilización</label>
+                  <input className="input" type="number" {...registerAdd('bono_movilizacion')} />
+                </div>
+                <div>
+                  <label className="label">Otros bonos</label>
+                  <input className="input" type="number" {...registerAdd('bono_otros')} />
+                </div>
+                <div>
+                  <label className="label">Adelanto</label>
+                  <input className="input" type="number" {...registerAdd('adelanto')} />
+                </div>
+                <div>
+                  <label className="label">Otros descuentos</label>
+                  <input className="input" type="number" {...registerAdd('descuento_otros')} />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowAddEmployee(null)} className="btn-secondary">Cancelar</button>
+                <button type="submit" disabled={processing} className="btn-primary">
+                  {processing ? 'Calculando...' : 'Agregar y Calcular'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Reverse Calculator Modal */}
       {showReverseCalc && (
