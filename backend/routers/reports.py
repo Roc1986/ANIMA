@@ -9,6 +9,7 @@ from models.payroll import PayrollRun, PayrollEntry
 from models.employee import Employee
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
+from models.company import Company
 from services.pdf_generator import generate_libro_remuneraciones_pdf
 from services.excel_generator import generate_previred_excel, generate_dj1887_excel
 
@@ -27,8 +28,9 @@ def libro_remuneraciones_pdf(
 
     entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id == run_id).all()
     employees = {e.id: e for e in db.query(Employee).all()}
+    company = db.query(Company).filter(Company.id == run.company_id).first() if run.company_id else None
 
-    pdf_path = generate_libro_remuneraciones_pdf(run=run, entries=entries, employees=employees)
+    pdf_path = generate_libro_remuneraciones_pdf(run=run, entries=entries, employees=employees, company=company)
     return FileResponse(pdf_path, media_type="application/pdf",
                         filename=f"libro_remuneraciones_{run.period_year}_{run.period_month:02d}.pdf")
 

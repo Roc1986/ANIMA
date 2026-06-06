@@ -14,6 +14,7 @@ from schemas.payroll import (
 )
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
+from models.company import Company
 from services.payroll_calculator import ChileanPayrollCalculator
 from services.pdf_generator import generate_liquidacion_pdf
 from fastapi.responses import FileResponse
@@ -257,6 +258,7 @@ def get_liquidacion_pdf(
 
     run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
     emp = db.query(Employee).filter(Employee.id == entry.employee_id).first()
+    company = db.query(Company).filter(Company.id == run.company_id).first() if run else None
 
-    pdf_path = generate_liquidacion_pdf(entry=entry, employee=emp, payroll_run=run)
+    pdf_path = generate_liquidacion_pdf(entry=entry, employee=emp, payroll_run=run, company=company)
     return FileResponse(pdf_path, media_type="application/pdf", filename=os.path.basename(pdf_path))

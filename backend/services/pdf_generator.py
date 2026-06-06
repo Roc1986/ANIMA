@@ -50,7 +50,7 @@ def _fmt_clp(value) -> str:
         return str(value)
 
 
-def generate_liquidacion_pdf(entry, employee, payroll_run) -> str:
+def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
     """Generate a complete liquidación de sueldo PDF."""
     filename = f"liquidacion_{employee.rut}_{payroll_run.period_year}_{payroll_run.period_month:02d}_{uuid.uuid4().hex[:8]}.pdf"
     filepath = os.path.join(UPLOAD_DIR, filename)
@@ -73,16 +73,22 @@ def generate_liquidacion_pdf(entry, employee, payroll_run) -> str:
 
     month_name = MONTH_NAMES.get(payroll_run.period_month, str(payroll_run.period_month))
 
+    # Company data — use company object if available, fallback to settings
+    co_name = (company.name if company and company.name else settings.COMPANY_NAME)
+    co_rut = (company.rut if company and company.rut else settings.COMPANY_RUT)
+    co_address = (company.address if company and getattr(company, 'address', None) else getattr(settings, 'COMPANY_ADDRESS', 'Santiago, Chile'))
+    co_phone = (company.phone if company and getattr(company, 'phone', None) else getattr(settings, 'COMPANY_PHONE', ''))
+
     elements = []
 
     # Header - Company info
     header_data = [
         [
-            Paragraph(f"<b>{settings.COMPANY_NAME}</b>", ParagraphStyle("CH", fontSize=13, textColor=BLUE, fontName="Helvetica-Bold")),
+            Paragraph(f"<b>{co_name}</b>", ParagraphStyle("CH", fontSize=13, textColor=BLUE, fontName="Helvetica-Bold")),
             Paragraph(f"<b>LIQUIDACIÓN DE SUELDO</b>", ParagraphStyle("LH", fontSize=13, textColor=BLUE, alignment=TA_RIGHT, fontName="Helvetica-Bold")),
         ],
         [
-            Paragraph(f"RUT: {settings.COMPANY_RUT}<br/>{settings.COMPANY_ADDRESS}<br/>{settings.COMPANY_PHONE}", small_style),
+            Paragraph(f"RUT: {co_rut}<br/>{co_address}<br/>{co_phone}", small_style),
             Paragraph(f"Período: {month_name} {payroll_run.period_year}<br/>Fecha pago: {payroll_run.payment_date or 'Por definir'}", ParagraphStyle("RH", fontSize=9, alignment=TA_RIGHT)),
         ],
     ]
@@ -264,7 +270,7 @@ def generate_liquidacion_pdf(entry, employee, payroll_run) -> str:
     sig_data = [
         ["_______________________________", "_______________________________"],
         ["Firma Empleador", "Firma Trabajador"],
-        [settings.COMPANY_NAME, full_name],
+        [co_name, full_name],
     ]
     sig_table = Table(sig_data, colWidths=[9*cm, 9*cm])
     sig_table.setStyle(TableStyle([
@@ -1123,7 +1129,7 @@ def generate_contract_pdf(contract, employee, company) -> str:
     return filepath
 
 
-def generate_libro_remuneraciones_pdf(run, entries, employees: Dict) -> str:
+def generate_libro_remuneraciones_pdf(run, entries, employees: Dict, company=None) -> str:
     """Generate monthly libro de remuneraciones."""
     filename = f"libro_rem_{run.period_year}_{run.period_month:02d}_{uuid.uuid4().hex[:8]}.pdf"
     filepath = os.path.join(UPLOAD_DIR, filename)
@@ -1140,8 +1146,10 @@ def generate_libro_remuneraciones_pdf(run, entries, employees: Dict) -> str:
         f"<b>LIBRO DE REMUNERACIONES</b>",
         ParagraphStyle("T", fontSize=14, fontName="Helvetica-Bold", textColor=BLUE, alignment=TA_CENTER)
     ))
+    co_name = (company.name if company and company.name else settings.COMPANY_NAME)
+    co_rut = (company.rut if company and company.rut else settings.COMPANY_RUT)
     elements.append(Paragraph(
-        f"{settings.COMPANY_NAME} — RUT {settings.COMPANY_RUT}",
+        f"{co_name} — RUT {co_rut}",
         ParagraphStyle("S", fontSize=10, alignment=TA_CENTER, textColor=DARK_GRAY)
     ))
     elements.append(Paragraph(
