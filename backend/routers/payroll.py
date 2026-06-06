@@ -182,7 +182,8 @@ def add_or_update_entry(
         Contract.employee_id == emp.id,
         Contract.is_active == True,
     ).first()
-    contract_type = contract.contract_type if contract else "indefinido"
+    ct_raw = str(contract.contract_type) if contract else "indefinido"
+    contract_type = ct_raw.split('.')[-1] if '.' in ct_raw else ct_raw
 
     legal_params = _get_legal_params(db)
     calculator = ChileanPayrollCalculator(
