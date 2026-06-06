@@ -129,7 +129,8 @@ def calculate_payroll(
             Contract.employee_id == emp.id,
             Contract.is_active == True,
         ).first()
-        contract_type = contract.contract_type if contract else "indefinido"
+        ct_raw = str(contract.contract_type) if contract else "indefinido"
+        contract_type = ct_raw.split('.')[-1] if '.' in ct_raw else ct_raw
 
         result = calculator.calculate(
             employee=emp,

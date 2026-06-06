@@ -166,8 +166,10 @@ class ChileanPayrollCalculator:
         Returns a dict matching PayrollEntry fields.
         """
         sueldo_base = float(employee.base_salary)
-        afp_name = str(employee.afp)
-        health_system = str(employee.health_system)
+        afp_raw = employee.afp.value if hasattr(employee.afp, 'value') else str(employee.afp)
+        afp_name = afp_raw.split('.')[-1].capitalize() if '.' in afp_raw else afp_raw
+        hs_raw = employee.health_system.value if hasattr(employee.health_system, 'value') else str(employee.health_system)
+        health_system = hs_raw.split('.')[-1].upper() if '.' in hs_raw else hs_raw
         weekly_hours = 40  # default per Ley 21.561
 
         # --- Proporcionalidad por días trabajados ---
