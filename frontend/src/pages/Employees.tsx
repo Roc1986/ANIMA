@@ -47,10 +47,15 @@ export default function Employees() {
 
   useEffect(() => { fetchEmployees() }, [search])
 
-  const onSubmit = async (data: unknown) => {
+  const onSubmit = async (data: Record<string, unknown>) => {
     setSubmitting(true)
+    // Convert numeric fields and remove empty strings
+    const payload = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+    )
+    payload.base_salary = Number(payload.base_salary)
     try {
-      await employeesApi.create(data)
+      await employeesApi.create(payload)
       toast.success('Empleado creado exitosamente')
       setShowModal(false)
       reset()
