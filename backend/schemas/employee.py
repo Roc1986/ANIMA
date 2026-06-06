@@ -44,6 +44,7 @@ class EmployeeUpdate(BaseModel):
     city: Optional[str] = None
     region: Optional[str] = None
     birth_date: Optional[date] = None
+    hire_date: Optional[date] = None
     gender: Optional[Gender] = None
     marital_status: Optional[MaritalStatus] = None
     afp: Optional[AFP] = None
