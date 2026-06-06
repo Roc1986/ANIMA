@@ -257,22 +257,23 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
 
         f = [0] * 105
 
-        # Identificación (campos 1-7)
-        f[0]  = rut
-        f[1]  = emp.last_name                          # 2  Apellido paterno
-        f[2]  = emp.second_last_name or ""             # 3  Apellido materno
-        f[3]  = emp.first_name                         # 4  Nombres
-        f[4]  = 0                                      # 5  Sexo
-        f[5]  = nacimiento                             # 6  Fecha nacimiento
-        f[6]  = ingreso                                # 7  Fecha inicio labores
+        # Campo 1: Tipo de Nómina (01 = Remuneraciones del mes)
+        f[0]  = "01"
+        # Identificación trabajador (campos 2-8)
+        f[1]  = rut                                    # 2  RUT trabajador
+        f[2]  = emp.last_name                          # 3  Apellido paterno
+        f[3]  = emp.second_last_name or ""             # 4  Apellido materno
+        f[4]  = emp.first_name                         # 5  Nombres
+        f[5]  = 0                                      # 6  Sexo
+        f[6]  = nacimiento                             # 7  Fecha nacimiento
+        f[7]  = ingreso                                # 8  Fecha inicio labores
 
-        # AFP (campos 8-14)
-        f[7]  = afp_code                               # 8  Código AFP
-        f[8]  = int(float(entry.remuneracion_imponible))  # 9  Renta imponible AFP
-        f[9]  = int(float(entry.descuento_afp))        # 10 Cotización AFP
-        f[10] = 0                                      # 11 Cotización voluntaria AFP
-        f[11] = 0                                      # 12 Depósito convenido
-        f[12] = 0                                      # 13 APV A
+        # AFP (campos 9-14)
+        f[8]  = afp_code                               # 9  Código AFP
+        f[9]  = int(float(entry.remuneracion_imponible))  # 10 Renta imponible AFP
+        f[10] = int(float(entry.descuento_afp))        # 11 Cotización AFP
+        f[11] = 0                                      # 12 Cotización voluntaria AFP
+        f[12] = 0                                      # 13 Depósito convenido
         f[13] = 0                                      # 14 Tipo de línea (0=principal)
 
         # Salud (campos 15-20)
