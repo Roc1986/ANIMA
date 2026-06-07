@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { authApi } from '../api/client'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 
 interface LoginForm {
   email: string
@@ -15,6 +16,7 @@ export default function Login() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [seeding, setSeeding] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>()
 
   const onSubmit = async (data: LoginForm) => {
@@ -71,12 +73,24 @@ export default function Login() {
             </div>
             <div>
               <label className="label">Contraseña</label>
-              <input
-                type="password"
-                className="input"
-                placeholder="••••••••"
-                {...register('password', { required: 'Contraseña requerida' })}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="input pr-10"
+                  placeholder="••••••••"
+                  {...register('password', { required: 'Contraseña requerida' })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                >
+                  {showPassword
+                    ? <EyeSlashIcon className="w-5 h-5" />
+                    : <EyeIcon className="w-5 h-5" />}
+                </button>
+              </div>
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
             </div>
             <button
