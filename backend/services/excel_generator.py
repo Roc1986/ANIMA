@@ -479,20 +479,9 @@ def generate_dj1887_csv(year: int, entries: list, employees: Dict, company=None)
 
     lines: list = []
 
-    # Lines 1-5: identification block; data begins at line 6
-    def hrow(*values):
-        padded = list(values) + [""] * (NUM_COLS - len(values))
-        return SEP.join(str(v) for v in padded[:NUM_COLS])
-
-    lines.append(hrow("DJ1887", f"AÑO TRIBUTARIO {year + 1}", f"RENTAS AÑO {year}"))
-    lines.append(hrow("RUT EMPRESA", co_rut_clean, co_name))
-    lines.append(hrow(
-        "RUT TRABAJADOR", "APELLIDO PATERNO", "APELLIDO MATERNO", "NOMBRES",
-        "RENTA BRUTA ANUAL", "COTIZ PREVISIONALES", "RENTA TRIBUTABLE",
-        "IUSC RETENIDO", "CREDITO ISC", "RENTA EXENTA", "MESES TRABAJADOS", "OBSERVACIONES"
-    ))
-    lines.append(blank_row())
-    lines.append(blank_row())
+    # Lines 1-5: blank rows (SII does not require headers, data starts at line 6)
+    for _ in range(5):
+        lines.append(blank_row())
 
     # Data rows from line 6
     for eid, totals in employee_totals.items():
@@ -509,14 +498,14 @@ def generate_dj1887_csv(year: int, entries: list, employees: Dict, company=None)
             str(int(round(totals["cotiz_prev"]))),
             str(int(round(totals["renta_tributable"]))),
             str(int(round(totals["iusc"]))),
-            "0",                        # Crédito ISC
+            "0",                        # Credito ISC
             "0",                        # Renta exenta zona extrema
             str(int(totals["meses"])),
             "0",                        # Observaciones
         ])
         lines.append(row)
 
-    with open(filepath, "w", encoding="utf-8") as fh:
+    with open(filepath, "w", encoding="iso-8859-1") as fh:
         fh.write("\n".join(lines))
 
     return filepath
