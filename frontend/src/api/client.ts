@@ -49,6 +49,10 @@ export const superAdminApi = {
   companyStats: (id: number) => api.get(`/api/super/companies/${id}/stats`),
   createCompanyAdmin: (companyId: number, data: unknown) =>
     api.post(`/api/super/companies/${companyId}/admin`, data),
+  listGlobalParams: () => api.get('/api/super/global-params'),
+  updateGlobalParam: (key: string, data: { value: number; description?: string; source?: string }) =>
+    api.put(`/api/super/global-params/${key}`, data),
+  syncIndicators: () => api.post('/api/super/sync-indicators'),
 }
 
 // --- Employees ---

@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 import os
+import logging
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from database import engine, Base
 from models import *  # noqa - ensures all models are registered
@@ -10,14 +14,42 @@ from routers import (
     auth, employees, payroll, attendance, documents, reports,
     ai_legal, warning_letters, finiquito, company, vacations, contracts, super_admin
 )
+from services.indicators_sync import sync_all, sync_uf, sync_utm
 
-# Create all tables
-Base.metadata.create_all(bind=engine)
+logger = logging.getLogger(__name__)
+
+scheduler = AsyncIOScheduler(timezone="America/Santiago")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    Base.metadata.create_all(bind=engine)
+    os.makedirs("/app/uploads", exist_ok=True)
+
+    # Schedule UF sync: daily at 09:05 (CMF publishes ~9am)
+    scheduler.add_job(sync_uf, "cron", hour=9, minute=5, id="sync_uf")
+    # Schedule UTM sync: 1st of each month at 09:10
+    scheduler.add_job(sync_utm, "cron", day=1, hour=9, minute=10, id="sync_utm")
+    scheduler.start()
+
+    # Sync on startup so values are fresh
+    try:
+        await sync_all()
+    except Exception as e:
+        logger.warning(f"Initial indicator sync failed (non-fatal): {e}")
+
+    yield
+
+    # Shutdown
+    scheduler.shutdown(wait=False)
+
 
 app = FastAPI(
     title="ANIMA HR - Sistema de RRHH y Nóminas Chile",
     description="Sistema integral de gestión de recursos humanos y nóminas para empresas chilenas",
     version="2.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -28,8 +60,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Ensure uploads directory exists
-os.makedirs("/app/uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="/app/uploads"), name="uploads")
 
 # Include all routers
@@ -56,3 +86,10 @@ def root():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/api/super/sync-indicators", tags=["Super Administración"])
+async def manual_sync_indicators():
+    """Fuerza sincronización inmediata de UF y UTM desde mindicador.cl."""
+    await sync_all()
+    return {"message": "UF y UTM sincronizados correctamente"}

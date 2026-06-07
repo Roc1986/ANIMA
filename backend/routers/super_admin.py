@@ -14,6 +14,7 @@ from models.company import Company
 from models.employee import Employee
 from models.payroll import PayrollRun
 from models.user import User, UserRole
+from models.legal_params import LegalParameter
 from auth.jwt_handler import get_current_user, get_password_hash, require_super_admin
 
 router = APIRouter()
@@ -52,6 +53,12 @@ class CompanyAdminCreate(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+
+
+class GlobalParamUpdate(BaseModel):
+    value: float
+    description: Optional[str] = None
+    source: Optional[str] = None
 
 
 class CompanyOut(BaseModel):
@@ -259,3 +266,45 @@ def company_stats(
         "last_payroll": f"{last_run.period_year}-{last_run.period_month:02d}" if last_run else None,
         "created_at": company.created_at,
     }
+
+
+# ─── Global Legal Parameters ────────────────────────────────────────────────────
+
+@router.get("/global-params")
+def list_global_params(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    """List all global legal parameters (company_id=NULL)."""
+    params = db.query(LegalParameter).filter(
+        LegalParameter.company_id == None,
+        LegalParameter.is_active == True,
+    ).order_by(LegalParameter.key).all()
+    return params
+
+
+@router.put("/global-params/{key}")
+def update_global_param(
+    key: str,
+    data: GlobalParamUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    """Update a global legal parameter."""
+    param = db.query(LegalParameter).filter(
+        LegalParameter.key == key,
+        LegalParameter.company_id == None,
+        LegalParameter.is_active == True,
+    ).first()
+    if not param:
+        raise HTTPException(status_code=404, detail="Parámetro no encontrado")
+    param.value = data.value
+    if data.description:
+        param.description = data.description
+    if data.source:
+        param.source = data.source
+    from datetime import date
+    param.effective_date = date.today()
+    db.commit()
+    db.refresh(param)
+    return param

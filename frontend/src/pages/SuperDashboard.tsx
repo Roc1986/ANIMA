@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { superAdminApi } from '../api/client'
+import toast from 'react-hot-toast'
 import {
   BuildingStorefrontIcon,
   UsersIcon,
   CurrencyDollarIcon,
   ExclamationCircleIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline'
 
 interface DashboardStats {
@@ -15,6 +17,15 @@ interface DashboardStats {
   total_employees: number
   plan_counts: Record<string, number>
   revenue_estimate_clp: number
+}
+
+interface GlobalParam {
+  key: string
+  value: number
+  description: string
+  unit: string
+  source: string | null
+  effective_date: string | null
 }
 
 interface Company {
@@ -38,20 +49,64 @@ function formatCLP(value: number) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value)
 }
 
+const KEY_LABELS: Record<string, string> = {
+  IMM: 'Ingreso Mínimo Mensual (IMM)',
+  UF: 'Unidad de Fomento (UF)',
+  UTM: 'Unidad Tributaria Mensual (UTM)',
+  TOPE_IMPONIBLE_AFP_UF: 'Tope Imponible AFP/Salud (UF)',
+  TOPE_IMPONIBLE_SALUD_UF: 'Tope Imponible Salud (UF)',
+}
+
+const HIGHLIGHT_KEYS = ['IMM', 'UF', 'UTM', 'TOPE_IMPONIBLE_AFP_UF', 'TOPE_IMPONIBLE_SALUD_UF']
+
 export default function SuperDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [companies, setCompanies] = useState<Company[]>([])
+  const [globalParams, setGlobalParams] = useState<GlobalParam[]>([])
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
+  const [editKey, setEditKey] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+
+  const loadParams = () =>
+    superAdminApi.listGlobalParams().then(r => setGlobalParams(r.data)).catch(() => {})
 
   useEffect(() => {
-    Promise.all([superAdminApi.dashboard(), superAdminApi.listCompanies()])
-      .then(([statsRes, companiesRes]) => {
+    Promise.all([superAdminApi.dashboard(), superAdminApi.listCompanies(), superAdminApi.listGlobalParams()])
+      .then(([statsRes, companiesRes, paramsRes]) => {
         setStats(statsRes.data)
         setCompanies(companiesRes.data)
+        setGlobalParams(paramsRes.data)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  const handleSync = async () => {
+    setSyncing(true)
+    try {
+      await superAdminApi.syncIndicators()
+      toast.success('UF y UTM sincronizados correctamente')
+      await loadParams()
+    } catch {
+      toast.error('Error al sincronizar indicadores')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleSaveParam = async (key: string) => {
+    const val = parseFloat(editValue)
+    if (isNaN(val)) return toast.error('Valor inválido')
+    try {
+      await superAdminApi.updateGlobalParam(key, { value: val })
+      toast.success('Parámetro actualizado')
+      setEditKey(null)
+      await loadParams()
+    } catch {
+      toast.error('Error al actualizar')
+    }
+  }
 
   if (loading) {
     return (
@@ -132,6 +187,89 @@ export default function SuperDashboard() {
           </div>
         </div>
       )}
+
+      {/* Global Legal Parameters */}
+      <div className="card mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-semibold text-gray-800">Parámetros Legales Globales</h2>
+            <p className="text-xs text-gray-400 mt-0.5">UF y UTM se actualizan automáticamente. IMM requiere actualización manual cuando cambia por ley.</p>
+          </div>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="btn-secondary text-xs flex items-center gap-1.5"
+          >
+            <ArrowPathIcon className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar UF / UTM'}
+          </button>
+        </div>
+
+        {/* Highlight params */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+          {globalParams.filter(p => HIGHLIGHT_KEYS.includes(p.key)).map(p => (
+            <div key={p.key} className="bg-gray-50 rounded-lg p-3 text-center">
+              <p className="text-xs text-gray-500 mb-1">{KEY_LABELS[p.key] || p.key}</p>
+              <p className="font-bold text-gray-900 text-sm">
+                {p.unit === 'CLP'
+                  ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(p.value)
+                  : `${p.value} ${p.unit}`}
+              </p>
+              {p.effective_date && <p className="text-xs text-gray-400 mt-0.5">{p.effective_date}</p>}
+            </div>
+          ))}
+        </div>
+
+        {/* All params table */}
+        <details className="text-sm">
+          <summary className="cursor-pointer text-blue-600 hover:text-blue-800 text-xs">Ver / editar todos los parámetros</summary>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="pb-2 font-medium">Clave</th>
+                  <th className="pb-2 font-medium">Descripción</th>
+                  <th className="pb-2 font-medium text-right">Valor</th>
+                  <th className="pb-2 font-medium w-16 text-right">Unidad</th>
+                  <th className="pb-2 font-medium">Fuente</th>
+                  <th className="pb-2 w-20"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {globalParams.map(p => (
+                  <tr key={p.key}>
+                    <td className="py-2 font-mono text-xs text-gray-600">{p.key}</td>
+                    <td className="py-2 text-gray-700 text-xs">{p.description}</td>
+                    <td className="py-2 text-right font-semibold">
+                      {editKey === p.key ? (
+                        <input
+                          type="number"
+                          className="input text-right w-28 text-xs py-1"
+                          value={editValue}
+                          onChange={e => setEditValue(e.target.value)}
+                          autoFocus
+                        />
+                      ) : p.value}
+                    </td>
+                    <td className="py-2 text-right text-gray-400 text-xs">{p.unit}</td>
+                    <td className="py-2 text-gray-400 text-xs">{p.source || '—'}</td>
+                    <td className="py-2 text-right">
+                      {editKey === p.key ? (
+                        <div className="flex gap-1 justify-end">
+                          <button onClick={() => handleSaveParam(p.key)} className="text-xs text-green-600 hover:text-green-800 font-medium">Guardar</button>
+                          <button onClick={() => setEditKey(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => { setEditKey(p.key); setEditValue(String(p.value)) }} className="text-xs text-blue-500 hover:text-blue-700">Editar</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
 
       {/* Company table */}
       <div className="card">
