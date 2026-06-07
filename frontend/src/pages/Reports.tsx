@@ -123,14 +123,25 @@ export default function Reports() {
               () => reportsApi.dj1887Excel(Number(selectedYear)),
               `DJ1887_${selectedYear}.xlsx`
             )}
+            className="btn-secondary text-sm"
+          >
+            <DocumentArrowDownIcon className="w-4 h-4" />
+            DJ1887 Excel
+          </button>
+          <button
+            disabled={loading}
+            onClick={() => handle(
+              () => reportsApi.dj1887Csv(Number(selectedYear)),
+              `DJ1887_${selectedYear}.csv`
+            )}
             className="btn-primary text-sm bg-purple-700 hover:bg-purple-800"
           >
             <DocumentArrowDownIcon className="w-4 h-4" />
-            DJ1887 Excel (SII)
+            DJ1887 CSV (SII)
           </button>
         </div>
         <p className="text-xs text-gray-400 mt-2">
-          Declaración Jurada Anual F1887 — Resumen de rentas e impuestos para declarar al SII
+          Declaración Jurada Anual F1887 — El CSV es el formato para cargar al SII (datos desde línea 6, separador ;)
         </p>
       </div>
 

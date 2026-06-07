@@ -11,7 +11,7 @@ from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 from models.company import Company
 from services.pdf_generator import generate_libro_remuneraciones_pdf
-from services.excel_generator import generate_previred_excel, generate_previred_txt, generate_dj1887_excel
+from services.excel_generator import generate_previred_excel, generate_previred_txt, generate_dj1887_excel, generate_dj1887_csv
 
 router = APIRouter()
 
@@ -91,6 +91,28 @@ def dj1887_excel(
     excel_path = generate_dj1887_excel(year=year, entries=entries, employees=employees)
     return FileResponse(excel_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         filename=f"DJ1887_{year}.xlsx")
+
+
+@router.get("/dj1887/{year}/csv")
+def dj1887_csv(
+    year: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from models.company import Company
+    runs = db.query(PayrollRun).filter(PayrollRun.period_year == year).all()
+    if not runs:
+        raise HTTPException(status_code=404, detail="No hay nóminas para ese año")
+
+    company_id = runs[0].company_id
+    company = db.query(Company).filter(Company.id == company_id).first() if company_id else None
+
+    run_ids = [r.id for r in runs]
+    entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id.in_(run_ids)).all()
+    employees = {e.id: e for e in db.query(Employee).all()}
+
+    csv_path = generate_dj1887_csv(year=year, entries=entries, employees=employees, company=company)
+    return FileResponse(csv_path, media_type="text/csv", filename=f"DJ1887_{year}.csv")
 
 
 @router.get("/dashboard/stats")

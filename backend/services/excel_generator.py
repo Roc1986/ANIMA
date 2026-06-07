@@ -426,3 +426,97 @@ def generate_dj1887_excel(year: int, entries: list, employees: Dict) -> str:
 
     wb.save(filepath)
     return filepath
+
+
+def generate_dj1887_csv(year: int, entries: list, employees: Dict, company=None) -> str:
+    """
+    Generate DJ F1887 CSV for SII upload.
+
+    Format rules (SII specifications):
+    - Semicolon separator, no thousand separators, no decimals
+    - RUT without dots, hyphen kept, K uppercase
+    - Empty numeric cells → 0 (months column stays as number)
+    - Data starts at line 6 (5 header lines before)
+    - 12 columns per row, identical separator count throughout
+
+    Columns:
+    1  RUT Trabajador        2  Apellido Paterno     3  Apellido Materno
+    4  Nombres               5  Renta Bruta Anual    6  Cotiz. Previsionales
+    7  Renta Tributable      8  IUSC Retenido        9  Crédito por ISC
+    10 Renta Exenta          11 Meses Trabajados     12 Observaciones
+    """
+    filename = f"DJ1887_{year}_{uuid.uuid4().hex[:8]}.csv"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    co_rut = (company.rut if company and company.rut else settings.COMPANY_RUT)
+    co_name = (company.name if company and company.name else settings.COMPANY_NAME)
+    co_rut_clean = co_rut.replace(".", "").upper()
+
+    SEP = ";"
+    NUM_COLS = 12
+
+    def blank_row():
+        return SEP * (NUM_COLS - 1)
+
+    def fmt_rut(rut: str) -> str:
+        return rut.replace(".", "").upper()
+
+    # Aggregate totals per employee across all runs of the year
+    employee_totals: Dict[int, dict] = {}
+    for entry in entries:
+        eid = entry.employee_id
+        if eid not in employee_totals:
+            employee_totals[eid] = {
+                "renta_bruta": 0.0, "cotiz_prev": 0.0,
+                "renta_tributable": 0.0, "iusc": 0.0, "meses": 0,
+            }
+        et = employee_totals[eid]
+        et["renta_bruta"] += float(entry.total_haberes)
+        et["cotiz_prev"] += float(entry.total_descuentos_previsionales)
+        et["renta_tributable"] += float(entry.remuneracion_tributable)
+        et["iusc"] += float(entry.impuesto_unico)
+        et["meses"] += 1
+
+    lines: list = []
+
+    # Lines 1-5: identification block; data begins at line 6
+    def hrow(*values):
+        padded = list(values) + [""] * (NUM_COLS - len(values))
+        return SEP.join(str(v) for v in padded[:NUM_COLS])
+
+    lines.append(hrow("DJ1887", f"AÑO TRIBUTARIO {year + 1}", f"RENTAS AÑO {year}"))
+    lines.append(hrow("RUT EMPRESA", co_rut_clean, co_name))
+    lines.append(hrow(
+        "RUT TRABAJADOR", "APELLIDO PATERNO", "APELLIDO MATERNO", "NOMBRES",
+        "RENTA BRUTA ANUAL", "COTIZ PREVISIONALES", "RENTA TRIBUTABLE",
+        "IUSC RETENIDO", "CREDITO ISC", "RENTA EXENTA", "MESES TRABAJADOS", "OBSERVACIONES"
+    ))
+    lines.append(blank_row())
+    lines.append(blank_row())
+
+    # Data rows from line 6
+    for eid, totals in employee_totals.items():
+        emp = employees.get(eid)
+        if not emp:
+            continue
+
+        row = SEP.join([
+            fmt_rut(emp.rut),
+            emp.last_name or "0",
+            emp.second_last_name or "0",
+            emp.first_name or "0",
+            str(int(round(totals["renta_bruta"]))),
+            str(int(round(totals["cotiz_prev"]))),
+            str(int(round(totals["renta_tributable"]))),
+            str(int(round(totals["iusc"]))),
+            "0",                        # Crédito ISC
+            "0",                        # Renta exenta zona extrema
+            str(int(totals["meses"])),
+            "0",                        # Observaciones
+        ])
+        lines.append(row)
+
+    with open(filepath, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lines))
+
+    return filepath
