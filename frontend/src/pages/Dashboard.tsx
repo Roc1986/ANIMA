@@ -39,15 +39,19 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
+    const timeout = setTimeout(() => setLoading(false), 8000) // safety timeout
+    Promise.allSettled([
       reportsApi.dashboardStats(),
       aiLegalApi.getParameters(),
     ]).then(([statsRes, paramsRes]) => {
-      setStats(statsRes.data)
-      const map: Record<string, number> = {}
-      ;(paramsRes.data as LegalParam[]).forEach(p => { map[p.key] = Number(p.value) })
-      setParams(map)
-    }).catch(() => {}).finally(() => setLoading(false))
+      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data)
+      if (paramsRes.status === 'fulfilled') {
+        const map: Record<string, number> = {}
+        ;(paramsRes.value.data as LegalParam[]).forEach(p => { map[p.key] = Number(p.value) })
+        setParams(map)
+      }
+    }).finally(() => { clearTimeout(timeout); setLoading(false) })
+    return () => clearTimeout(timeout)
   }, [])
 
   if (loading) {
