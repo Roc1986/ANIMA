@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { payrollApi, employeesApi, reportsApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
+import { payrollApi, employeesApi, reportsApi, aiLegalApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -119,6 +119,15 @@ export default function Payroll() {
   useEffect(() => {
     fetchRuns()
     employeesApi.list({ is_active: true }).then(r => setEmployees(r.data)).catch(() => {})
+    // Load current legal params to pre-fill UF/UTM/IMM in new payroll form
+    aiLegalApi.getParameters().then(r => {
+      const map: Record<string, number> = {}
+      r.data.forEach((p: { key: string; value: number }) => { map[p.key] = Number(p.value) })
+      const uf = map['UF'] ?? 38500
+      const utm = map['UTM'] ?? 67294
+      const imm = map['IMM'] ?? 500000
+      reset(prev => ({ ...prev, uf_value: uf, utm_value: utm, imm_value: imm }))
+    }).catch(() => {})
   }, [])
 
   const openAddEmployee = (runId: number) => {

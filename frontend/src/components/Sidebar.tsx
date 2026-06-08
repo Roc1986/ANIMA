@@ -34,6 +34,8 @@ const hrNavItems = [
 const superNavItems = [
   { to: '/super/dashboard', label: 'Dashboard Global', icon: GlobeAltIcon },
   { to: '/super/companies', label: 'Empresas', icon: BuildingStorefrontIcon },
+  { to: '/dashboard', label: 'Dashboard Empresa', icon: HomeIcon },
+  { to: '/legal', label: 'IA Legal', icon: ScaleIcon },
 ]
 
 export function Sidebar() {
