@@ -100,12 +100,15 @@ Responde ÚNICAMENTE con el JSON, sin markdown adicional.
 
             response_text = message.content[0].text
 
-            # Try to parse JSON
-            import json
+            # Try to parse JSON - strip markdown code fences if present
+            import json, re
+            clean = response_text.strip()
+            md_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', clean)
+            if md_match:
+                clean = md_match.group(1).strip()
             try:
-                result = json.loads(response_text)
+                result = json.loads(clean)
             except json.JSONDecodeError:
-                # If not valid JSON, return as analysis
                 result = {
                     "analysis": response_text,
                     "proposed_changes": [],

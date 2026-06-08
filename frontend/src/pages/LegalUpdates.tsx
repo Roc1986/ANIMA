@@ -75,7 +75,16 @@ export default function LegalUpdates() {
     setAnalysis(null)
     try {
       const res = await aiLegalApi.analyze(query)
-      setAnalysis(res.data)
+      let data = res.data
+      // If the response is a plain string or has a raw_response field, parse the JSON out of it
+      if (typeof data === 'string' || data?.raw_response) {
+        const raw: string = typeof data === 'string' ? data : data.raw_response
+        const match = raw.match(/```json\s*([\s\S]*?)```/) || raw.match(/(\{[\s\S]*\})/)
+        if (match) {
+          try { data = JSON.parse(match[1]) } catch { /* use as-is */ }
+        }
+      }
+      setAnalysis(data)
     } catch {
       toast.error('Error al analizar. Verifique que ANTHROPIC_API_KEY esté configurada.')
     } finally {
@@ -165,36 +174,49 @@ export default function LegalUpdates() {
             {analysis.error && (
               <div className="p-3 bg-red-50 rounded-lg text-sm text-red-700">{analysis.error}</div>
             )}
+
+            {/* Main analysis text */}
             {analysis.analysis && (
               <div className="p-4 bg-white rounded-lg border border-purple-100">
-                <h3 className="font-medium text-gray-800 mb-2 text-sm">Análisis</h3>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{analysis.analysis}</p>
+                <h3 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                  <SparklesIcon className="w-4 h-4" /> Análisis del Asistente IA
+                </h3>
+                <div className="text-sm text-gray-700 space-y-2">
+                  {analysis.analysis.split('\n\n').filter(Boolean).map((paragraph, i) => (
+                    <p key={i} className="leading-relaxed">{paragraph.replace(/\\n/g, ' ').trim()}</p>
+                  ))}
+                </div>
               </div>
             )}
-            {analysis.proposed_changes && analysis.proposed_changes.length > 0 && (
-              <div>
-                <h3 className="font-medium text-gray-800 mb-2 text-sm">Cambios Propuestos</h3>
-                <div className="space-y-2">
-                  {analysis.proposed_changes.map((change, i) => (
-                    <div key={i} className="p-3 bg-white rounded-lg border border-purple-100 flex items-start gap-3">
-                      <span className={URGENCY_BADGE[change.urgency] || 'badge-gray'}>
-                        {change.urgency || 'media'}
+
+            {/* Proposed changes */}
+            {analysis.proposed_changes && analysis.proposed_changes.filter(c => typeof c.new_value === 'number').length > 0 && (
+              <div className="p-4 bg-white rounded-lg border border-orange-100">
+                <h3 className="font-semibold text-orange-800 mb-3">⚡ Actualizaciones Recomendadas</h3>
+                <div className="space-y-3">
+                  {analysis.proposed_changes.filter(c => typeof c.new_value === 'number').map((change, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
+                      <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${
+                        change.urgency === 'alta' ? 'bg-red-100 text-red-700' :
+                        change.urgency === 'media' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {change.urgency === 'alta' ? 'URGENTE' : change.urgency === 'media' ? 'MEDIO' : 'BAJO'}
                       </span>
                       <div className="flex-1">
-                        <p className="font-mono text-sm font-medium text-gray-800">{change.key}</p>
-                        <p className="text-xs text-gray-500">
-                          {change.current_value} → <strong className="text-green-700">{change.new_value}</strong>
+                        <p className="font-semibold text-gray-800 text-sm">{change.key}</p>
+                        <p className="text-sm text-gray-600 mt-0.5">
+                          Valor actual: <span className="line-through text-red-500">{Number(change.current_value).toLocaleString('es-CL')}</span>
+                          {' → '}
+                          Nuevo valor: <strong className="text-green-700">{Number(change.new_value).toLocaleString('es-CL')}</strong>
                         </p>
-                        <p className="text-xs text-gray-600 mt-0.5">{change.reason}</p>
-                        <p className="text-xs text-gray-400">{change.source}</p>
+                        <p className="text-xs text-gray-600 mt-1">{change.reason}</p>
+                        <p className="text-xs text-blue-500 mt-0.5">Fuente: {change.source}</p>
                       </div>
                       {isAdmin && (
                         <button
-                          onClick={() => {
-                            setEditingKey(change.key)
-                            setEditValue(String(change.new_value))
-                          }}
-                          className="btn-secondary text-xs px-2 py-1"
+                          onClick={() => { setEditingKey(change.key); setEditValue(String(change.new_value)) }}
+                          className="shrink-0 btn-primary text-xs px-3 py-1.5 bg-green-700 hover:bg-green-800"
                         >
                           Aplicar
                         </button>
@@ -204,13 +226,41 @@ export default function LegalUpdates() {
                 </div>
               </div>
             )}
-            {analysis.recommendations && analysis.recommendations.length > 0 && (
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <h3 className="font-medium text-blue-800 text-sm mb-1">Recomendaciones</h3>
-                <ul className="text-xs text-blue-700 space-y-1">
-                  {analysis.recommendations.map((r, i) => <li key={i}>• {r}</li>)}
-                </ul>
+
+            {/* Items to verify (non-numeric new_value) */}
+            {analysis.proposed_changes && analysis.proposed_changes.filter(c => typeof c.new_value !== 'number').length > 0 && (
+              <div className="p-4 bg-white rounded-lg border border-gray-100">
+                <h3 className="font-semibold text-gray-700 mb-3">🔍 Parámetros a Verificar</h3>
+                <div className="space-y-2">
+                  {analysis.proposed_changes.filter(c => typeof c.new_value !== 'number').map((change, i) => (
+                    <div key={i} className="flex items-start gap-2 text-sm">
+                      <span className="text-yellow-500 shrink-0 mt-0.5">•</span>
+                      <div>
+                        <span className="font-mono font-medium text-gray-800">{change.key}:</span>{' '}
+                        <span className="text-gray-600">{change.reason}</span>
+                        <span className="text-blue-400 text-xs block">{change.source}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* Recommendations */}
+            {analysis.recommendations && analysis.recommendations.length > 0 && (
+              <details className="bg-blue-50 rounded-lg p-4">
+                <summary className="font-semibold text-blue-800 cursor-pointer text-sm">
+                  📋 Ver {analysis.recommendations.length} recomendaciones adicionales
+                </summary>
+                <ul className="mt-3 space-y-2">
+                  {analysis.recommendations.map((r, i) => (
+                    <li key={i} className="text-sm text-blue-700 flex gap-2">
+                      <span className="shrink-0">{i + 1}.</span>
+                      <span>{r}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
           </div>
         )}
