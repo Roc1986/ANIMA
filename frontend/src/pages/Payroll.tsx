@@ -667,15 +667,15 @@ export default function Payroll() {
                 </div>
                 <div>
                   <label className="label">Valor UF (CLP)</label>
-                  <input className="input" type="number" {...register('uf_value', { required: true, valueAsNumber: true })} />
+                  <input className="input" type="number" step="0.01" {...register('uf_value', { required: true, valueAsNumber: true })} />
                 </div>
                 <div>
                   <label className="label">Valor UTM (CLP)</label>
-                  <input className="input" type="number" {...register('utm_value', { required: true, valueAsNumber: true })} />
+                  <input className="input" type="number" step="1" {...register('utm_value', { required: true, valueAsNumber: true })} />
                 </div>
                 <div>
                   <label className="label">IMM (CLP)</label>
-                  <input className="input" type="number" {...register('imm_value', { required: true, valueAsNumber: true })} />
+                  <input className="input" type="number" step="1" {...register('imm_value', { required: true, valueAsNumber: true })} />
                 </div>
                 <div>
                   <label className="label">Fecha de Pago</label>
