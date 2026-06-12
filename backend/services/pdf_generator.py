@@ -209,7 +209,7 @@ def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
     employer_data = [
         [section_header("APORTES EMPLEADOR (COSTO EMPRESA)", DARK_GRAY), ""],
         ["Seguro Cesantía Empleador", _fmt_clp(entry.aporte_cesantia_empleador)],
-        ["SIS (Seg. Invalidez y Sobrevivencia 1.49%)", _fmt_clp(entry.aporte_sis)],
+        ["SIS (Seg. Invalidez y Sobrevivencia 1.62%)", _fmt_clp(entry.aporte_sis)],
         [Paragraph("<b>TOTAL COSTO EMPRESA</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold")),
          Paragraph(f"<b>{_fmt_clp(entry.total_costo_empleador)}</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold", alignment=TA_RIGHT))],
     ]

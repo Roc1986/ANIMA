@@ -36,7 +36,7 @@ Los parámetros que maneja el sistema son:
 - CESANTIA_TRABAJADOR: Tasa cesantía trabajador (0.6%)
 - CESANTIA_EMPLEADOR_INDEFINIDO: Tasa cesantía empleador contrato indefinido (2.4%)
 - CESANTIA_EMPLEADOR_PLAZO_FIJO: Tasa cesantía empleador contrato plazo fijo (3.0%)
-- SIS_EMPLEADOR: Tasa SIS empleador (1.49%)
+- SIS_EMPLEADOR: Tasa SIS empleador (1.62%)
 - GRATIFICACION_TOPE_IMM_MULTIPLICADOR: Multiplicador IMM para tope gratificación (4.75)
 - GRATIFICACION_PORCENTAJE: Porcentaje gratificación legal mensual (25%)
 - JORNADA_ORDINARIA_SEMANAL: Horas semanales (actualmente 40, reducción a 37 en 2026)

@@ -6,7 +6,7 @@ Key legal references:
 - AFP rates: Superintendencia de Pensiones
 - Salud: 7% FONASA/ISAPRE, tope 81.6 UF
 - Seguro Cesantía: AFC (Ley 19.728)
-- SIS: Seguro Invalidez y Sobrevivencia 1.49% empleador
+- SIS: Seguro Invalidez y Sobrevivencia 1.62% empleador (tasa vigente 2026, SP)
 - IUSC: Impuesto Único de Segunda Categoría (tabla SII mensual en UTM)
 - Gratificación: Art. 50 Código del Trabajo
 - Jornada: 40 horas semanales (Ley 21.561)
@@ -68,7 +68,7 @@ class ChileanPayrollCalculator:
         self.cesantia_trabajador = lp.get("CESANTIA_TRABAJADOR", 0.6) / 100
         self.cesantia_empleador_indefinido = lp.get("CESANTIA_EMPLEADOR_INDEFINIDO", 2.4) / 100
         self.cesantia_empleador_fijo = lp.get("CESANTIA_EMPLEADOR_PLAZO_FIJO", 3.0) / 100
-        self.sis_empleador = lp.get("SIS_EMPLEADOR", 1.49) / 100
+        self.sis_empleador = lp.get("SIS_EMPLEADOR", 1.62) / 100
         self.gratif_multiplicador = lp.get("GRATIFICACION_TOPE_IMM_MULTIPLICADOR", 4.75)
         self.gratif_porcentaje = lp.get("GRATIFICACION_PORCENTAJE", 25.0) / 100
         self.recargo_habiles = lp.get("RECARGO_HH_EE_HABILES", 50.0) / 100
@@ -239,7 +239,7 @@ class ChileanPayrollCalculator:
         else:
             aporte_cesantia_empleador = total_imponible_bruto * self.cesantia_empleador_indefinido
 
-        # SIS: 1.49% sobre renta imponible
+        # SIS: 1.62% sobre renta imponible (tasa vigente 2026)
         aporte_sis = base_afp * self.sis_empleador
 
         # Costo total empleador = total haberes + aportes empleador

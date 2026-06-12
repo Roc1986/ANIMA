@@ -76,7 +76,7 @@ def seed_legal_parameters(
         {"key": "CESANTIA_EMPLEADOR_INDEFINIDO", "value": 2.4, "description": "Seguro Cesantía empleador contrato indefinido", "unit": "%", "source": "AFC"},
         {"key": "CESANTIA_EMPLEADOR_PLAZO_FIJO", "value": 3.0, "description": "Seguro Cesantía empleador contrato plazo fijo", "unit": "%", "source": "AFC"},
         # SIS
-        {"key": "SIS_EMPLEADOR", "value": 1.49, "description": "Seguro Invalidez y Sobrevivencia empleador", "unit": "%", "source": "SP"},
+        {"key": "SIS_EMPLEADOR", "value": 1.62, "description": "Seguro Invalidez y Sobrevivencia empleador", "unit": "%", "source": "SP"},
         # Gratificación
         {"key": "GRATIFICACION_TOPE_IMM_MULTIPLICADOR", "value": 4.75, "description": "Tope gratificación legal en IMM", "unit": "IMM", "source": "CT art.50"},
         {"key": "GRATIFICACION_PORCENTAJE", "value": 25.0, "description": "Porcentaje gratificación legal mensual", "unit": "%", "source": "CT art.50"},

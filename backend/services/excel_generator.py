@@ -161,13 +161,13 @@ def generate_previred_excel(run, entries, employees: Dict) -> str:
 # AFP codes used by Previred (código institución previsional)
 # ---------------------------------------------------------------------------
 AFP_CODES = {
-    "habitat":   33,
-    "provida":   34,
-    "capital":   26,
-    "cuprum":    28,
-    "planvital": 35,
-    "modelo":    36,
-    "uno":       37,
+    "habitat":   "05",
+    "provida":   "08",
+    "capital":   "33",
+    "cuprum":    "03",
+    "planvital": "29",
+    "modelo":    "34",
+    "uno":       "35",
 }
 
 ISAPRE_CODES = {
@@ -198,40 +198,16 @@ def _fmt_date(d) -> str:
 
 def generate_previred_txt(run, entries, employees: Dict) -> str:
     """
-    Generate Previred 'Estándar por Separador 105 campos' text file.
-
-    Field order (Largo Variable por Separador):
-    1  RUT trabajador (sin puntos, con guión)
-    2  Apellido paterno
-    3  Apellido materno
-    4  Nombres
-    5  Sexo (0=no declarado, 1=M, 2=F)
-    6  Fecha nacimiento (DDMMAAAA, "00000000" si no disponible)
-    7  Fecha inicio labores (DDMMAAAA)
-    8  Código AFP (26=Capital, 28=Cuprum, 33=Habitat, 34=Provida, 35=Planvital, 36=Modelo, 37=Uno)
-    9  Renta imponible AFP
-    10 Cotización obligatoria AFP trabajador
-    11 Cotización voluntaria AFP
-    12 Depósito convenido
-    13 APV/APVC régimen A
-    14 Tipo de línea (0=línea principal)
-    15 Código institución salud (7=FONASA)
-    16 RUT ISAPRE (0 si FONASA)
-    17 Renta imponible salud
-    18 Cotización salud trabajador
-    19 Cotización adicional ISAPRE
-    20 Monto plan ISAPRE (GES)
-    21 Cotización AFC trabajador (cesantía)
-    22 Cotización AFC empleador
-    23 Aporte SIS empleador
-    24 Renta bruta (total haberes)
-    25 Renta tributable
-    26 IUSC
-    27 Días trabajados
-    28-105 zeros (campos adicionales no aplicables)
+    Formato Estándar Largo Variable por Separador — 105 campos, separador ';'.
+    Versión actualizada con campos 93 (Tipo Jornada) y 94 (Expectativa de Vida).
+    Referencia: Manual Previred v58+ con reforma previsional 2025.
     """
+    import math as _math
+
     filename = f"previred_{run.period_year}_{run.period_month:02d}_{uuid.uuid4().hex[:8]}.txt"
     filepath = os.path.join(UPLOAD_DIR, filename)
+
+    periodo = f"{run.period_month:02d}{run.period_year}"  # mmaaaa
 
     lines = []
     for entry in entries:
@@ -239,65 +215,134 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         if not emp:
             continue
 
-        afp_raw = str(emp.afp).split(".")[-1].lower()
-        afp_code = AFP_CODES.get(afp_raw, 33)
-
-        hs_raw = str(emp.health_system).split(".")[-1].upper()
-        if hs_raw == "FONASA":
-            salud_codigo = 7
-            rut_isapre = 0
+        # RUT: separar número de DV
+        rut_full = str(emp.rut or "").replace(".", "").replace("-", "")
+        if len(rut_full) > 1:
+            rut_num = rut_full[:-1]
+            rut_dv  = rut_full[-1]
         else:
-            isapre_name = str(emp.isapre_name or "").lower()
-            salud_codigo = ISAPRE_CODES.get(isapre_name, 8)
-            rut_isapre = 0
+            rut_num = rut_full
+            rut_dv  = "0"
 
-        nacimiento = _fmt_date(getattr(emp, "birth_date", None)) or "00000000"
-        ingreso = _fmt_date(getattr(emp, "hire_date", None)) or "00000000"
-        rut = emp.rut.replace(".", "")
+        afp_raw  = str(emp.afp or "").split(".")[-1].lower()
+        afp_code = AFP_CODES.get(afp_raw, "05")
 
-        f = [0] * 105
+        hs_raw = str(emp.health_system or "").split(".")[-1].upper()
+        is_fonasa = (hs_raw == "FONASA")
 
-        # Campo 1: Tipo de Nómina (01 = Remuneraciones del mes)
-        f[0]  = "01"
-        # Identificación trabajador (campos 2-8)
-        f[1]  = rut                                    # 2  RUT trabajador
-        f[2]  = emp.last_name                          # 3  Apellido paterno
-        f[3]  = emp.second_last_name or ""             # 4  Apellido materno
-        f[4]  = emp.first_name                         # 5  Nombres
-        f[5]  = 0                                      # 6  Sexo
-        f[6]  = nacimiento                             # 7  Fecha nacimiento
-        f[7]  = ingreso                                # 8  Fecha inicio labores
+        renta_imp     = int(float(entry.remuneracion_imponible or 0))
+        cot_afp_base  = int(float(entry.descuento_afp or 0))
+        mayor_ret     = _math.ceil(renta_imp * 0.001)   # 0.1% mayor retención (ceil)
+        cot_afp_total = cot_afp_base + mayor_ret
+        cot_sis       = round(renta_imp * 0.0162)        # SIS 1.62% tasa vigente 2026
+        exp_vida      = round(renta_imp * 0.009)         # Cotización Expectativa de Vida 0.9%
+        cot_salud     = int(float(entry.descuento_salud or 0))
+        cot_cesantia  = int(float(entry.descuento_cesantia or 0))
+        afc_emp       = int(float(entry.aporte_cesantia_empleador or 0))
+        dias          = int(entry.dias_trabajados or 30)
 
-        # AFP (campos 9-14)
-        f[8]  = afp_code                               # 9  Código AFP
-        f[9]  = int(float(entry.remuneracion_imponible))  # 10 Renta imponible AFP
-        f[10] = int(float(entry.descuento_afp))        # 11 Cotización AFP
-        f[11] = 0                                      # 12 Cotización voluntaria AFP
-        f[12] = 0                                      # 13 Depósito convenido
-        f[13] = 0                                      # 14 Tipo de línea (0=principal)
+        f = [""] * 105
 
-        # Salud (campos 15-20)
-        f[14] = salud_codigo                           # 15 Código institución salud
-        f[15] = rut_isapre                             # 16 RUT ISAPRE
-        f[16] = int(float(entry.remuneracion_imponible))  # 17 Renta imponible salud
-        f[17] = int(float(entry.descuento_salud))      # 18 Cotización salud
-        f[18] = 0                                      # 19 Cotización adicional ISAPRE
-        f[19] = 0                                      # 20 Monto plan ISAPRE
+        # ── Bloque 1: Datos del Trabajador (campos 1-25) ───────────────────────
+        f[0]  = rut_num          # 1  RUT trabajador (sin DV)
+        f[1]  = rut_dv           # 2  DV trabajador
+        f[2]  = emp.last_name or ""          # 3  Apellido Paterno
+        f[3]  = emp.second_last_name or ""   # 4  Apellido Materno
+        f[4]  = emp.first_name or ""         # 5  Nombres
+        f[5]  = "M"              # 6  Sexo (M/F) — M por defecto; adaptar si se almacena
+        f[6]  = "0"              # 7  Nacionalidad (0=Chileno)
+        f[7]  = "01"             # 8  Tipo Pago (01=Remuneraciones mes)
+        f[8]  = periodo          # 9  Período Desde (mmaaaa)
+        f[9]  = periodo          # 10 Período Hasta (mmaaaa)
+        f[10] = "AFP"            # 11 Régimen Previsional
+        f[11] = "0"              # 12 Tipo Trabajador (0=Activo no pensionado)
+        f[12] = str(dias)        # 13 Días Trabajados
+        f[13] = "00"             # 14 Tipo de Línea (00=Principal)
+        f[14] = "00"             # 15 Código Movimiento Personal (00=Sin movimiento)
+        f[15] = ""               # 16 Fecha Desde movimiento
+        f[16] = ""               # 17 Fecha Hasta movimiento
+        f[17] = "D"              # 18 Tramo Asig. Familiar (D=Sin Derecho)
+        f[18] = "0"              # 19 N° Cargas Simples
+        f[19] = "0"              # 20 N° Cargas Maternales
+        f[20] = "0"              # 21 N° Cargas Inválidas
+        f[21] = "0"              # 22 Asignación Familiar
+        f[22] = "0"              # 23 Asig. Familiar Retroactiva
+        f[23] = "0"              # 24 Reintegro Cargas Familiares
+        f[24] = "N"              # 25 Solicitud Trabajador Joven
 
-        # Cesantía y SIS (campos 21-23)
-        f[20] = int(float(entry.descuento_cesantia))   # 21 AFC trabajador
-        f[21] = int(float(entry.aporte_cesantia_empleador))  # 22 AFC empleador
-        f[22] = int(float(entry.aporte_sis))           # 23 SIS empleador
+        # ── Bloque 2: AFP (campos 26-39) ──────────────────────────────────────
+        f[25] = afp_code         # 26 Código AFP
+        f[26] = str(renta_imp)   # 27 Renta Imponible AFP
+        f[27] = str(cot_afp_total)  # 28 Cot. Obligatoria AFP (incluye 0.1% mayor retención)
+        f[28] = str(cot_sis)     # 29 SIS empleador (1.62%)
+        f[29] = "0"              # 30 Cuenta Ahorro Voluntario AFP
+        f[30] = "0"              # 31 Renta Imp. Sustitutiva AFP
+        f[31] = "0"              # 32 Tasa Pactada
+        f[32] = "0"              # 33 Aporte Indemnización
+        f[33] = "0"              # 34 N° Períodos Sustitutivos
+        f[34] = ""               # 35 Período desde Sust.
+        f[35] = ""               # 36 Período hasta Sust.
+        f[36] = ""               # 37 Puesto Trabajo Pesado
+        f[37] = "0"              # 38 % Cotización Trabajo Pesado
+        f[38] = "0"              # 39 Cotización Trabajo Pesado
 
-        # Remuneraciones (campos 24-27)
-        f[23] = int(float(entry.total_haberes))        # 24 Renta bruta
-        f[24] = int(float(entry.remuneracion_tributable))  # 25 Renta tributable
-        f[25] = int(float(entry.impuesto_unico))       # 26 IUSC
-        f[26] = int(entry.dias_trabajados)             # 27 Días trabajados
+        # ── Bloque 3: APVI (campos 40-44) ─────────────────────────────────────
+        f[39] = "0"; f[40] = ""; f[41] = "0"; f[42] = "0"; f[43] = "0"
 
-        lines.append(";".join(str(v) for v in f))
+        # ── Bloque 4: APVC (campos 45-49) ─────────────────────────────────────
+        f[44] = "0"; f[45] = ""; f[46] = "0"; f[47] = "0"; f[48] = "0"
 
-    with open(filepath, "w", encoding="iso-8859-1") as fh:
+        # ── Bloque 5: Afiliado Voluntario (campos 50-61) ──────────────────────
+        f[49] = "0"; f[50] = ""; f[51] = ""; f[52] = ""; f[53] = ""
+        f[54] = "0"; f[55] = ""; f[56] = ""; f[57] = "0"
+        f[58] = "0"; f[59] = "0"; f[60] = "0"
+
+        # ── Bloque 6: IPS / ISL / FONASA (campos 62-74) ───────────────────────
+        f[61] = "0"              # 62 Código Ex-Caja Régimen
+        f[62] = "0"              # 63 Tasa Cotización Ex-Caja
+        f[63] = str(renta_imp)   # 64 Renta Imponible IPS (requerida cuando hay FONASA)
+        f[64] = "0"              # 65 Cotización Obligatoria IPS
+        f[65] = "0"              # 66 Renta Imponible Desahucio
+        f[66] = "0"              # 67 Cotización Desahucio
+        f[67] = "0"              # 68 Código Ex-Caja Desahucio
+        f[68] = "0"              # 69 Tasa Cotización Desahucio
+        f[69] = "0"              # 70 Cotización FONASA (0 para AFP; va en sección Salud)
+        f[70] = "0"              # 71 Cotización ISL
+        f[71] = "0"              # 72 Bonificación Ley 15.386
+        f[72] = "0"              # 73 Descuento cargas IPS
+        f[73] = "0"              # 74 Bonos Gobierno
+
+        # ── Bloque 7: Salud (campos 75-82) ────────────────────────────────────
+        f[74] = "7" if is_fonasa else str(ISAPRE_CODES.get(afp_raw, "8"))  # 75 Código institución salud
+        f[75] = ""               # 76 N° FUN (solo Isapre)
+        f[76] = "0"              # 77 Renta Imponible Isapre
+        f[77] = "0"              # 78 Moneda Plan Isapre
+        f[78] = "0"              # 79 Cotización Pactada Isapre
+        f[79] = str(cot_salud)   # 80 Cotización Obligatoria (FONASA 7% o Isapre)
+        f[80] = "0"              # 81 Cotización Adicional Voluntaria
+        f[81] = "0"              # 82 GES
+
+        # ── Bloque 8: CCAF (campos 83-95) ─────────────────────────────────────
+        for i in range(82, 92):
+            f[i] = "0"
+        f[92] = "1"              # 93 Tipo Jornada (1=Completa, 2=Parcial)
+        f[93] = str(exp_vida)    # 94 Cotización Expectativa de Vida (0.9%)
+        f[94] = ""               # 95 Código Sucursal
+
+        # ── Bloque 9: Mutualidad (campos 96-99) ───────────────────────────────
+        f[95] = "0"; f[96] = "0"; f[97] = "0"; f[98] = "0"
+
+        # ── Bloque 10: Seguro Cesantía (campos 100-102) ───────────────────────
+        f[99]  = str(renta_imp)       # 100 Renta Imponible SC
+        f[100] = str(cot_cesantia)    # 101 Aporte Trabajador SC
+        f[101] = str(afc_emp)         # 102 Aporte Empleador SC
+
+        # ── Bloque 11-12: Subsidio / Centro costos (103-105) ──────────────────
+        f[102] = "0"; f[103] = ""; f[104] = ""
+
+        lines.append(";".join(f))
+
+    with open(filepath, "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines))
 
     return filepath

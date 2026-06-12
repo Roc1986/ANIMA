@@ -39,6 +39,25 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Initial indicator sync failed (non-fatal): {e}")
 
+    # Migrate SIS rate from 1.49% to 1.62% if outdated
+    try:
+        from database import SessionLocal
+        from models.legal_params import LegalParameter
+        _db = SessionLocal()
+        _sis = _db.query(LegalParameter).filter(
+            LegalParameter.key == "SIS_EMPLEADOR",
+            LegalParameter.value == 1.49,
+        ).all()
+        for _p in _sis:
+            _p.value = 1.62
+            _p.source = "SP"
+        if _sis:
+            _db.commit()
+            logger.info(f"Migrated SIS_EMPLEADOR 1.49→1.62 in {len(_sis)} record(s)")
+        _db.close()
+    except Exception as e:
+        logger.warning(f"SIS migration failed (non-fatal): {e}")
+
     yield
 
     # Shutdown
