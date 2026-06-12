@@ -11,7 +11,7 @@ from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 from models.company import Company
 from services.pdf_generator import generate_libro_remuneraciones_pdf
-from services.excel_generator import generate_previred_excel, generate_previred_txt, generate_dj1887_excel, generate_dj1887_csv
+from services.excel_generator import generate_previred_excel, generate_previred_txt, generate_dj1887_excel, generate_dj1887_csv, generate_lre_excel
 
 router = APIRouter()
 
@@ -113,6 +113,42 @@ def dj1887_csv(
 
     csv_path = generate_dj1887_csv(year=year, entries=entries, employees=employees, company=company)
     return FileResponse(csv_path, media_type="text/csv", filename=f"DJ1887_{year}.csv")
+
+
+@router.get("/lre/{year}/excel")
+def lre_excel(
+    year: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Download LRE Excel for the given year (all approved/paid runs)."""
+    company_id = current_user.company_id
+    runs_q = db.query(PayrollRun).filter(PayrollRun.period_year == year)
+    if company_id:
+        runs_q = runs_q.filter(PayrollRun.company_id == company_id)
+    runs = runs_q.all()
+    if not runs:
+        raise HTTPException(status_code=404, detail="No hay nóminas para ese año")
+
+    company = db.query(Company).filter(Company.id == company_id).first() if company_id else None
+    run_ids = [r.id for r in runs]
+    all_entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id.in_(run_ids)).all()
+    entries_by_run = {}
+    for entry in all_entries:
+        entries_by_run.setdefault(entry.payroll_run_id, []).append(entry)
+
+    emp_ids = {e.employee_id for e in all_entries}
+    employees = {e.id: e for e in db.query(Employee).filter(Employee.id.in_(emp_ids)).all()}
+
+    filepath = generate_lre_excel(
+        year=year,
+        runs=runs,
+        entries_by_run=entries_by_run,
+        employees=employees,
+        company=company,
+    )
+    return FileResponse(filepath, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        filename=f"LRE_{year}.xlsx")
 
 
 @router.get("/dashboard/stats")

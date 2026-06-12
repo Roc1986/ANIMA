@@ -270,6 +270,26 @@ def company_stats(
 
 # ─── Global Legal Parameters ────────────────────────────────────────────────────
 
+@router.delete("/companies/{company_id}/payroll-data")
+def delete_company_payroll_data(
+    company_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    """Delete all payroll runs and entries for a company (test data cleanup)."""
+    from models.payroll import PayrollRun, PayrollEntry
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    runs = db.query(PayrollRun).filter(PayrollRun.company_id == company_id).all()
+    run_ids = [r.id for r in runs]
+    if run_ids:
+        db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id.in_(run_ids)).delete(synchronize_session=False)
+        db.query(PayrollRun).filter(PayrollRun.company_id == company_id).delete(synchronize_session=False)
+    db.commit()
+    return {"message": f"Eliminadas {len(run_ids)} nóminas de {company.name}", "runs_deleted": len(run_ids)}
+
+
 @router.get("/global-params")
 def list_global_params(
     db: Session = Depends(get_db),

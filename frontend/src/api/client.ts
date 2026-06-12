@@ -53,6 +53,8 @@ export const superAdminApi = {
   updateGlobalParam: (key: string, data: { value: number; description?: string; source?: string }) =>
     api.put(`/api/super/global-params/${key}`, data),
   syncIndicators: () => api.post('/api/super/sync-indicators'),
+  deletePayrollData: (companyId: number) =>
+    api.delete(`/api/super/companies/${companyId}/payroll-data`),
 }
 
 // --- Employees ---
@@ -121,6 +123,8 @@ export const reportsApi = {
     api.get(`/api/reports/dj1887/${year}/excel`, { responseType: 'blob' }),
   dj1887Csv: (year: number) =>
     api.get(`/api/reports/dj1887/${year}/csv`, { responseType: 'blob' }),
+  lreExcel: (year: number) =>
+    api.get(`/api/reports/lre/${year}/excel`, { responseType: 'blob' }),
 }
 
 // --- AI Legal ---

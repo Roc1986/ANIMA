@@ -95,6 +95,16 @@ export default function SuperDashboard() {
     }
   }
 
+  const handleDeletePayrollData = async (company: Company) => {
+    if (!window.confirm(`¿Eliminar TODAS las nóminas de "${company.name}"? Esta acción no se puede deshacer.`)) return
+    try {
+      const r = await superAdminApi.deletePayrollData(company.id)
+      toast.success(r.data.message || 'Nóminas eliminadas')
+    } catch {
+      toast.error('Error al eliminar nóminas')
+    }
+  }
+
   const handleSaveParam = async (key: string) => {
     const val = parseFloat(editValue)
     if (isNaN(val)) return toast.error('Valor inválido')
@@ -289,6 +299,7 @@ export default function SuperDashboard() {
                 <th className="pb-3 font-medium text-center">Empleados</th>
                 <th className="pb-3 font-medium">Última Nómina</th>
                 <th className="pb-3 font-medium">Estado</th>
+                <th className="pb-3 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -308,11 +319,20 @@ export default function SuperDashboard() {
                       {c.is_active ? 'Activa' : 'Inactiva'}
                     </span>
                   </td>
+                  <td className="py-3">
+                    <button
+                      onClick={() => handleDeletePayrollData(c)}
+                      className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 font-medium"
+                      title="Borrar todas las nóminas de esta empresa"
+                    >
+                      Borrar nóminas
+                    </button>
+                  </td>
                 </tr>
               ))}
               {companies.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-400">No hay empresas registradas</td>
+                  <td colSpan={7} className="py-8 text-center text-gray-400">No hay empresas registradas</td>
                 </tr>
               )}
             </tbody>

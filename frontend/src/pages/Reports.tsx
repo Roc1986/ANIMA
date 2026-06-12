@@ -139,9 +139,21 @@ export default function Reports() {
             <DocumentArrowDownIcon className="w-4 h-4" />
             DJ1887 CSV (SII)
           </button>
+          <button
+            disabled={loading}
+            onClick={() => handle(
+              () => reportsApi.lreExcel(Number(selectedYear)),
+              `LRE_${selectedYear}.xlsx`
+            )}
+            className="btn-primary text-sm bg-green-700 hover:bg-green-800"
+          >
+            <DocumentArrowDownIcon className="w-4 h-4" />
+            LRE Excel
+          </button>
         </div>
         <p className="text-xs text-gray-400 mt-2">
-          Declaración Jurada Anual F1887 — El CSV es el formato para cargar al SII (datos desde línea 6, separador ;)
+          Declaración Jurada Anual F1887 — El CSV es el formato para cargar al SII (datos desde línea 6, separador ;).
+          LRE: Libro de Remuneraciones Electrónico — 1 fila por trabajador por mes.
         </p>
       </div>
 

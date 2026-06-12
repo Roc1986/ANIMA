@@ -509,3 +509,158 @@ def generate_dj1887_csv(year: int, entries: list, employees: Dict, company=None)
         fh.write("\n".join(lines))
 
     return filepath
+
+
+# ─── LRE (Libro de Remuneraciones Electrónico) ─────────────────────────────────
+
+LRE_HEADERS = [
+    "RUT Trabajador", "Nombre", "Apellido Paterno", "Apellido Materno",
+    "Período (AAAAMM)", "Días Trabajados", "Sueldo Base",
+    "Horas Extras Monto", "Bonos Afectos", "Bonos No Afectos",
+    "Total Haberes Imponibles", "Total Haberes No Imponibles", "Total Haberes",
+    "Cotización AFP", "Cotización Salud", "Cotización AFC Trabajador",
+    "IUSC", "Otros Descuentos", "Total Descuentos",
+    "Alcance Líquido",
+    "Cotización AFC Empleador", "SIS (Empleador)", "Mutual/ACHS",
+    "Total Costo Empresa",
+    "Factor Actualización", "Renta Actualizada",
+]
+
+
+def generate_lre_excel(
+    year: int,
+    runs: list,
+    entries_by_run: Dict,
+    employees: Dict,
+    company=None,
+    correction_factors: Dict = None,
+) -> str:
+    """
+    Generate LRE Excel: 1 row per employee per month, up to 12 rows per year.
+    correction_factors: {month_number: factor} e.g. {6: 1.0}
+    """
+    if correction_factors is None:
+        correction_factors = {}
+
+    filename = f"lre_{year}_{uuid.uuid4().hex[:8]}.xlsx"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"LRE {year}"
+
+    company_name = company.name if company else "Empresa"
+    ws.merge_cells("A1:Z1")
+    title_cell = ws["A1"]
+    title_cell.value = f"LIBRO DE REMUNERACIONES ELECTRÓNICO — {company_name} — AÑO {year}"
+    title_cell.font = Font(bold=True, size=11, color=WHITE)
+    title_cell.fill = PatternFill("solid", fgColor=BLUE)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 22
+
+    hfont, hfill, halign = _header_style(wb)
+    for col_idx, header in enumerate(LRE_HEADERS, start=1):
+        cell = ws.cell(row=2, column=col_idx, value=header)
+        cell.font = hfont
+        cell.fill = hfill
+        cell.alignment = halign
+    ws.row_dimensions[2].height = 40
+    ws.freeze_panes = "A3"
+
+    sorted_runs = sorted(runs, key=lambda r: (r.period_year, r.period_month))
+
+    data_row = 3
+    alt = False
+    for run in sorted_runs:
+        month = run.period_month
+        factor = correction_factors.get(month, 1.0)
+        entries = entries_by_run.get(run.id, [])
+        row_fill = PatternFill("solid", fgColor=LIGHT_BLUE if alt else WHITE)
+        alt = not alt
+
+        for entry in entries:
+            emp = employees.get(entry.employee_id)
+            if not emp:
+                continue
+
+            periodo = f"{run.period_year}{month:02d}"
+            sueldo_base = float(entry.base_salary or 0)
+            horas_extras = float((entry.overtime_weekday or 0) + (entry.overtime_sunday or 0))
+            bonos_afectos = float((entry.gratificacion or 0))
+            bonos_no_afectos = float((entry.bono_colacion or 0) + (entry.bono_movilizacion or 0) + (entry.bono_otros or 0) + (entry.asignacion_familiar or 0))
+            total_imponible = float(entry.remuneracion_imponible or 0)
+            total_no_imponible = bonos_no_afectos
+            total_haberes = float(entry.total_haberes or 0)
+            afp = float(entry.descuento_afp or 0)
+            salud = float(entry.descuento_salud or 0)
+            afc_trabajador = float(entry.descuento_cesantia or 0)
+            iusc = float(entry.impuesto_unico or 0)
+            otros_desc = float((entry.descuento_otros or 0) + (entry.adelanto or 0))
+            total_desc = float(entry.total_descuentos_previsionales or 0) + iusc + otros_desc
+            liquido = float(entry.liquido_pagar or 0)
+            afc_empleador = float(entry.aporte_cesantia_empleador or 0)
+            sis = float(entry.aporte_sis or 0)
+            mutual = 0.0
+            costo_empresa = float(entry.total_costo_empleador or 0)
+            renta_act = round(total_imponible * factor)
+            dias = int(entry.dias_trabajados or 30)
+
+            values = [
+                emp.rut or "",
+                emp.first_name or "",
+                emp.last_name or "",
+                emp.second_last_name or "",
+                periodo,
+                dias,
+                sueldo_base,
+                horas_extras,
+                bonos_afectos,
+                bonos_no_afectos,
+                total_imponible,
+                total_no_imponible,
+                total_haberes,
+                afp,
+                salud,
+                afc_trabajador,
+                iusc,
+                otros_desc,
+                total_desc,
+                liquido,
+                afc_empleador,
+                sis,
+                mutual,
+                costo_empresa,
+                factor,
+                renta_act,
+            ]
+
+            for col_idx, val in enumerate(values, start=1):
+                cell = ws.cell(row=data_row, column=col_idx, value=val)
+                cell.fill = row_fill
+                cell.alignment = Alignment(
+                    horizontal="right" if isinstance(val, (int, float)) else "left",
+                    vertical="center",
+                )
+                if col_idx >= 7 and isinstance(val, float) and col_idx != 25:
+                    cell.number_format = '#,##0'
+            data_row += 1
+
+    col_widths = [14, 14, 16, 16, 10, 6, 12, 12, 12, 12, 14, 14, 12,
+                  12, 12, 12, 10, 12, 12, 12, 14, 10, 10, 14, 8, 14]
+    for i, w in enumerate(col_widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    if data_row > 3:
+        ws.cell(row=data_row, column=1, value="TOTAL").font = Font(bold=True)
+        for col_idx in range(7, 27):
+            col_letter = get_column_letter(col_idx)
+            cell = ws.cell(
+                row=data_row, column=col_idx,
+                value=f"=SUM({col_letter}3:{col_letter}{data_row - 1})",
+            )
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill("solid", fgColor=LIGHT_BLUE)
+            cell.number_format = '#,##0'
+
+    wb.save(filepath)
+    return filepath
