@@ -298,27 +298,32 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         f[58] = "0"; f[59] = "0"; f[60] = "0"
 
         # ── Bloque 6: IPS / ISL / FONASA (campos 62-74) ───────────────────────
+        # AFP workers: campo 64 MUST be 0. Previred rejects it for AFP regime.
+        # FONASA cotización goes in campo 80 (sección Salud), not campo 70.
         f[61] = "0"              # 62 Código Ex-Caja Régimen
         f[62] = "0"              # 63 Tasa Cotización Ex-Caja
-        f[63] = str(renta_imp)   # 64 Renta Imponible IPS (requerida cuando hay FONASA)
+        f[63] = "0"              # 64 Renta Imponible IPS — 0 para AFP (Previred lo rechaza si >0)
         f[64] = "0"              # 65 Cotización Obligatoria IPS
         f[65] = "0"              # 66 Renta Imponible Desahucio
         f[66] = "0"              # 67 Cotización Desahucio
         f[67] = "0"              # 68 Código Ex-Caja Desahucio
         f[68] = "0"              # 69 Tasa Cotización Desahucio
-        f[69] = "0"              # 70 Cotización FONASA (0 para AFP; va en sección Salud)
+        f[69] = "0"              # 70 Cotización FONASA — 0 para AFP (validado por Previred)
         f[70] = "0"              # 71 Cotización ISL
         f[71] = "0"              # 72 Bonificación Ley 15.386
         f[72] = "0"              # 73 Descuento cargas IPS
         f[73] = "0"              # 74 Bonos Gobierno
 
         # ── Bloque 7: Salud (campos 75-82) ────────────────────────────────────
-        f[74] = "7" if is_fonasa else str(ISAPRE_CODES.get(afp_raw, "8"))  # 75 Código institución salud
+        # FONASA: código institución = 0 (Previred no acepta código "7").
+        # La cotización de salud se informa en campo 80 junto con renta imponible en campo 77.
+        isapre_code = str(ISAPRE_CODES.get(str(emp.health_system or "").split(".")[-1].lower(), "0"))
+        f[74] = "0" if is_fonasa else isapre_code   # 75 Código institución salud (0=FONASA)
         f[75] = ""               # 76 N° FUN (solo Isapre)
-        f[76] = "0"              # 77 Renta Imponible Isapre
+        f[76] = str(renta_imp)   # 77 Renta Imponible Salud — requerida para FONASA e Isapre
         f[77] = "0"              # 78 Moneda Plan Isapre
         f[78] = "0"              # 79 Cotización Pactada Isapre
-        f[79] = str(cot_salud)   # 80 Cotización Obligatoria (FONASA 7% o Isapre)
+        f[79] = str(cot_salud)   # 80 Cotización Obligatoria Salud (FONASA 7% o Isapre)
         f[80] = "0"              # 81 Cotización Adicional Voluntaria
         f[81] = "0"              # 82 GES
 
