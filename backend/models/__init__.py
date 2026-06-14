@@ -8,6 +8,7 @@ from .legal_params import LegalParameter, LegalParamAudit
 from .warning_letter import WarningLetter
 from .company import Company
 from .vacation import VacationBalance, VacationRequest
+from .accounting import AccountingAccount, JournalEntry, JournalEntryLine
 
 __all__ = [
     "User", "Employee", "Contract", "Attendance",
@@ -15,4 +16,5 @@ __all__ = [
     "LegalParameter", "LegalParamAudit",
     "WarningLetter", "Company",
     "VacationBalance", "VacationRequest",
+    "AccountingAccount", "JournalEntry", "JournalEntryLine",
 ]

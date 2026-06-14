@@ -19,6 +19,7 @@ import Contracts from './pages/Contracts'
 import SuperDashboard from './pages/SuperDashboard'
 import CompanyList from './pages/CompanyList'
 import Landing from './pages/Landing'
+import Accounting from './pages/Accounting'
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/company-settings" element={<CompanySettings />} />
           <Route path="/super/dashboard" element={<SuperDashboard />} />
           <Route path="/super/companies" element={<CompanyList />} />
+          <Route path="/accounting" element={<Accounting />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
