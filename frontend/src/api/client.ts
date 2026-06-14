@@ -197,6 +197,18 @@ export const contractsApi = {
     api.get('/api/contracts/expiring-soon', { params: { days: days ?? 30 } }),
 }
 
+export const accountingApi = {
+  listAccounts: () => api.get('/api/accounting/accounts'),
+  updateAccount: (id: number, data: { code: string; name: string }) =>
+    api.put(`/api/accounting/accounts/${id}`, data),
+  listJournal: () => api.get('/api/accounting/journal'),
+  getJournalEntry: (id: number) => api.get(`/api/accounting/journal/${id}`),
+  generateProvision: (runId: number) =>
+    api.post(`/api/accounting/journal/provision/${runId}`),
+  generatePagoCotizaciones: (runId: number) =>
+    api.post(`/api/accounting/journal/pago-cotizaciones/${runId}`),
+}
+
 // Helper to download blob
 export function downloadBlob(blob: Blob, filename: string) {
   const url = window.URL.createObjectURL(blob)

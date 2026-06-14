@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import api from '../services/api'
+import { accountingApi, payrollApi } from '../api/client'
 
 interface Account {
   id: number
@@ -73,7 +73,7 @@ export default function Accounting() {
   const loadAccounts = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/accounting/accounts')
+      const res = await accountingApi.listAccounts()
       setAccounts(res.data)
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Error al cargar cuentas')
@@ -85,7 +85,7 @@ export default function Accounting() {
   const loadJournal = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/accounting/journal')
+      const res = await accountingApi.listJournal()
       setJournalEntries(res.data)
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Error al cargar asientos')
@@ -96,7 +96,7 @@ export default function Accounting() {
 
   const loadPayrollRuns = async () => {
     try {
-      const res = await api.get('/payroll/')
+      const res = await payrollApi.list()
       setPayrollRuns(res.data.filter((r: PayrollRun) => r.status === 'approved'))
     } catch {
       // ignore
@@ -128,7 +128,7 @@ export default function Accounting() {
 
   const saveEdit = async (id: number) => {
     try {
-      await api.put(`/accounting/accounts/${id}`, { code: editCode, name: editName })
+      await accountingApi.updateAccount(id, { code: editCode, name: editName })
       setEditingId(null)
       await loadAccounts()
     } catch (e: any) {
@@ -138,7 +138,7 @@ export default function Accounting() {
 
   const loadEntryDetail = async (entry: JournalEntry) => {
     try {
-      const res = await api.get(`/accounting/journal/${entry.id}`)
+      const res = await accountingApi.getJournalEntry(entry.id)
       setSelectedEntry(res.data)
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Error al cargar asiento')
@@ -150,7 +150,7 @@ export default function Accounting() {
     setGenerating('provision')
     setError(null)
     try {
-      await api.post(`/accounting/journal/provision/${selectedRunId}`)
+      await accountingApi.generateProvision(Number(selectedRunId))
       await loadJournal()
       setSelectedRunId('')
     } catch (e: any) {
@@ -165,7 +165,7 @@ export default function Accounting() {
     setGenerating('pago')
     setError(null)
     try {
-      await api.post(`/accounting/journal/pago-cotizaciones/${selectedRunId}`)
+      await accountingApi.generatePagoCotizaciones(Number(selectedRunId))
       await loadJournal()
       setSelectedRunId('')
     } catch (e: any) {
