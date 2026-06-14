@@ -103,7 +103,8 @@ export default function Landing() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Credenciales incorrectas')
-      localStorage.setItem('token', data.access_token)
+      localStorage.setItem('access_token', data.access_token)
+      localStorage.setItem('user', JSON.stringify(data.user))
       navigate('/dashboard')
     } catch (err: any) {
       setError(err.message)
