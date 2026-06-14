@@ -62,10 +62,10 @@ def generate_previred_excel(run, entries, employees: Dict) -> str:
 
     headers = [
         "RUT Trabajador", "Nombre", "Apellido Paterno", "Apellido Materno",
-        "AFP", "Renta Imponible AFP", "Cotización AFP", "Cotización Voluntaria AFP",
+        "AFP", "Renta Imponible AFP", "Cotización AFP", "Mayor Retención (0.1%)", "Cotización AFP Total",
         "Sistema Salud", "Renta Imponible Salud", "Cotización Salud",
         "Seg. Cesantía Trabajador", "Seg. Cesantía Empleador",
-        "SIS Empleador", "Días Trabajados", "Renta Bruta",
+        "SIS Empleador (1.62%)", "Días Trabajados", "Renta Bruta",
         "Renta Tributable", "IUSC",
     ]
 
@@ -83,31 +83,36 @@ def generate_previred_excel(run, entries, employees: Dict) -> str:
         if not emp:
             continue
 
-        # Clean RUT (remove dots, keep dash)
+        import math as _math
         rut_clean = emp.rut.replace(".", "")
-        base_afp = min(float(entry.remuneracion_imponible), float(entry.breakdown.get("tope_imponible_afp_clp", 9999999) if entry.breakdown else 9999999))
+        renta_imp    = int(float(entry.remuneracion_imponible))
+        cot_afp_base = int(float(entry.descuento_afp))
+        mayor_ret    = _math.ceil(renta_imp * 0.001)
+        cot_afp_total = cot_afp_base + mayor_ret
+        cot_sis_real = round(renta_imp * 0.0162)  # SIS 1.62%
 
-        ws.cell(row=row, column=1, value=rut_clean)
-        ws.cell(row=row, column=2, value=emp.first_name)
-        ws.cell(row=row, column=3, value=emp.last_name)
-        ws.cell(row=row, column=4, value=emp.second_last_name or "")
-        ws.cell(row=row, column=5, value=entry.afp_name or str(emp.afp))
-        ws.cell(row=row, column=6, value=int(base_afp))
-        ws.cell(row=row, column=7, value=int(float(entry.descuento_afp)))
-        ws.cell(row=row, column=8, value=0)  # Cotización voluntaria
-        ws.cell(row=row, column=9, value=entry.health_system or str(emp.health_system))
-        ws.cell(row=row, column=10, value=int(float(entry.remuneracion_imponible)))
-        ws.cell(row=row, column=11, value=int(float(entry.descuento_salud)))
-        ws.cell(row=row, column=12, value=int(float(entry.descuento_cesantia)))
-        ws.cell(row=row, column=13, value=int(float(entry.aporte_cesantia_empleador)))
-        ws.cell(row=row, column=14, value=int(float(entry.aporte_sis)))
-        ws.cell(row=row, column=15, value=int(entry.dias_trabajados))
-        ws.cell(row=row, column=16, value=int(float(entry.total_haberes)))
-        ws.cell(row=row, column=17, value=int(float(entry.remuneracion_tributable)))
-        ws.cell(row=row, column=18, value=int(float(entry.impuesto_unico)))
+        ws.cell(row=row, column=1,  value=rut_clean)
+        ws.cell(row=row, column=2,  value=emp.first_name)
+        ws.cell(row=row, column=3,  value=emp.last_name)
+        ws.cell(row=row, column=4,  value=emp.second_last_name or "")
+        ws.cell(row=row, column=5,  value=entry.afp_name or str(emp.afp))
+        ws.cell(row=row, column=6,  value=renta_imp)
+        ws.cell(row=row, column=7,  value=cot_afp_base)
+        ws.cell(row=row, column=8,  value=mayor_ret)
+        ws.cell(row=row, column=9,  value=cot_afp_total)
+        ws.cell(row=row, column=10, value=entry.health_system or str(emp.health_system))
+        ws.cell(row=row, column=11, value=renta_imp)
+        ws.cell(row=row, column=12, value=int(float(entry.descuento_salud)))
+        ws.cell(row=row, column=13, value=int(float(entry.descuento_cesantia)))
+        ws.cell(row=row, column=14, value=int(float(entry.aporte_cesantia_empleador)))
+        ws.cell(row=row, column=15, value=cot_sis_real)
+        ws.cell(row=row, column=16, value=int(entry.dias_trabajados))
+        ws.cell(row=row, column=17, value=int(float(entry.total_haberes)))
+        ws.cell(row=row, column=18, value=int(float(entry.remuneracion_tributable)))
+        ws.cell(row=row, column=19, value=int(float(entry.impuesto_unico)))
 
         # Format money columns
-        for col in [6, 7, 10, 11, 12, 13, 14, 16, 17, 18]:
+        for col in [6, 7, 8, 9, 11, 12, 13, 14, 15, 17, 18, 19]:
             ws.cell(row=row, column=col).number_format = '#,##0'
 
         # Alternate row colors
@@ -122,15 +127,15 @@ def generate_previred_excel(run, entries, employees: Dict) -> str:
     ws.cell(row=total_row, column=1, value="TOTALES")
     ws.cell(row=total_row, column=1).font = Font(bold=True)
 
-    for col in [6, 7, 10, 11, 12, 13, 14, 16, 17, 18]:
+    for col in [6, 7, 8, 9, 11, 12, 13, 14, 15, 17, 18, 19]:
         col_letter = get_column_letter(col)
         ws.cell(row=total_row, column=col, value=f"=SUM({col_letter}3:{col_letter}{total_row-1})")
         ws.cell(row=total_row, column=col).number_format = '#,##0'
         ws.cell(row=total_row, column=col).font = Font(bold=True)
         ws.cell(row=total_row, column=col).fill = PatternFill("solid", fgColor=LIGHT_BLUE)
 
-    # Column widths
-    col_widths = [14, 15, 18, 18, 10, 18, 16, 18, 10, 20, 16, 18, 18, 14, 12, 14, 16, 14]
+    # Column widths (19 columns now)
+    col_widths = [14, 15, 18, 18, 10, 16, 14, 16, 16, 12, 16, 14, 16, 16, 16, 10, 14, 16, 10]
     for i, w in enumerate(col_widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
