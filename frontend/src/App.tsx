@@ -18,11 +18,13 @@ import Vacations from './pages/Vacations'
 import Contracts from './pages/Contracts'
 import SuperDashboard from './pages/SuperDashboard'
 import CompanyList from './pages/CompanyList'
+import Landing from './pages/Landing'
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route
           path="/"
@@ -33,6 +35,7 @@ export default function App() {
           }
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
+
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="employees" element={<Employees />} />
           <Route path="employees/:id" element={<EmployeeDetail />} />
@@ -50,7 +53,7 @@ export default function App() {
           <Route path="super/dashboard" element={<SuperDashboard />} />
           <Route path="super/companies" element={<CompanyList />} />
         </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
   )
