@@ -122,6 +122,13 @@ def calculate_payroll(
     created_entries = []
 
     for emp in employees:
+        # Saltar empleados que aún no habían ingresado en este período
+        if emp.hire_date:
+            hire_year  = emp.hire_date.year
+            hire_month = emp.hire_date.month
+            if (hire_year, hire_month) > (run.period_year, run.period_month):
+                continue  # empleado no existía en este período
+
         db.query(PayrollEntry).filter(
             PayrollEntry.payroll_run_id == run_id,
             PayrollEntry.employee_id == emp.id,
@@ -177,6 +184,15 @@ def add_or_update_entry(
     emp = db.query(Employee).filter(Employee.id == req.employee_id).first()
     if not emp:
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
+
+    # Validar que el empleado ya trabajaba en este período
+    if emp.hire_date:
+        if (emp.hire_date.year, emp.hire_date.month) > (run.period_year, run.period_month):
+            raise HTTPException(
+                status_code=400,
+                detail=f"El empleado ingresó el {emp.hire_date.strftime('%d/%m/%Y')}, "
+                       f"no puede incluirse en la nómina de {run.period_month:02d}/{run.period_year}"
+            )
 
     contract = db.query(Contract).filter(
         Contract.employee_id == emp.id,
