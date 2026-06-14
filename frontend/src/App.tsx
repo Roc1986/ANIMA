@@ -24,35 +24,28 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to="/dashboard" replace />} />
 
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="employees" element={<Employees />} />
-          <Route path="employees/:id" element={<EmployeeDetail />} />
-          <Route path="payroll" element={<Payroll />} />
-          <Route path="attendance" element={<Attendance />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="legal" element={<LegalUpdates />} />
-          <Route path="vacations" element={<Vacations />} />
-          <Route path="contracts" element={<Contracts />} />
-          <Route path="warning-letters" element={<WarningLetters />} />
-          <Route path="finiquito" element={<Finiquito />} />
-          <Route path="company-settings" element={<CompanySettings />} />
-
-          {/* Super Admin routes */}
-          <Route path="super/dashboard" element={<SuperDashboard />} />
-          <Route path="super/companies" element={<CompanyList />} />
+        {/* Protected app routes */}
+        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/employees" element={<Employees />} />
+          <Route path="/employees/:id" element={<EmployeeDetail />} />
+          <Route path="/payroll" element={<Payroll />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/legal" element={<LegalUpdates />} />
+          <Route path="/vacations" element={<Vacations />} />
+          <Route path="/contracts" element={<Contracts />} />
+          <Route path="/warning-letters" element={<WarningLetters />} />
+          <Route path="/finiquito" element={<Finiquito />} />
+          <Route path="/company-settings" element={<CompanySettings />} />
+          <Route path="/super/dashboard" element={<SuperDashboard />} />
+          <Route path="/super/companies" element={<CompanyList />} />
         </Route>
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
