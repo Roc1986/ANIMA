@@ -60,9 +60,8 @@ async def lifespan(app: FastAPI):
 
     # Migrate AFP "Model" → "Modelo" in employees table
     try:
-        from database import SessionLocal, engine
+        from sqlalchemy import text
         with engine.connect() as conn:
-            from sqlalchemy import text
             result = conn.execute(text(
                 "UPDATE employees SET afp = 'Modelo' WHERE afp = 'Model'"
             ))
