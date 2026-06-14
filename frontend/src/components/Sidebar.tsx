@@ -50,9 +50,9 @@ export function Sidebar() {
   const navItems = isSuperAdmin() ? superNavItems : hrNavItems
 
   return (
-    <aside className="w-64 min-h-screen bg-anima-blue flex flex-col">
+    <aside className="w-64 h-screen sticky top-0 bg-anima-blue flex flex-col">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-blue-800">
+      <div className="px-6 py-5 border-b border-blue-800 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center">
             <span className="text-anima-blue font-bold text-lg">A</span>
@@ -69,7 +69,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
@@ -89,7 +89,7 @@ export function Sidebar() {
       </nav>
 
       {/* User info */}
-      <div className="px-4 py-4 border-t border-blue-800">
+      <div className="px-4 py-4 border-t border-blue-800 shrink-0">
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSuperAdmin() ? 'bg-yellow-500' : 'bg-blue-600'}`}>
             <span className="text-white text-sm font-medium">
