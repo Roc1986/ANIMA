@@ -25,7 +25,7 @@ class AFP(str, enum.Enum):
     capital = "Capital"
     cuprum = "Cuprum"
     planvital = "Planvital"
-    model = "Model"
+    modelo = "Modelo"
     uno = "Uno"
 
 

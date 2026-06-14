@@ -58,6 +58,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"SIS migration failed (non-fatal): {e}")
 
+    # Migrate AFP "Model" → "Modelo" in employees table
+    try:
+        from database import SessionLocal, engine
+        with engine.connect() as conn:
+            from sqlalchemy import text
+            result = conn.execute(text(
+                "UPDATE employees SET afp = 'Modelo' WHERE afp = 'Model'"
+            ))
+            conn.commit()
+            if result.rowcount:
+                logger.info(f"Migrated AFP Model→Modelo in {result.rowcount} employee(s)")
+    except Exception as e:
+        logger.warning(f"AFP Model migration failed (non-fatal): {e}")
+
     yield
 
     # Shutdown

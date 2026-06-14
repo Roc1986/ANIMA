@@ -166,13 +166,24 @@ def generate_previred_excel(run, entries, employees: Dict) -> str:
 # AFP codes used by Previred (código institución previsional)
 # ---------------------------------------------------------------------------
 AFP_CODES = {
+    # Por clave del enum (minúscula)
     "habitat":   "05",
     "provida":   "08",
     "capital":   "33",
     "cuprum":    "03",
     "planvital": "29",
     "modelo":    "34",
+    "model":     "34",   # compatibilidad con valor antiguo "Model"
     "uno":       "35",
+    # Por valor del enum (capitalizado)
+    "Habitat":   "05",
+    "Provida":   "08",
+    "Capital":   "33",
+    "Cuprum":    "03",
+    "Planvital": "29",
+    "Modelo":    "34",
+    "Model":     "34",
+    "Uno":       "35",
 }
 
 ISAPRE_CODES = {
@@ -229,8 +240,9 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
             rut_num = rut_full
             rut_dv  = "0"
 
-        afp_raw  = str(emp.afp or "").split(".")[-1].lower()
-        afp_code = AFP_CODES.get(afp_raw, "05")
+        afp_str  = str(emp.afp or "")
+        afp_raw  = afp_str.split(".")[-1]          # clave enum o valor
+        afp_code = AFP_CODES.get(afp_raw) or AFP_CODES.get(afp_raw.lower()) or "05"
 
         hs_raw = str(emp.health_system or "").split(".")[-1].upper()
         is_fonasa = (hs_raw == "FONASA")
