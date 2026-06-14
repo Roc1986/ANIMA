@@ -15,6 +15,7 @@ import {
   ClipboardDocumentListIcon,
   GlobeAltIcon,
   BuildingStorefrontIcon,
+  CalculatorIcon,
 } from '@heroicons/react/24/outline'
 
 const hrNavItems = [
@@ -29,6 +30,7 @@ const hrNavItems = [
   { to: '/finiquito', label: 'Finiquito', icon: DocumentCheckIcon },
   { to: '/legal', label: 'IA Legal', icon: ScaleIcon },
   { to: '/company-settings', label: 'Empresa', icon: BuildingOfficeIcon },
+  { to: '/accounting', label: 'Contabilidad', icon: CalculatorIcon },
 ]
 
 const superNavItems = [

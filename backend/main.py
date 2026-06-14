@@ -12,7 +12,7 @@ from models import *  # noqa - ensures all models are registered
 
 from routers import (
     auth, employees, payroll, attendance, documents, reports,
-    ai_legal, warning_letters, finiquito, company, vacations, contracts, super_admin
+    ai_legal, warning_letters, finiquito, company, vacations, contracts, super_admin, accounting
 )
 from services.indicators_sync import sync_all, sync_uf, sync_utm
 
@@ -95,6 +95,7 @@ app.include_router(company.router, prefix="/api/company", tags=["Configuración 
 app.include_router(vacations.router, prefix="/api/vacations", tags=["Control de Vacaciones"])
 app.include_router(contracts.router, prefix="/api/contracts", tags=["Contratos de Trabajo"])
 app.include_router(super_admin.router, prefix="/api/super", tags=["Super Administración"])
+app.include_router(accounting.router, prefix="/api/accounting", tags=["Contabilidad"])
 
 
 @app.get("/")
