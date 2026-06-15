@@ -37,6 +37,7 @@ interface Employee {
   afp: string
   health_system: string
   isapre_name?: string
+  isapre_monthly_amount?: number
   hire_date: string
   position: string
   department?: string
@@ -68,7 +69,8 @@ export default function EmployeeDetail() {
   const [terminateData, setTerminateData] = useState({ termination_date: '', termination_reason: '' })
   const [terminating, setTerminating] = useState(false)
 
-  const { register, handleSubmit, reset } = useForm()
+  const { register, handleSubmit, reset, watch } = useForm()
+  const watchedHealthSystem = watch('health_system')
 
   const handleTerminate = async () => {
     if (!terminateData.termination_date || !terminateData.termination_reason) {
@@ -244,15 +246,25 @@ export default function EmployeeDetail() {
                 <p className="text-sm text-gray-800 py-2">{employee.health_system}</p>
               )}
             </div>
-            {employee.health_system === 'ISAPRE' && (
-              <div>
-                <label className="label">Nombre ISAPRE</label>
-                {editing ? (
-                  <input className="input" {...register('isapre_name')} />
-                ) : (
-                  <p className="text-sm text-gray-800 py-2">{employee.isapre_name || '—'}</p>
-                )}
-              </div>
+            {((!editing && employee.health_system === 'ISAPRE') || (editing && (watchedHealthSystem === 'ISAPRE' || (!watchedHealthSystem && employee.health_system === 'ISAPRE')))) && (
+              <>
+                <div>
+                  <label className="label">Nombre ISAPRE</label>
+                  {editing ? (
+                    <input className="input" placeholder="Cruz Blanca, Banmédica..." {...register('isapre_name')} />
+                  ) : (
+                    <p className="text-sm text-gray-800 py-2">{employee.isapre_name || '—'}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="label">Monto mensual ISAPRE ($)</label>
+                  {editing ? (
+                    <input type="number" className="input" placeholder="0" {...register('isapre_monthly_amount')} />
+                  ) : (
+                    <p className="text-sm text-gray-800 py-2">{employee.isapre_monthly_amount ? formatCLP(employee.isapre_monthly_amount) : '—'}</p>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
