@@ -172,3 +172,27 @@ def generate_finiquito_pdf_endpoint(
     company = db.query(Company).first()
     filepath = generate_finiquito_pdf(data.calculation, emp, company)
     return FileResponse(filepath, media_type="application/pdf", filename=f"finiquito_{emp.rut}.pdf")
+
+
+class FiniquitoConfirmRequest(BaseModel):
+    employee_id: int
+    termination_date: date
+    termination_cause: str
+    calculation: dict
+
+
+@router.post("/confirm")
+def confirm_finiquito(
+    data: FiniquitoConfirmRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Persiste el finiquito y desactiva al empleado."""
+    emp = db.query(Employee).filter(Employee.id == data.employee_id).first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    emp.is_active = False
+    emp.termination_date = data.termination_date
+    emp.termination_reason = data.termination_cause
+    db.commit()
+    return {"message": "Finiquito confirmado. Empleado dado de baja.", "employee_id": emp.id}

@@ -65,6 +65,8 @@ export const employeesApi = {
   create: (data: unknown) => api.post('/api/employees/', data),
   update: (id: number, data: unknown) => api.put(`/api/employees/${id}`, data),
   deactivate: (id: number) => api.delete(`/api/employees/${id}`),
+  terminate: (id: number, data: { termination_date: string; termination_reason: string }) =>
+    api.post(`/api/employees/${id}/terminate`, data),
   contracts: (id: number) => api.get(`/api/employees/${id}/contracts`),
 }
 
@@ -155,6 +157,7 @@ export const finiquitoApi = {
   calculate: (data: unknown) => api.post('/api/finiquito/calculate', data),
   generatePdf: (data: unknown) =>
     api.post('/api/finiquito/generate-pdf', data, { responseType: 'blob' }),
+  confirm: (data: unknown) => api.post('/api/finiquito/confirm', data),
 }
 
 // --- Company ---

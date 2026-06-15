@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { ArrowDownTrayIcon, CalculatorIcon } from '@heroicons/react/24/outline'
-import { api, employeesApi, formatCLP, downloadBlob } from '../api/client'
+import { ArrowDownTrayIcon, CalculatorIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
+import { api, finiquitoApi, employeesApi, formatCLP, downloadBlob } from '../api/client'
 
 interface Employee {
   id: number
@@ -66,6 +66,8 @@ export default function Finiquito() {
   const [result, setResult] = useState<FiniquitoResult | null>(null)
   const [calculating, setCalculating] = useState(false)
   const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null)
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm()
@@ -115,6 +117,28 @@ export default function Finiquito() {
       toast.error('Error al generar PDF')
     } finally {
       setGeneratingPdf(false)
+    }
+  }
+
+  const handleConfirm = async () => {
+    if (!result) return
+    if (!confirm(`¿Confirmar finiquito y dar de baja a ${result.employee_name}? El trabajador quedará inactivo.`)) return
+    setConfirming(true)
+    try {
+      await finiquitoApi.confirm({
+        employee_id: result.employee_id,
+        termination_date: result.termination_date,
+        termination_cause: result.termination_cause,
+        calculation: result,
+      })
+      setConfirmed(true)
+      toast.success('Finiquito confirmado. Trabajador dado de baja.')
+      employeesApi.list({ is_active: true }).then(r => setEmployees(r.data)).catch(() => {})
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } }
+      toast.error(e.response?.data?.detail || 'Error al confirmar')
+    } finally {
+      setConfirming(false)
     }
   }
 
@@ -234,14 +258,22 @@ export default function Finiquito() {
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-800">Resultado del Finiquito</h2>
-            <button
-              onClick={handleDownloadPdf}
-              disabled={generatingPdf}
-              className="btn-primary"
-            >
-              <ArrowDownTrayIcon className="w-4 h-4" />
-              {generatingPdf ? 'Generando PDF...' : 'Descargar PDF'}
-            </button>
+            <div className="flex gap-2">
+              <button onClick={handleDownloadPdf} disabled={generatingPdf} className="btn-secondary">
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                {generatingPdf ? 'Generando...' : 'Descargar PDF'}
+              </button>
+              {!confirmed ? (
+                <button onClick={handleConfirm} disabled={confirming} className="btn-primary bg-red-600 hover:bg-red-700">
+                  <CheckCircleIcon className="w-4 h-4" />
+                  {confirming ? 'Procesando...' : 'Confirmar y dar de baja'}
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
+                  <CheckCircleIcon className="w-4 h-4" /> Trabajador dado de baja
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Employee summary */}

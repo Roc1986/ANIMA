@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import date
+from pydantic import BaseModel
 
 from database import get_db
 from models.employee import Employee
@@ -109,6 +111,30 @@ def update_employee(
     db.commit()
     db.refresh(emp)
     return emp
+
+
+class TerminateRequest(BaseModel):
+    termination_date: date
+    termination_reason: str
+
+
+@router.post("/{employee_id}/terminate")
+def terminate_employee(
+    employee_id: int,
+    data: TerminateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    q = db.query(Employee).filter(Employee.id == employee_id)
+    q = filter_by_company(q, Employee, current_user)
+    emp = q.first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    emp.is_active = False
+    emp.termination_date = data.termination_date
+    emp.termination_reason = data.termination_reason
+    db.commit()
+    return {"message": "Empleado dado de baja"}
 
 
 @router.delete("/{employee_id}")

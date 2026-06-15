@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { employeesApi, formatCLP } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon, NoSymbolIcon } from '@heroicons/react/24/outline'
 
 function formatRUT(raw: string): string {
   if (!raw) return '—'
@@ -59,12 +59,35 @@ interface Employee {
 export default function EmployeeDetail() {
   const { id } = useParams<{ id: string }>()
   const { isHR } = useAuth()
+  const navigate = useNavigate()
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showTerminate, setShowTerminate] = useState(false)
+  const [terminateData, setTerminateData] = useState({ termination_date: '', termination_reason: '' })
+  const [terminating, setTerminating] = useState(false)
 
   const { register, handleSubmit, reset } = useForm()
+
+  const handleTerminate = async () => {
+    if (!terminateData.termination_date || !terminateData.termination_reason) {
+      toast.error('Complete fecha y causal de término')
+      return
+    }
+    if (!confirm(`¿Confirma dar de baja a ${employee?.first_name} ${employee?.last_name}? Esta acción desactivará al trabajador.`)) return
+    setTerminating(true)
+    try {
+      await employeesApi.terminate(Number(id), terminateData)
+      toast.success('Trabajador dado de baja correctamente')
+      navigate('/employees')
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } }
+      toast.error(e.response?.data?.detail || 'Error al dar de baja')
+    } finally {
+      setTerminating(false)
+    }
+  }
 
   const fetchEmployee = async () => {
     try {
@@ -112,6 +135,15 @@ export default function EmployeeDetail() {
         <span className={employee.is_active ? 'badge-green' : 'badge-red'}>
           {employee.is_active ? 'Activo' : 'Inactivo'}
         </span>
+        {isHR && !editing && employee.is_active && (
+          <button
+            onClick={() => setShowTerminate(s => !s)}
+            className="btn-secondary text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <NoSymbolIcon className="w-4 h-4" />
+            Dar de baja
+          </button>
+        )}
         {isHR && !editing && (
           <button onClick={() => setEditing(true)} className="btn-secondary">
             <PencilIcon className="w-4 h-4" />
@@ -336,6 +368,43 @@ export default function EmployeeDetail() {
             </div>
           </div>
         </div>
+
+        {/* Panel dar de baja */}
+        {showTerminate && !editing && employee.is_active && (
+          <div className="card mb-4 border border-red-200 bg-red-50">
+            <h2 className="font-semibold text-red-700 mb-3 flex items-center gap-2">
+              <NoSymbolIcon className="w-4 h-4" /> Dar de baja al trabajador
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Fecha de término *</label>
+                <input type="date" className="input" value={terminateData.termination_date}
+                  onChange={e => setTerminateData(d => ({ ...d, termination_date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Causal de término *</label>
+                <select className="input" value={terminateData.termination_reason}
+                  onChange={e => setTerminateData(d => ({ ...d, termination_reason: e.target.value }))}>
+                  <option value="">Seleccionar causal...</option>
+                  <option value="Art. 159 N°1 — Mutuo acuerdo">Art. 159 N°1 — Mutuo acuerdo</option>
+                  <option value="Art. 159 N°2 — Renuncia del trabajador">Art. 159 N°2 — Renuncia</option>
+                  <option value="Art. 159 N°4 — Vencimiento del plazo">Art. 159 N°4 — Vencimiento plazo</option>
+                  <option value="Art. 159 N°5 — Conclusión del trabajo">Art. 159 N°5 — Conclusión obra</option>
+                  <option value="Art. 160 — Causal imputable al trabajador">Art. 160 — Despido por conducta</option>
+                  <option value="Art. 161 N°1 — Necesidades de la empresa">Art. 161 N°1 — Necesidades empresa</option>
+                  <option value="Art. 161 N°2 — Desahucio del empleador">Art. 161 N°2 — Desahucio</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <button type="button" onClick={() => setShowTerminate(false)} className="btn-secondary">Cancelar</button>
+              <button type="button" onClick={handleTerminate} disabled={terminating}
+                className="btn-primary bg-red-600 hover:bg-red-700">
+                {terminating ? 'Procesando...' : 'Confirmar baja'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {editing && (
           <div className="flex justify-end gap-3">
