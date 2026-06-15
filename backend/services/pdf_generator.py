@@ -167,13 +167,30 @@ def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
         ["Renta Tributable", _fmt_clp(entry.remuneracion_tributable)],
         ["Impuesto Único 2ª Cat. (IUSC)", _fmt_clp(entry.impuesto_unico)],
     ]
+    pension = float(getattr(entry, 'pension_alimenticia', 0) or 0)
+    desc_voluntario = float(getattr(entry, 'descuento_voluntario', 0) or 0)
+    desc_vivienda = float(getattr(entry, 'descuento_vivienda', 0) or 0)
+    desc_ccaf = float(getattr(entry, 'descuento_ccaf', 0) or 0)
+    if pension > 0:
+        descuentos_rows.append(["Retención Judicial (Pensión Alimenticia)", _fmt_clp(pension)])
+    if desc_voluntario > 0:
+        descuentos_rows.append(["Descuentos Voluntarios (Art. 58)", _fmt_clp(desc_voluntario)])
+    if desc_vivienda > 0:
+        descuentos_rows.append(["Descuento Vivienda (Art. 58)", _fmt_clp(desc_vivienda)])
+    if desc_ccaf > 0:
+        descuentos_rows.append(["Crédito CCAF", _fmt_clp(desc_ccaf)])
     if float(entry.descuento_otros) > 0:
         descuentos_rows.append(["Otros Descuentos", _fmt_clp(entry.descuento_otros)])
     if float(entry.adelanto) > 0:
         descuentos_rows.append(["Adelanto", _fmt_clp(entry.adelanto)])
+    total_descuentos_final = (
+        float(entry.total_descuentos_previsionales) + float(entry.impuesto_unico)
+        + pension + desc_voluntario + desc_vivienda + desc_ccaf
+        + float(entry.descuento_otros) + float(entry.adelanto)
+    )
     descuentos_rows.append([
         Paragraph("<b>TOTAL DESCUENTOS</b>", ParagraphStyle("TDL", fontSize=9, fontName="Helvetica-Bold")),
-        Paragraph(f"<b>{_fmt_clp(float(entry.total_descuentos_previsionales) + float(entry.impuesto_unico) + float(entry.descuento_otros) + float(entry.adelanto))}</b>",
+        Paragraph(f"<b>{_fmt_clp(total_descuentos_final)}</b>",
                   ParagraphStyle("TDR", fontSize=9, fontName="Helvetica-Bold", alignment=TA_RIGHT)),
     ])
 
@@ -1178,6 +1195,10 @@ def generate_libro_remuneraciones_pdf(run, entries, employees: Dict, company=Non
         hhee = float(entry.overtime_weekday) + float(entry.overtime_sunday)
         otros = float(entry.bono_colacion) + float(entry.bono_movilizacion) + float(entry.bono_otros) + float(entry.asignacion_familiar)
         total_desc = (float(entry.total_descuentos_previsionales) + float(entry.impuesto_unico) +
+                      float(getattr(entry, 'pension_alimenticia', 0) or 0) +
+                      float(getattr(entry, 'descuento_voluntario', 0) or 0) +
+                      float(getattr(entry, 'descuento_vivienda', 0) or 0) +
+                      float(getattr(entry, 'descuento_ccaf', 0) or 0) +
                       float(entry.descuento_otros) + float(entry.adelanto))
 
         row = [

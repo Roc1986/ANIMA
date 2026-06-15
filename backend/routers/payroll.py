@@ -214,6 +214,8 @@ def add_or_update_entry(
             employee=emp,
             contract_type=str(contract_type),
             dias_trabajados=req.dias_trabajados,
+            dias_licencia=req.dias_licencia,
+            dias_vacaciones=req.dias_vacaciones,
             horas_extra_habiles=float(req.horas_extra_habiles),
             horas_extra_domingo=float(req.horas_extra_domingo),
             bono_colacion=float(req.bono_colacion),
@@ -222,6 +224,13 @@ def add_or_update_entry(
             asignacion_familiar=float(req.asignacion_familiar),
             adelanto=float(req.adelanto),
             descuento_otros=float(req.descuento_otros),
+            pension_alimenticia_tipo=req.pension_alimenticia_tipo,
+            pension_alimenticia_raw=float(req.pension_alimenticia_raw),
+            descuento_voluntario=float(req.descuento_voluntario),
+            descuento_vivienda=float(req.descuento_vivienda),
+            descuento_ccaf=float(req.descuento_ccaf),
+            is_first_month=req.is_first_month,
+            permiso_sin_goce=req.permiso_sin_goce,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error al calcular nómina del empleado: {str(e)}")

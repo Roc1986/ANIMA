@@ -53,7 +53,7 @@ class PayrollEntry(Base):
     asignacion_familiar = Column(Numeric(12, 2), default=0)
     total_haberes = Column(Numeric(12, 2), default=0)
 
-    # Imponible / No imponible
+    # Imponible / Tributable
     remuneracion_imponible = Column(Numeric(12, 2), default=0)
     remuneracion_tributable = Column(Numeric(12, 2), default=0)
 
@@ -66,8 +66,16 @@ class PayrollEntry(Base):
     # Impuesto
     impuesto_unico = Column(Numeric(12, 2), default=0)
 
-    # Otros descuentos
-    descuento_otros = Column(Numeric(12, 2), default=0)
+    # Pensión alimenticia (Ley 21.484) — retención judicial
+    pension_alimenticia = Column(Numeric(12, 2), default=0)
+    pension_alimenticia_tipo = Column(String(30), nullable=True)   # pesos, utm, porcentaje_imm, porcentaje_sueldo
+    pension_alimenticia_raw = Column(Numeric(12, 4), default=0)    # valor crudo antes de conversión
+
+    # Descuentos Art. 58 CT (categorizados con topes legales)
+    descuento_voluntario = Column(Numeric(12, 2), default=0)       # tope 15% remuneración
+    descuento_vivienda = Column(Numeric(12, 2), default=0)         # tope 30% remuneración
+    descuento_ccaf = Column(Numeric(12, 2), default=0)             # crédito social CCAF
+    descuento_otros = Column(Numeric(12, 2), default=0)            # otros descuentos genéricos
     adelanto = Column(Numeric(12, 2), default=0)
 
     # Aportes empleador
@@ -78,16 +86,22 @@ class PayrollEntry(Base):
     # Líquido
     liquido_pagar = Column(Numeric(12, 2), default=0)
 
-    # Días trabajados
+    # Días y horas
     dias_trabajados = Column(Integer, default=30)
+    dias_licencia = Column(Integer, default=0)
+    dias_vacaciones = Column(Integer, default=0)
     horas_extra_habiles = Column(Numeric(5, 2), default=0)
     horas_extra_domingo = Column(Numeric(5, 2), default=0)
 
-    # Metadata
+    # Metadata previsional
     afp_name = Column(String(50))
     afp_rate = Column(Numeric(6, 4))
     health_system = Column(String(20))
     contract_type = Column(String(20))
+    previred_movement_code = Column(String(5), default='0')
+
+    # Alertas y desglose calculado
+    warnings = Column(JSON, default=list)
     breakdown = Column(JSON)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

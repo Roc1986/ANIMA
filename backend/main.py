@@ -21,9 +21,34 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler(timezone="America/Santiago")
 
 
+def run_column_migrations(eng):
+    """Add new columns to existing tables without dropping data."""
+    from sqlalchemy import text
+    migrations = [
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS dias_licencia INTEGER DEFAULT 0",
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS dias_vacaciones INTEGER DEFAULT 0",
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS pension_alimenticia NUMERIC(12,2) DEFAULT 0",
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS pension_alimenticia_tipo VARCHAR(30)",
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS pension_alimenticia_raw NUMERIC(12,4) DEFAULT 0",
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS descuento_voluntario NUMERIC(12,2) DEFAULT 0",
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS descuento_vivienda NUMERIC(12,2) DEFAULT 0",
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS descuento_ccaf NUMERIC(12,2) DEFAULT 0",
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS previred_movement_code VARCHAR(5) DEFAULT '0'",
+        "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS warnings JSON",
+    ]
+    with eng.connect() as conn:
+        for sql in migrations:
+            try:
+                conn.execute(text(sql))
+            except Exception:
+                pass
+        conn.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    run_column_migrations(engine)
     Base.metadata.create_all(bind=engine)
     os.makedirs("/app/uploads", exist_ok=True)
 

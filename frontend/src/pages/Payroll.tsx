@@ -73,8 +73,9 @@ export default function Payroll() {
   const [showAddEmployee, setShowAddEmployee] = useState<number | null>(null) // run_id
   const [employees, setEmployees] = useState<{ id: number; first_name: string; last_name: string }[]>([])
   const [editingEntry, setEditingEntry] = useState<{ runId: number; entry: PayrollEntry } | null>(null)
-  const [editEntryData, setEditEntryData] = useState<Record<string, number>>({})
+  const [editEntryData, setEditEntryData] = useState<Record<string, number | string>>({})
   const [editLoading, setEditLoading] = useState(false)
+  const [editWarnings, setEditWarnings] = useState<string[]>([])
   const {
     register: registerAdd,
     handleSubmit: handleSubmitAdd,
@@ -134,6 +135,7 @@ export default function Payroll() {
 
   const openEditEntry = (runId: number, entry: PayrollEntry) => {
     setEditingEntry({ runId, entry })
+    setEditWarnings([])
     setEditEntryData({
       dias_trabajados: entry.dias_trabajados ?? 30,
       dias_licencia: 0,
@@ -146,28 +148,49 @@ export default function Payroll() {
       asignacion_familiar: 0,
       adelanto: 0,
       descuento_otros: 0,
+      pension_alimenticia_tipo: 'pesos',
+      pension_alimenticia_raw: 0,
+      descuento_voluntario: 0,
+      descuento_vivienda: 0,
+      descuento_ccaf: 0,
     })
   }
 
   const saveEditEntry = async () => {
     if (!editingEntry) return
     setEditLoading(true)
+    setEditWarnings([])
     try {
-      const diasTrabajados = Math.max(0, editEntryData.dias_trabajados - (editEntryData.dias_licencia || 0) - (editEntryData.dias_vacaciones || 0))
-      await payrollApi.addEntry(editingEntry.runId, {
+      const diasLicencia = Number(editEntryData.dias_licencia) || 0
+      const diasVacaciones = Number(editEntryData.dias_vacaciones) || 0
+      const diasEfectivos = Math.max(0, Number(editEntryData.dias_trabajados) - diasLicencia - diasVacaciones)
+      const res = await payrollApi.addEntry(editingEntry.runId, {
         employee_id: editingEntry.entry.employee_id,
-        dias_trabajados: diasTrabajados,
-        horas_extra_habiles: editEntryData.horas_extra_habiles || 0,
-        horas_extra_domingo: editEntryData.horas_extra_domingo || 0,
-        bono_colacion: editEntryData.bono_colacion || 0,
-        bono_movilizacion: editEntryData.bono_movilizacion || 0,
-        bono_otros: editEntryData.bono_otros || 0,
-        asignacion_familiar: editEntryData.asignacion_familiar || 0,
-        adelanto: editEntryData.adelanto || 0,
-        descuento_otros: editEntryData.descuento_otros || 0,
+        dias_trabajados: diasEfectivos,
+        dias_licencia: diasLicencia,
+        dias_vacaciones: diasVacaciones,
+        horas_extra_habiles: Number(editEntryData.horas_extra_habiles) || 0,
+        horas_extra_domingo: Number(editEntryData.horas_extra_domingo) || 0,
+        bono_colacion: Number(editEntryData.bono_colacion) || 0,
+        bono_movilizacion: Number(editEntryData.bono_movilizacion) || 0,
+        bono_otros: Number(editEntryData.bono_otros) || 0,
+        asignacion_familiar: Number(editEntryData.asignacion_familiar) || 0,
+        adelanto: Number(editEntryData.adelanto) || 0,
+        descuento_otros: Number(editEntryData.descuento_otros) || 0,
+        pension_alimenticia_tipo: String(editEntryData.pension_alimenticia_tipo || 'pesos'),
+        pension_alimenticia_raw: Number(editEntryData.pension_alimenticia_raw) || 0,
+        descuento_voluntario: Number(editEntryData.descuento_voluntario) || 0,
+        descuento_vivienda: Number(editEntryData.descuento_vivienda) || 0,
+        descuento_ccaf: Number(editEntryData.descuento_ccaf) || 0,
       })
-      toast.success('Liquidación recalculada con novedades')
-      setEditingEntry(null)
+      const warnings: string[] = res.data?.data?.warnings || []
+      if (warnings.length > 0) {
+        setEditWarnings(warnings)
+        toast('Liquidación recalculada — revise las advertencias legales', { icon: '⚠️' })
+      } else {
+        toast.success('Liquidación recalculada con novedades')
+        setEditingEntry(null)
+      }
       fetchRunDetail(editingEntry.runId)
       fetchRuns()
     } catch (err: unknown) {
@@ -518,7 +541,7 @@ export default function Payroll() {
       {/* Novedades del mes Modal */}
       {editingEntry && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
             <div className="p-6 border-b flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-bold">Novedades del Mes</h2>
@@ -526,7 +549,7 @@ export default function Payroll() {
               </div>
               <button onClick={() => setEditingEntry(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
               {/* Días */}
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Días del período</p>
@@ -595,25 +618,82 @@ export default function Payroll() {
                   </div>
                 </div>
               </div>
-              {/* Descuentos */}
+              {/* Pensión alimenticia */}
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Descuentos</p>
+                <p className="text-xs font-bold text-red-600 uppercase tracking-wide mb-3">Retención Judicial — Pensión Alimenticia</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
+                    <label className="label">Tipo de orden judicial</label>
+                    <select className="input" value={String(editEntryData.pension_alimenticia_tipo)}
+                      onChange={e => setEditEntryData(d => ({ ...d, pension_alimenticia_tipo: e.target.value }))}>
+                      <option value="pesos">Monto fijo en pesos</option>
+                      <option value="utm">UTM del mes (Ley 21.484)</option>
+                      <option value="porcentaje_sueldo">% de la remuneración total</option>
+                      <option value="porcentaje_imm">% del sueldo mínimo (IMM)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">
+                      {editEntryData.pension_alimenticia_tipo === 'utm' ? 'Cantidad en UTM' :
+                       editEntryData.pension_alimenticia_tipo === 'porcentaje_sueldo' ? 'Porcentaje (%)' :
+                       editEntryData.pension_alimenticia_tipo === 'porcentaje_imm' ? 'Porcentaje (%)' : 'Monto ($)'}
+                    </label>
+                    <input type="number" className="input" value={Number(editEntryData.pension_alimenticia_raw)}
+                      onChange={e => setEditEntryData(d => ({ ...d, pension_alimenticia_raw: Number(e.target.value) }))} min={0} step={0.01} />
+                    <p className="text-[10px] text-red-400 mt-1">Tope legal: 50% de la remuneración total</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Descuentos Art. 58 */}
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Descuentos Voluntarios — Art. 58 CT</p>
+                <p className="text-[10px] text-gray-400 mb-3">El sistema validará que no superen los topes legales</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Descuentos voluntarios (tope 15%)</label>
+                    <input type="number" className="input" value={Number(editEntryData.descuento_voluntario)}
+                      onChange={e => setEditEntryData(d => ({ ...d, descuento_voluntario: Number(e.target.value) }))} min={0} />
+                    <p className="text-[10px] text-gray-400 mt-1">Seguros, sindicato, préstamos empresa, convenios</p>
+                  </div>
+                  <div>
+                    <label className="label">Descuento vivienda (tope 30%)</label>
+                    <input type="number" className="input" value={Number(editEntryData.descuento_vivienda)}
+                      onChange={e => setEditEntryData(d => ({ ...d, descuento_vivienda: Number(e.target.value) }))} min={0} />
+                    <p className="text-[10px] text-gray-400 mt-1">Dividendo hipotecario, ahorro habitacional</p>
+                  </div>
+                  <div>
+                    <label className="label">Cuota CCAF (crédito social)</label>
+                    <input type="number" className="input" value={Number(editEntryData.descuento_ccaf)}
+                      onChange={e => setEditEntryData(d => ({ ...d, descuento_ccaf: Number(e.target.value) }))} min={0} />
+                    <p className="text-[10px] text-gray-400 mt-1">Según cartola mensual de la Caja</p>
+                  </div>
+                  <div>
                     <label className="label">Adelanto de sueldo</label>
-                    <input type="number" className="input" value={editEntryData.adelanto}
+                    <input type="number" className="input" value={Number(editEntryData.adelanto)}
                       onChange={e => setEditEntryData(d => ({ ...d, adelanto: Number(e.target.value) }))} min={0} />
                   </div>
                   <div>
                     <label className="label">Otros descuentos</label>
-                    <input type="number" className="input" value={editEntryData.descuento_otros}
+                    <input type="number" className="input" value={Number(editEntryData.descuento_otros)}
                       onChange={e => setEditEntryData(d => ({ ...d, descuento_otros: Number(e.target.value) }))} min={0} />
                   </div>
                 </div>
               </div>
+
+              {/* Advertencias legales */}
+              {editWarnings.length > 0 && (
+                <div className="space-y-2">
+                  {editWarnings.map((w, i) => (
+                    <div key={i} className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+                      ⚠️ {w}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="p-6 border-t flex justify-end gap-3">
-              <button onClick={() => setEditingEntry(null)} className="btn-secondary">Cancelar</button>
+              <button onClick={() => setEditingEntry(null)} className="btn-secondary">Cerrar</button>
               <button onClick={saveEditEntry} disabled={editLoading} className="btn-primary">
                 {editLoading ? 'Recalculando...' : 'Recalcular Liquidación'}
               </button>
