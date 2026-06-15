@@ -72,7 +72,9 @@ export default function Payroll() {
   const [processing, setProcessing] = useState(false)
   const [showAddEmployee, setShowAddEmployee] = useState<number | null>(null) // run_id
   const [employees, setEmployees] = useState<{ id: number; first_name: string; last_name: string }[]>([])
-
+  const [editingEntry, setEditingEntry] = useState<{ runId: number; entry: PayrollEntry } | null>(null)
+  const [editEntryData, setEditEntryData] = useState<Record<string, number>>({})
+  const [editLoading, setEditLoading] = useState(false)
   const {
     register: registerAdd,
     handleSubmit: handleSubmitAdd,
@@ -129,6 +131,52 @@ export default function Payroll() {
       reset(prev => ({ ...prev, uf_value: uf, utm_value: utm, imm_value: imm }))
     }).catch(() => {})
   }, [])
+
+  const openEditEntry = (runId: number, entry: PayrollEntry) => {
+    setEditingEntry({ runId, entry })
+    setEditEntryData({
+      dias_trabajados: entry.dias_trabajados ?? 30,
+      dias_licencia: 0,
+      dias_vacaciones: 0,
+      horas_extra_habiles: 0,
+      horas_extra_domingo: 0,
+      bono_colacion: 0,
+      bono_movilizacion: 0,
+      bono_otros: 0,
+      asignacion_familiar: 0,
+      adelanto: 0,
+      descuento_otros: 0,
+    })
+  }
+
+  const saveEditEntry = async () => {
+    if (!editingEntry) return
+    setEditLoading(true)
+    try {
+      const diasTrabajados = Math.max(0, editEntryData.dias_trabajados - (editEntryData.dias_licencia || 0) - (editEntryData.dias_vacaciones || 0))
+      await payrollApi.addEntry(editingEntry.runId, {
+        employee_id: editingEntry.entry.employee_id,
+        dias_trabajados: diasTrabajados,
+        horas_extra_habiles: editEntryData.horas_extra_habiles || 0,
+        horas_extra_domingo: editEntryData.horas_extra_domingo || 0,
+        bono_colacion: editEntryData.bono_colacion || 0,
+        bono_movilizacion: editEntryData.bono_movilizacion || 0,
+        bono_otros: editEntryData.bono_otros || 0,
+        asignacion_familiar: editEntryData.asignacion_familiar || 0,
+        adelanto: editEntryData.adelanto || 0,
+        descuento_otros: editEntryData.descuento_otros || 0,
+      })
+      toast.success('Liquidación recalculada con novedades')
+      setEditingEntry(null)
+      fetchRunDetail(editingEntry.runId)
+      fetchRuns()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      toast.error(msg || 'Error al recalcular')
+    } finally {
+      setEditLoading(false)
+    }
+  }
 
   const openAddEmployee = (runId: number) => {
     resetAdd({ employee_id: '', dias_trabajados: 30, horas_extra_habiles: 0, horas_extra_domingo: 0, bono_colacion: 0, bono_movilizacion: 0, bono_otros: 0, asignacion_familiar: 0, adelanto: 0, descuento_otros: 0 })
@@ -426,13 +474,24 @@ export default function Payroll() {
                             <td className="table-cell text-xs text-red-600">-{formatCLP(entry.impuesto_unico)}</td>
                             <td className="table-cell text-xs font-bold text-green-700">{formatCLP(entry.liquido_pagar)}</td>
                             <td className="table-cell text-xs">
-                              <button
-                                onClick={() => downloadLiquidacion(run.id, entry.id, entry.employee_id)}
-                                className="text-blue-600 hover:text-blue-800"
-                                title="Descargar liquidación"
-                              >
-                                <DocumentArrowDownIcon className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center gap-2">
+                                {isAdmin && run.status === 'calculated' && (
+                                  <button
+                                    onClick={() => openEditEntry(run.id, entry)}
+                                    className="text-orange-500 hover:text-orange-700 text-xs font-semibold"
+                                    title="Ingresar novedades"
+                                  >
+                                    Novedades
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => downloadLiquidacion(run.id, entry.id, entry.employee_id)}
+                                  className="text-blue-600 hover:text-blue-800"
+                                  title="Descargar liquidación"
+                                >
+                                  <DocumentArrowDownIcon className="w-4 h-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -455,6 +514,113 @@ export default function Payroll() {
           )
         })}
       </div>
+
+      {/* Novedades del mes Modal */}
+      {editingEntry && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="p-6 border-b flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-bold">Novedades del Mes</h2>
+                <p className="text-sm text-gray-500">Empleado #{editingEntry.entry.employee_id} — se recalculará la liquidación</p>
+              </div>
+              <button onClick={() => setEditingEntry(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div className="p-6 space-y-5">
+              {/* Días */}
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Días del período</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="label">Días del mes</label>
+                    <input type="number" className="input" value={editEntryData.dias_trabajados}
+                      onChange={e => setEditEntryData(d => ({ ...d, dias_trabajados: Number(e.target.value) }))} min={0} max={31} />
+                  </div>
+                  <div>
+                    <label className="label">Días licencia médica</label>
+                    <input type="number" className="input" value={editEntryData.dias_licencia}
+                      onChange={e => setEditEntryData(d => ({ ...d, dias_licencia: Number(e.target.value) }))} min={0} max={31} />
+                    <p className="text-[10px] text-gray-400 mt-1">No descuenta del sueldo</p>
+                  </div>
+                  <div>
+                    <label className="label">Días vacaciones</label>
+                    <input type="number" className="input" value={editEntryData.dias_vacaciones}
+                      onChange={e => setEditEntryData(d => ({ ...d, dias_vacaciones: Number(e.target.value) }))} min={0} max={31} />
+                    <p className="text-[10px] text-gray-400 mt-1">No descuenta del sueldo</p>
+                  </div>
+                </div>
+                <div className="mt-2 bg-blue-50 rounded-lg px-3 py-2 text-xs text-blue-700">
+                  Días efectivos a pagar: <strong>{Math.max(0, editEntryData.dias_trabajados - (editEntryData.dias_licencia || 0) - (editEntryData.dias_vacaciones || 0))}</strong>
+                </div>
+              </div>
+              {/* Horas extra */}
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Horas extra</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Hrs. extra hábiles</label>
+                    <input type="number" className="input" value={editEntryData.horas_extra_habiles}
+                      onChange={e => setEditEntryData(d => ({ ...d, horas_extra_habiles: Number(e.target.value) }))} min={0} />
+                  </div>
+                  <div>
+                    <label className="label">Hrs. extra domingo/festivo</label>
+                    <input type="number" className="input" value={editEntryData.horas_extra_domingo}
+                      onChange={e => setEditEntryData(d => ({ ...d, horas_extra_domingo: Number(e.target.value) }))} min={0} />
+                  </div>
+                </div>
+              </div>
+              {/* Bonos */}
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Bonos y otros haberes</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="label">Bono colación</label>
+                    <input type="number" className="input" value={editEntryData.bono_colacion}
+                      onChange={e => setEditEntryData(d => ({ ...d, bono_colacion: Number(e.target.value) }))} min={0} />
+                  </div>
+                  <div>
+                    <label className="label">Bono movilización</label>
+                    <input type="number" className="input" value={editEntryData.bono_movilizacion}
+                      onChange={e => setEditEntryData(d => ({ ...d, bono_movilizacion: Number(e.target.value) }))} min={0} />
+                  </div>
+                  <div>
+                    <label className="label">Otros bonos</label>
+                    <input type="number" className="input" value={editEntryData.bono_otros}
+                      onChange={e => setEditEntryData(d => ({ ...d, bono_otros: Number(e.target.value) }))} min={0} />
+                  </div>
+                  <div>
+                    <label className="label">Asignación familiar</label>
+                    <input type="number" className="input" value={editEntryData.asignacion_familiar}
+                      onChange={e => setEditEntryData(d => ({ ...d, asignacion_familiar: Number(e.target.value) }))} min={0} />
+                  </div>
+                </div>
+              </div>
+              {/* Descuentos */}
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Descuentos</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Adelanto de sueldo</label>
+                    <input type="number" className="input" value={editEntryData.adelanto}
+                      onChange={e => setEditEntryData(d => ({ ...d, adelanto: Number(e.target.value) }))} min={0} />
+                  </div>
+                  <div>
+                    <label className="label">Otros descuentos</label>
+                    <input type="number" className="input" value={editEntryData.descuento_otros}
+                      onChange={e => setEditEntryData(d => ({ ...d, descuento_otros: Number(e.target.value) }))} min={0} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button onClick={() => setEditingEntry(null)} className="btn-secondary">Cancelar</button>
+              <button onClick={saveEditEntry} disabled={editLoading} className="btn-primary">
+                {editLoading ? 'Recalculando...' : 'Recalcular Liquidación'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Employee to Run Modal */}
       {showAddEmployee && (
