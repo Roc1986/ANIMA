@@ -6,6 +6,22 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
+function formatRUT(raw: string): string {
+  if (!raw) return '—'
+  const clean = raw.replace(/[^0-9kK]/g, '').toUpperCase()
+  if (clean.length < 2) return raw
+  const body = clean.slice(0, -1)
+  const dv = clean.slice(-1)
+  return `${body.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}-${dv}`
+}
+
+function formatDateCL(iso: string): string {
+  if (!iso) return '—'
+  const parts = String(iso).split('-')
+  if (parts.length !== 3) return iso
+  return `${parts[2]}/${parts[1]}/${parts[0]}`
+}
+
 interface Employee {
   id: number
   rut: string
@@ -110,22 +126,22 @@ export default function EmployeeDetail() {
           <h2 className="font-semibold text-gray-800 mb-4">Información Personal</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
-              { label: 'RUT', key: 'rut', value: employee.rut, disabled: true },
+              { label: 'RUT', key: 'rut', value: formatRUT(employee.rut), disabled: true },
               { label: 'Nombres', key: 'first_name', value: employee.first_name },
               { label: 'Apellido Paterno', key: 'last_name', value: employee.last_name },
               { label: 'Apellido Materno', key: 'second_last_name', value: employee.second_last_name },
               { label: 'Email', key: 'email', value: employee.email, type: 'email' },
               { label: 'Teléfono', key: 'phone', value: employee.phone },
-              { label: 'Fecha Nacimiento', key: 'birth_date', value: employee.birth_date, type: 'date' },
+              { label: 'Fecha Nacimiento', key: 'birth_date', value: employee.birth_date, type: 'date', display: formatDateCL(employee.birth_date || '') },
               { label: 'Nacionalidad', key: 'nationality', value: employee.nationality },
               { label: 'Dirección', key: 'address', value: employee.address },
-            ].map(({ label, key, value, disabled, type }) => (
+            ].map(({ label, key, value, disabled, type, display }: { label: string; key: string; value?: string; disabled?: boolean; type?: string; display?: string }) => (
               <div key={key}>
                 <label className="label">{label}</label>
                 {editing && !disabled ? (
                   <input className="input" type={type || 'text'} defaultValue={value || ''} {...register(key)} />
                 ) : (
-                  <p className="text-sm text-gray-800 py-2">{value || '—'}</p>
+                  <p className="text-sm text-gray-800 py-2">{display ?? value ?? '—'}</p>
                 )}
               </div>
             ))}
@@ -148,7 +164,7 @@ export default function EmployeeDetail() {
               <label className="label">Fecha Ingreso</label>
               {editing
                 ? <input className="input" type="date" {...register('hire_date')} />
-                : <p className="text-sm text-gray-800 py-2">{employee.hire_date}</p>
+                : <p className="text-sm text-gray-800 py-2">{formatDateCL(employee.hire_date)}</p>
               }
             </div>
             <div>

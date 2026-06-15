@@ -23,6 +23,21 @@ interface Employee {
 
 const AFP_OPTIONS = ['Habitat', 'Provida', 'Capital', 'Cuprum', 'Planvital', 'Model', 'Uno']
 
+function formatRUT(raw: string): string {
+  const clean = raw.replace(/[^0-9kK]/g, '').toUpperCase()
+  if (clean.length < 2) return clean
+  const body = clean.slice(0, -1)
+  const dv = clean.slice(-1)
+  const bodyFormatted = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `${bodyFormatted}-${dv}`
+}
+
+function formatDateCL(iso: string): string {
+  if (!iso) return '—'
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
 export default function Employees() {
   const { isHR } = useAuth()
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -30,8 +45,16 @@ export default function Employees() {
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [rutDisplay, setRutDisplay] = useState('')
+  const [healthSystem, setHealthSystem] = useState('FONASA')
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm()
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm()
+
+  const handleRutChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatRUT(e.target.value)
+    setRutDisplay(formatted)
+    setValue('rut', formatted)
+  }
 
   const fetchEmployees = async () => {
     setLoading(true)
@@ -49,16 +72,18 @@ export default function Employees() {
 
   const onSubmit = async (data: Record<string, unknown>) => {
     setSubmitting(true)
-    // Convert numeric fields and remove empty strings
     const payload = Object.fromEntries(
       Object.entries(data).filter(([, v]) => v !== '' && v !== null && v !== undefined)
     )
     payload.base_salary = Number(payload.base_salary)
+    if (payload.isapre_monthly_amount) payload.isapre_monthly_amount = Number(payload.isapre_monthly_amount)
     try {
       await employeesApi.create(payload)
       toast.success('Empleado creado exitosamente')
       setShowModal(false)
       reset()
+      setRutDisplay('')
+      setHealthSystem('FONASA')
       fetchEmployees()
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } }
@@ -138,7 +163,7 @@ export default function Employees() {
                       </div>
                     </div>
                   </td>
-                  <td className="table-cell text-gray-500 font-mono text-xs">{emp.rut}</td>
+                  <td className="table-cell text-gray-500 font-mono text-xs">{formatRUT(emp.rut)}</td>
                   <td className="table-cell">
                     <p className="text-sm">{emp.position}</p>
                     {emp.department && <p className="text-xs text-gray-400">{emp.department}</p>}
@@ -148,7 +173,7 @@ export default function Employees() {
                     <p className="text-xs text-gray-400">{emp.health_system}</p>
                   </td>
                   <td className="table-cell font-medium">{formatCLP(Number(emp.base_salary))}</td>
-                  <td className="table-cell text-gray-500 text-xs">{String(emp.hire_date)}</td>
+                  <td className="table-cell text-gray-500 text-xs">{formatDateCL(String(emp.hire_date))}</td>
                   <td className="table-cell">
                     <span className={emp.is_active ? 'badge-green' : 'badge-red'}>
                       {emp.is_active ? 'Activo' : 'Inactivo'}
@@ -177,8 +202,14 @@ export default function Employees() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label">RUT *</label>
-                  <input className="input" placeholder="12.345.678-9"
-                    {...register('rut', { required: true })} />
+                  <input
+                    className={`input font-mono ${errors.rut ? 'border-red-400' : ''}`}
+                    placeholder="12.345.678-9"
+                    value={rutDisplay}
+                    onChange={handleRutChange}
+                  />
+                  <input type="hidden" {...register('rut', { required: true })} />
+                  {errors.rut && <p className="text-xs text-red-500 mt-1">RUT requerido</p>}
                 </div>
                 <div>
                   <label className="label">Nombres *</label>
@@ -225,11 +256,26 @@ export default function Employees() {
                 </div>
                 <div>
                   <label className="label">Sistema Salud *</label>
-                  <select className="input" {...register('health_system', { required: true })}>
+                  <select className="input" {...register('health_system', { required: true })}
+                    onChange={e => setHealthSystem(e.target.value)}>
                     <option value="FONASA">FONASA</option>
                     <option value="ISAPRE">ISAPRE</option>
                   </select>
                 </div>
+                {healthSystem === 'ISAPRE' && (
+                  <>
+                    <div>
+                      <label className="label">Nombre ISAPRE</label>
+                      <input className="input" placeholder="Cruz Blanca, Banmédica..." {...register('isapre_name')} />
+                    </div>
+                    <div>
+                      <label className="label">Monto plan mensual ($)</label>
+                      <input className="input" type="number" min={0} placeholder="Ej: 45000"
+                        {...register('isapre_monthly_amount')} />
+                      <p className="text-[10px] text-gray-400 mt-1">Se descuenta vs 7% imponible (el mayor)</p>
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="label">Banco</label>
                   <input className="input" placeholder="BancoEstado, Santander..." {...register('bank_name')} />
@@ -240,7 +286,7 @@ export default function Employees() {
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => { setShowModal(false); reset() }} className="btn-secondary">
+                <button type="button" onClick={() => { setShowModal(false); reset(); setRutDisplay(''); setHealthSystem('FONASA') }} className="btn-secondary">
                   Cancelar
                 </button>
                 <button type="submit" disabled={submitting} className="btn-primary">
