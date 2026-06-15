@@ -16,6 +16,7 @@ from schemas.payroll import (
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 from models.company import Company
+from models.document import Document, DocumentType
 from services.payroll_calculator import ChileanPayrollCalculator
 from services.pdf_generator import generate_liquidacion_pdf
 from fastapi.responses import FileResponse
@@ -433,4 +434,25 @@ def get_liquidacion_pdf(
     company = db.query(Company).filter(Company.id == run.company_id).first() if run else None
 
     pdf_path = generate_liquidacion_pdf(entry=entry, employee=emp, payroll_run=run, company=company)
+
+    # Auto-save to employee dossier
+    exists = db.query(Document).filter(
+        Document.employee_id == entry.employee_id,
+        Document.document_type == DocumentType.liquidacion,
+        Document.period_year == (run.period_year if run else None),
+        Document.period_month == (run.period_month if run else None),
+    ).first()
+    if not exists:
+        doc = Document(
+            employee_id=entry.employee_id,
+            document_type=DocumentType.liquidacion,
+            title=f"Liquidación {run.period_month:02d}/{run.period_year}" if run else "Liquidación",
+            file_path=pdf_path,
+            period_year=run.period_year if run else None,
+            period_month=run.period_month if run else None,
+            generated_by=current_user.id,
+        )
+        db.add(doc)
+        db.commit()
+
     return FileResponse(pdf_path, media_type="application/pdf", filename=os.path.basename(pdf_path))

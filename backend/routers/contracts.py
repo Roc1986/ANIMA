@@ -15,6 +15,7 @@ from models.contract import Contract, ContractType, WorkSchedule
 from models.employee import Employee
 from models.company import Company
 from models.user import User
+from models.document import Document, DocumentType
 from auth.jwt_handler import get_current_user, require_admin
 from services.pdf_generator import generate_contract_pdf
 
@@ -272,4 +273,23 @@ def download_contract_pdf(
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
     company = db.query(Company).first()
     filepath = generate_contract_pdf(contract, emp, company)
+
+    # Auto-save to employee dossier (only once per contract)
+    exists = db.query(Document).filter(
+        Document.employee_id == emp.id,
+        Document.document_type == DocumentType.contrato,
+        Document.notes == str(contract.id),
+    ).first()
+    if not exists:
+        doc = Document(
+            employee_id=emp.id,
+            document_type=DocumentType.contrato,
+            title=f"Contrato {contract.contract_type} — {str(contract.start_date)}",
+            file_path=filepath,
+            generated_by=current_user.id,
+            notes=str(contract.id),
+        )
+        db.add(doc)
+        db.commit()
+
     return FileResponse(filepath, media_type="application/pdf", filename=f"contrato_{emp.rut}_{contract.id}.pdf")

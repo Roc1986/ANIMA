@@ -110,6 +110,27 @@ export const documentsApi = {
   download: (id: number) =>
     api.get(`/api/documents/${id}/download`, { responseType: 'blob' }),
   delete: (id: number) => api.delete(`/api/documents/${id}`),
+  upload: (
+    employeeId: number,
+    file: File,
+    documentType: string,
+    title: string,
+    periodYear?: number,
+    periodMonth?: number,
+  ) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/api/documents/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      params: {
+        employee_id: employeeId,
+        document_type: documentType,
+        title,
+        ...(periodYear ? { period_year: periodYear } : {}),
+        ...(periodMonth ? { period_month: periodMonth } : {}),
+      },
+    })
+  },
 }
 
 // --- Reports ---

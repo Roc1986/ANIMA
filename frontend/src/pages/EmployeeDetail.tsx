@@ -1,10 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { employeesApi, formatCLP } from '../api/client'
+import { employeesApi, documentsApi, downloadBlob, formatCLP, MONTHS } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon, NoSymbolIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon, NoSymbolIcon, DocumentArrowDownIcon, TrashIcon, ArrowUpTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  liquidacion: 'Liquidación',
+  contrato: 'Contrato',
+  finiquito: 'Finiquito',
+  certificado_afp: 'Cert. AFP',
+  certificado_renta: 'Cert. Renta',
+  libro_remuneraciones: 'Libro Rem.',
+  previred: 'Previred',
+  dj1887: 'DJ 1887',
+  otro: 'Otro',
+}
+
+interface DocRecord {
+  id: number
+  document_type: string
+  title: string
+  period_year?: number
+  period_month?: number
+  created_at: string
+}
 
 function formatRUT(raw: string): string {
   if (!raw) return '—'
@@ -68,6 +89,15 @@ export default function EmployeeDetail() {
   const [showTerminate, setShowTerminate] = useState(false)
   const [terminateData, setTerminateData] = useState({ termination_date: '', termination_reason: '' })
   const [terminating, setTerminating] = useState(false)
+  const [activeTab, setActiveTab] = useState<'info' | 'expediente'>('info')
+  const [docs, setDocs] = useState<DocRecord[]>([])
+  const [docsLoading, setDocsLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadType, setUploadType] = useState('otro')
+  const [uploadTitle, setUploadTitle] = useState('')
+  const [uploadYear, setUploadYear] = useState<string>('')
+  const [uploadMonth, setUploadMonth] = useState<string>('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { register, handleSubmit, reset, watch } = useForm()
   const watchedHealthSystem = watch('health_system')
@@ -104,6 +134,65 @@ export default function EmployeeDetail() {
   }
 
   useEffect(() => { fetchEmployee() }, [id])
+
+  const fetchDocs = async () => {
+    setDocsLoading(true)
+    try {
+      const res = await documentsApi.list({ employee_id: id })
+      setDocs(res.data)
+    } catch {
+      toast.error('Error al cargar expediente')
+    } finally {
+      setDocsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'expediente') fetchDocs()
+  }, [activeTab, id])
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !uploadTitle.trim()) { toast.error('Ingrese un título para el documento'); return }
+    setUploading(true)
+    try {
+      await documentsApi.upload(
+        Number(id), file, uploadType, uploadTitle.trim(),
+        uploadYear ? Number(uploadYear) : undefined,
+        uploadMonth ? Number(uploadMonth) : undefined,
+      )
+      toast.success('Documento subido al expediente')
+      setUploadTitle('')
+      setUploadYear('')
+      setUploadMonth('')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      fetchDocs()
+    } catch {
+      toast.error('Error al subir documento')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDownloadDoc = async (doc: DocRecord) => {
+    try {
+      const res = await documentsApi.download(doc.id)
+      downloadBlob(res.data, `${doc.title}.pdf`)
+    } catch {
+      toast.error('Error al descargar documento')
+    }
+  }
+
+  const handleDeleteDoc = async (docId: number) => {
+    if (!confirm('¿Eliminar este documento del expediente?')) return
+    try {
+      await documentsApi.delete(docId)
+      toast.success('Documento eliminado')
+      setDocs(d => d.filter(x => x.id !== docId))
+    } catch {
+      toast.error('Error al eliminar documento')
+    }
+  }
 
   const onSave = async (data: unknown) => {
     setSaving(true)
@@ -154,7 +243,116 @@ export default function EmployeeDetail() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit(onSave)}>
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 border-b border-gray-200">
+        {(['info', 'expediente'] as const).map(tab => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === tab
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab === 'info' ? 'Información' : 'Expediente Digital'}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'expediente' && (
+        <div>
+          {/* Upload section */}
+          {isHR && (
+            <div className="card mb-4">
+              <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <ArrowUpTrayIcon className="w-5 h-5 text-indigo-500" />
+                Agregar documento
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <div>
+                  <label className="label">Tipo</label>
+                  <select className="input" value={uploadType} onChange={e => setUploadType(e.target.value)}>
+                    {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Título *</label>
+                  <input className="input" placeholder="Ej: Licencia médica junio" value={uploadTitle} onChange={e => setUploadTitle(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Año</label>
+                  <input type="number" className="input" placeholder="2026" value={uploadYear} onChange={e => setUploadYear(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Mes</label>
+                  <select className="input" value={uploadMonth} onChange={e => setUploadMonth(e.target.value)}>
+                    <option value="">— Sin mes —</option>
+                    {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.png"
+                  className="text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  onChange={handleUpload}
+                  disabled={uploading}
+                />
+                {uploading && <span className="text-sm text-gray-400">Subiendo...</span>}
+              </div>
+            </div>
+          )}
+
+          {/* Document list */}
+          <div className="card">
+            <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <DocumentTextIcon className="w-5 h-5 text-gray-400" />
+              Documentos ({docs.length})
+            </h2>
+            {docsLoading ? (
+              <p className="text-gray-400 text-sm">Cargando...</p>
+            ) : docs.length === 0 ? (
+              <p className="text-gray-400 text-sm">No hay documentos en el expediente.</p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {docs.map(doc => (
+                  <div key={doc.id} className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3">
+                      <DocumentTextIcon className="w-8 h-8 text-indigo-300 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{doc.title}</p>
+                        <p className="text-xs text-gray-400">
+                          {DOC_TYPE_LABELS[doc.document_type] || doc.document_type}
+                          {doc.period_month && doc.period_year ? ` · ${MONTHS[doc.period_month - 1]} ${doc.period_year}` : ''}
+                          {' · '}{new Date(doc.created_at).toLocaleDateString('es-CL')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => handleDownloadDoc(doc)} className="btn-secondary py-1 px-2 text-xs">
+                        <DocumentArrowDownIcon className="w-4 h-4" />
+                      </button>
+                      {isHR && (
+                        <button onClick={() => handleDeleteDoc(doc.id)} className="btn-secondary py-1 px-2 text-xs text-red-500 hover:bg-red-50">
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'info' && <form onSubmit={handleSubmit(onSave)}>
         {/* Personal Info */}
         <div className="card mb-4">
           <h2 className="font-semibold text-gray-800 mb-4">Información Personal</h2>
@@ -429,7 +627,7 @@ export default function EmployeeDetail() {
             </button>
           </div>
         )}
-      </form>
+      </form>}
     </div>
   )
 }

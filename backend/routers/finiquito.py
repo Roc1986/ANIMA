@@ -12,6 +12,7 @@ from models.company import Company
 from models.legal_params import LegalParameter
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
+from models.document import Document, DocumentType
 from services.pdf_generator import generate_finiquito_pdf
 
 router = APIRouter()
@@ -171,6 +172,18 @@ def generate_finiquito_pdf_endpoint(
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
     company = db.query(Company).first()
     filepath = generate_finiquito_pdf(data.calculation, emp, company)
+
+    # Auto-save to employee dossier
+    doc = Document(
+        employee_id=emp.id,
+        document_type=DocumentType.finiquito,
+        title=f"Finiquito {emp.full_name}",
+        file_path=filepath,
+        generated_by=current_user.id,
+    )
+    db.add(doc)
+    db.commit()
+
     return FileResponse(filepath, media_type="application/pdf", filename=f"finiquito_{emp.rut}.pdf")
 
 
