@@ -1,4 +1,5 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
   HomeIcon,
@@ -16,40 +17,123 @@ import {
   GlobeAltIcon,
   BuildingStorefrontIcon,
   CalculatorIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline'
 
-const hrNavItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
-  { to: '/employees', label: 'Empleados', icon: UsersIcon },
-  { to: '/payroll', label: 'Remuneraciones', icon: CurrencyDollarIcon },
-  { to: '/attendance', label: 'Asistencia', icon: ClockIcon },
-  { to: '/vacations', label: 'Vacaciones', icon: SunIcon },
-  { to: '/contracts', label: 'Contratos', icon: ClipboardDocumentListIcon },
-  { to: '/reports', label: 'Reportes', icon: DocumentTextIcon },
-  { to: '/warning-letters', label: 'Amonestaciones', icon: ExclamationTriangleIcon },
-  { to: '/finiquito', label: 'Finiquito', icon: DocumentCheckIcon },
-  { to: '/legal', label: 'IA Legal', icon: ScaleIcon },
-  { to: '/company-settings', label: 'Empresa', icon: BuildingOfficeIcon },
-  { to: '/accounting', label: 'Contabilidad', icon: CalculatorIcon },
+interface NavItem {
+  to: string
+  label: string
+  icon: React.ElementType
+}
+
+interface NavGroup {
+  label: string
+  icon: React.ElementType
+  items: NavItem[]
+}
+
+const hrNavGroups: NavGroup[] = [
+  {
+    label: 'Remuneraciones',
+    icon: CurrencyDollarIcon,
+    items: [
+      { to: '/payroll', label: 'Nóminas', icon: CurrencyDollarIcon },
+      { to: '/attendance', label: 'Asistencia', icon: ClockIcon },
+    ],
+  },
+  {
+    label: 'Control de Personal',
+    icon: UsersIcon,
+    items: [
+      { to: '/employees', label: 'Empleados', icon: UsersIcon },
+      { to: '/contracts', label: 'Contratos', icon: ClipboardDocumentListIcon },
+      { to: '/vacations', label: 'Vacaciones', icon: SunIcon },
+      { to: '/warning-letters', label: 'Amonestaciones', icon: ExclamationTriangleIcon },
+      { to: '/finiquito', label: 'Finiquito', icon: DocumentCheckIcon },
+    ],
+  },
+  {
+    label: 'Contabilidad',
+    icon: CalculatorIcon,
+    items: [
+      { to: '/accounting', label: 'Asientos Contables', icon: CalculatorIcon },
+    ],
+  },
+  {
+    label: 'Reportes',
+    icon: DocumentTextIcon,
+    items: [
+      { to: '/reports', label: 'Reportes', icon: DocumentTextIcon },
+    ],
+  },
+  {
+    label: 'Configuración',
+    icon: BuildingOfficeIcon,
+    items: [
+      { to: '/legal', label: 'IA Legal', icon: ScaleIcon },
+      { to: '/company-settings', label: 'Empresa', icon: BuildingOfficeIcon },
+    ],
+  },
 ]
 
-const superNavItems = [
+const superNavItems: NavItem[] = [
   { to: '/super/dashboard', label: 'Dashboard Global', icon: GlobeAltIcon },
   { to: '/super/companies', label: 'Empresas', icon: BuildingStorefrontIcon },
   { to: '/dashboard', label: 'Dashboard Empresa', icon: HomeIcon },
   { to: '/legal', label: 'IA Legal', icon: ScaleIcon },
 ]
 
+function NavGroup({ group, defaultOpen }: { group: NavGroup; defaultOpen: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
+  const location = useLocation()
+  const isGroupActive = group.items.some(i => location.pathname.startsWith(i.to))
+  const Icon = group.icon
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+          isGroupActive ? 'text-white' : 'text-blue-300 hover:text-white hover:bg-blue-800'
+        }`}
+      >
+        <Icon className="w-5 h-5 shrink-0" />
+        <span className="flex-1 text-left">{group.label}</span>
+        <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="ml-4 mt-1 space-y-1 border-l border-blue-800 pl-3">
+          {group.items.map(({ to, label, icon: ItemIcon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-white text-anima-blue'
+                    : 'text-blue-200 hover:bg-blue-800 hover:text-white'
+                }`
+              }
+            >
+              <ItemIcon className="w-4 h-4 shrink-0" />
+              {label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Sidebar() {
   const { user, logout, isSuperAdmin, companyName } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleLogout = () => {
     logout()
-    navigate('/login')
+    navigate('/')
   }
-
-  const navItems = isSuperAdmin() ? superNavItems : hrNavItems
 
   return (
     <aside className="w-64 h-screen sticky top-0 bg-anima-blue flex flex-col">
@@ -72,22 +156,43 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-white text-anima-blue'
-                  : 'text-blue-100 hover:bg-blue-800 hover:text-white'
-              }`
-            }
-          >
-            <Icon className="w-5 h-5 shrink-0" />
-            {label}
-          </NavLink>
-        ))}
+        {/* Dashboard siempre visible */}
+        <NavLink
+          to="/dashboard"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              isActive ? 'bg-white text-anima-blue' : 'text-blue-100 hover:bg-blue-800 hover:text-white'
+            }`
+          }
+        >
+          <HomeIcon className="w-5 h-5 shrink-0" />
+          Dashboard
+        </NavLink>
+
+        {isSuperAdmin() ? (
+          superNavItems.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  isActive ? 'bg-white text-anima-blue' : 'text-blue-100 hover:bg-blue-800 hover:text-white'
+                }`
+              }
+            >
+              <Icon className="w-5 h-5 shrink-0" />
+              {label}
+            </NavLink>
+          ))
+        ) : (
+          hrNavGroups.map(group => (
+            <NavGroup
+              key={group.label}
+              group={group}
+              defaultOpen={group.items.some(i => location.pathname.startsWith(i.to))}
+            />
+          ))
+        )}
       </nav>
 
       {/* User info */}

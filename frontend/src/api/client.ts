@@ -221,8 +221,8 @@ export function downloadBlob(blob: Blob, filename: string) {
 
 // Format CLP
 export function formatCLP(value: number | string): string {
-  const n = typeof value === 'string' ? parseFloat(value) : value
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n)
+  const n = Math.round(typeof value === 'string' ? parseFloat(value) : value)
+  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
 }
 
 export const MONTHS = [
