@@ -31,6 +31,13 @@ interface Employee {
   is_active: boolean
   termination_date?: string
   termination_reason?: string
+  bono_colacion?: number
+  bono_movilizacion?: number
+  pension_alimenticia_tipo?: string
+  pension_alimenticia_raw?: number
+  descuento_ccaf?: number
+  descuento_voluntario?: number
+  descuento_vivienda?: number
 }
 
 export default function EmployeeDetail() {
@@ -220,6 +227,97 @@ export default function EmployeeDetail() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Haberes y Descuentos Permanentes */}
+        <div className="card mb-4">
+          <h2 className="font-semibold text-gray-800 mb-1">Haberes y Descuentos Permanentes</h2>
+          <p className="text-xs text-gray-400 mb-4">Se cargan automáticamente en cada cálculo de nómina</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <label className="label">Bono Colación mensual</label>
+              {editing ? (
+                <input className="input" type="number" min={0} {...register('bono_colacion')} />
+              ) : (
+                <p className="text-sm text-gray-800 py-2">{employee.bono_colacion ? formatCLP(employee.bono_colacion) : '—'}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Bono Movilización mensual</label>
+              {editing ? (
+                <input className="input" type="number" min={0} {...register('bono_movilizacion')} />
+              ) : (
+                <p className="text-sm text-gray-800 py-2">{employee.bono_movilizacion ? formatCLP(employee.bono_movilizacion) : '—'}</p>
+              )}
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-3">Retención Judicial — Pensión Alimenticia</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label className="label">Tipo de orden judicial</label>
+                {editing ? (
+                  <select className="input" {...register('pension_alimenticia_tipo')}>
+                    <option value="">Sin retención</option>
+                    <option value="pesos">Monto fijo en pesos</option>
+                    <option value="utm">UTM del mes (Ley 21.484)</option>
+                    <option value="porcentaje_sueldo">% de la remuneración total</option>
+                    <option value="porcentaje_imm">% del sueldo mínimo (IMM)</option>
+                  </select>
+                ) : (
+                  <p className="text-sm text-gray-800 py-2">
+                    {employee.pension_alimenticia_tipo === 'utm' ? 'UTM del mes' :
+                     employee.pension_alimenticia_tipo === 'porcentaje_sueldo' ? '% Remuneración' :
+                     employee.pension_alimenticia_tipo === 'porcentaje_imm' ? '% IMM' :
+                     employee.pension_alimenticia_tipo === 'pesos' ? 'Monto fijo $' : '—'}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="label">
+                  {employee.pension_alimenticia_tipo === 'utm' ? 'Cantidad UTM' :
+                   employee.pension_alimenticia_tipo?.includes('porcentaje') ? 'Porcentaje (%)' : 'Monto ($)'}
+                </label>
+                {editing ? (
+                  <input className="input" type="number" min={0} step={0.01} {...register('pension_alimenticia_raw')} />
+                ) : (
+                  <p className="text-sm text-gray-800 py-2">{employee.pension_alimenticia_raw ? Number(employee.pension_alimenticia_raw).toLocaleString('es-CL') : '—'}</p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Descuentos Fijos Mensuales — Art. 58 CT</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label className="label">Cuota CCAF mensual</label>
+                {editing ? (
+                  <input className="input" type="number" min={0} {...register('descuento_ccaf')} />
+                ) : (
+                  <p className="text-sm text-gray-800 py-2">{employee.descuento_ccaf ? formatCLP(employee.descuento_ccaf) : '—'}</p>
+                )}
+                <p className="text-[10px] text-gray-400 mt-1">Crédito social — según cartola CCAF</p>
+              </div>
+              <div>
+                <label className="label">Descuentos voluntarios mensuales</label>
+                {editing ? (
+                  <input className="input" type="number" min={0} {...register('descuento_voluntario')} />
+                ) : (
+                  <p className="text-sm text-gray-800 py-2">{employee.descuento_voluntario ? formatCLP(employee.descuento_voluntario) : '—'}</p>
+                )}
+                <p className="text-[10px] text-gray-400 mt-1">Seguros, sindicato, convenios (tope 15%)</p>
+              </div>
+              <div>
+                <label className="label">Descuento vivienda mensual</label>
+                {editing ? (
+                  <input className="input" type="number" min={0} {...register('descuento_vivienda')} />
+                ) : (
+                  <p className="text-sm text-gray-800 py-2">{employee.descuento_vivienda ? formatCLP(employee.descuento_vivienda) : '—'}</p>
+                )}
+                <p className="text-[10px] text-gray-400 mt-1">Dividendo hipotecario (tope 30%)</p>
+              </div>
+            </div>
           </div>
         </div>
 

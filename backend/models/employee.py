@@ -59,6 +59,17 @@ class Employee(Base):
     isapre_name = Column(String(100))
     isapre_monthly_amount = Column(Numeric(12, 2), default=0)
 
+    # Haberes permanentes (se cargan automáticamente en cada nómina)
+    bono_colacion = Column(Numeric(12, 2), default=0)
+    bono_movilizacion = Column(Numeric(12, 2), default=0)
+
+    # Descuentos permanentes (se cargan automáticamente en cada nómina)
+    pension_alimenticia_tipo = Column(String(30), nullable=True)   # pesos, utm, porcentaje_sueldo, porcentaje_imm
+    pension_alimenticia_raw = Column(Numeric(12, 4), default=0)
+    descuento_ccaf = Column(Numeric(12, 2), default=0)
+    descuento_voluntario = Column(Numeric(12, 2), default=0)
+    descuento_vivienda = Column(Numeric(12, 2), default=0)
+
     # Laboral
     hire_date = Column(Date, nullable=False)
     position = Column(String(150), nullable=False)

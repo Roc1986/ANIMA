@@ -148,11 +148,6 @@ export default function Payroll() {
       asignacion_familiar: 0,
       adelanto: 0,
       descuento_otros: 0,
-      pension_alimenticia_tipo: 'pesos',
-      pension_alimenticia_raw: 0,
-      descuento_voluntario: 0,
-      descuento_vivienda: 0,
-      descuento_ccaf: 0,
     })
   }
 
@@ -177,11 +172,6 @@ export default function Payroll() {
         asignacion_familiar: Number(editEntryData.asignacion_familiar) || 0,
         adelanto: Number(editEntryData.adelanto) || 0,
         descuento_otros: Number(editEntryData.descuento_otros) || 0,
-        pension_alimenticia_tipo: String(editEntryData.pension_alimenticia_tipo || 'pesos'),
-        pension_alimenticia_raw: Number(editEntryData.pension_alimenticia_raw) || 0,
-        descuento_voluntario: Number(editEntryData.descuento_voluntario) || 0,
-        descuento_vivienda: Number(editEntryData.descuento_vivienda) || 0,
-        descuento_ccaf: Number(editEntryData.descuento_ccaf) || 0,
       })
       const warnings: string[] = res.data?.data?.warnings || []
       if (warnings.length > 0) {
@@ -618,56 +608,10 @@ export default function Payroll() {
                   </div>
                 </div>
               </div>
-              {/* Pensión alimenticia */}
+              {/* Descuentos del mes */}
               <div>
-                <p className="text-xs font-bold text-red-600 uppercase tracking-wide mb-3">Retención Judicial — Pensión Alimenticia</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Descuentos del mes</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="label">Tipo de orden judicial</label>
-                    <select className="input" value={String(editEntryData.pension_alimenticia_tipo)}
-                      onChange={e => setEditEntryData(d => ({ ...d, pension_alimenticia_tipo: e.target.value }))}>
-                      <option value="pesos">Monto fijo en pesos</option>
-                      <option value="utm">UTM del mes (Ley 21.484)</option>
-                      <option value="porcentaje_sueldo">% de la remuneración total</option>
-                      <option value="porcentaje_imm">% del sueldo mínimo (IMM)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="label">
-                      {editEntryData.pension_alimenticia_tipo === 'utm' ? 'Cantidad en UTM' :
-                       editEntryData.pension_alimenticia_tipo === 'porcentaje_sueldo' ? 'Porcentaje (%)' :
-                       editEntryData.pension_alimenticia_tipo === 'porcentaje_imm' ? 'Porcentaje (%)' : 'Monto ($)'}
-                    </label>
-                    <input type="number" className="input" value={Number(editEntryData.pension_alimenticia_raw)}
-                      onChange={e => setEditEntryData(d => ({ ...d, pension_alimenticia_raw: Number(e.target.value) }))} min={0} step={0.01} />
-                    <p className="text-[10px] text-red-400 mt-1">Tope legal: 50% de la remuneración total</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Descuentos Art. 58 */}
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Descuentos Voluntarios — Art. 58 CT</p>
-                <p className="text-[10px] text-gray-400 mb-3">El sistema validará que no superen los topes legales</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="label">Descuentos voluntarios (tope 15%)</label>
-                    <input type="number" className="input" value={Number(editEntryData.descuento_voluntario)}
-                      onChange={e => setEditEntryData(d => ({ ...d, descuento_voluntario: Number(e.target.value) }))} min={0} />
-                    <p className="text-[10px] text-gray-400 mt-1">Seguros, sindicato, préstamos empresa, convenios</p>
-                  </div>
-                  <div>
-                    <label className="label">Descuento vivienda (tope 30%)</label>
-                    <input type="number" className="input" value={Number(editEntryData.descuento_vivienda)}
-                      onChange={e => setEditEntryData(d => ({ ...d, descuento_vivienda: Number(e.target.value) }))} min={0} />
-                    <p className="text-[10px] text-gray-400 mt-1">Dividendo hipotecario, ahorro habitacional</p>
-                  </div>
-                  <div>
-                    <label className="label">Cuota CCAF (crédito social)</label>
-                    <input type="number" className="input" value={Number(editEntryData.descuento_ccaf)}
-                      onChange={e => setEditEntryData(d => ({ ...d, descuento_ccaf: Number(e.target.value) }))} min={0} />
-                    <p className="text-[10px] text-gray-400 mt-1">Según cartola mensual de la Caja</p>
-                  </div>
                   <div>
                     <label className="label">Adelanto de sueldo</label>
                     <input type="number" className="input" value={Number(editEntryData.adelanto)}

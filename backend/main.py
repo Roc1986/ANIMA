@@ -35,6 +35,13 @@ def run_column_migrations(eng):
         "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS descuento_ccaf NUMERIC(12,2) DEFAULT 0",
         "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS previred_movement_code VARCHAR(5) DEFAULT '0'",
         "ALTER TABLE payroll_entries ADD COLUMN IF NOT EXISTS warnings JSON",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS bono_colacion NUMERIC(12,2) DEFAULT 0",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS bono_movilizacion NUMERIC(12,2) DEFAULT 0",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS pension_alimenticia_tipo VARCHAR(30)",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS pension_alimenticia_raw NUMERIC(12,4) DEFAULT 0",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS descuento_ccaf NUMERIC(12,2) DEFAULT 0",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS descuento_voluntario NUMERIC(12,2) DEFAULT 0",
+        "ALTER TABLE employees ADD COLUMN IF NOT EXISTS descuento_vivienda NUMERIC(12,2) DEFAULT 0",
     ]
     with eng.connect() as conn:
         for sql in migrations:
