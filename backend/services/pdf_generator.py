@@ -50,6 +50,36 @@ def _fmt_clp(value) -> str:
         return str(value)
 
 
+def _fmt_rut(rut: str) -> str:
+    """Format RUT as 12.345.678-9."""
+    if not rut:
+        return rut
+    clean = rut.replace(".", "").replace("-", "").upper()
+    if len(clean) < 2:
+        return rut
+    body = clean[:-1]
+    dv = clean[-1]
+    formatted = ""
+    for i, ch in enumerate(reversed(body)):
+        if i > 0 and i % 3 == 0:
+            formatted = "." + formatted
+        formatted = ch + formatted
+    return f"{formatted}-{dv}"
+
+
+def _fmt_date_cl(iso_date: str) -> str:
+    """Format ISO date YYYY-MM-DD as DD/MM/YYYY."""
+    if not iso_date:
+        return iso_date
+    try:
+        parts = str(iso_date).split("-")
+        if len(parts) == 3:
+            return f"{parts[2]}/{parts[1]}/{parts[0]}"
+    except Exception:
+        pass
+    return str(iso_date)
+
+
 def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
     """Generate a complete liquidación de sueldo PDF."""
     filename = f"liquidacion_{employee.rut}_{payroll_run.period_year}_{payroll_run.period_month:02d}_{uuid.uuid4().hex[:8]}.pdf"
@@ -544,7 +574,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     intro = (
         f"En {city}, a {term_date_str}, entre <b>{company_name}</b>, RUT {company_rut}, "
         f'domiciliada en {company_address} (en adelante "la Empresa"), representada para estos efectos por su empleador, '
-        f"y el(la) trabajador(a) <b>{data.get('employee_name', '')}</b>, RUT <b>{data.get('employee_rut', '')}</b>, "
+        f"y el(la) trabajador(a) <b>{data.get('employee_name', '')}</b>, RUT <b>{_fmt_rut(data.get('employee_rut', ''))}</b>, "
         f'domiciliado(a) en Chile (en adelante "el(la) Trabajador(a)"), se ha convenido el siguiente finiquito:'
     )
     elements.append(Paragraph(intro, body_style))
@@ -553,10 +583,10 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     # Work details
     emp_data = [
         ["Trabajador(a):", data.get("employee_name", "")],
-        ["RUT:", data.get("employee_rut", "")],
+        ["RUT:", _fmt_rut(data.get("employee_rut", ""))],
         ["Cargo:", data.get("employee_position", "")],
-        ["Fecha de Ingreso:", data.get("hire_date", "")],
-        ["Fecha de Término:", data.get("termination_date", "")],
+        ["Fecha de Ingreso:", _fmt_date_cl(data.get("hire_date", ""))],
+        ["Fecha de Término:", _fmt_date_cl(data.get("termination_date", ""))],
         ["Causal de Término:", data.get("termination_cause", "")],
         ["Años de servicio:", f"{data.get('years_of_service', 0):.2f} años ({data.get('months_of_service', 0)} meses)"],
         ["Última remuneración:", _fmt_clp(data.get("last_salary", 0))],
@@ -707,7 +737,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         ["_______________________", "_______________________", "_______________________", "_______________________"],
         ["Empleador", "Trabajador(a)", "Testigo", "Delegado Sindical (si aplica)"],
         [company_name, data.get("employee_name", ""), "", ""],
-        [f"RUT: {company_rut}", f"RUT: {data.get('employee_rut', '')}", "RUT:", ""],
+        [f"RUT: {company_rut}", f"RUT: {_fmt_rut(data.get('employee_rut', ''))}", "RUT:", ""],
     ]
     sig_table = Table(sig_data, colWidths=[4*cm, 4*cm, 4*cm, 4.5*cm])
     sig_table.setStyle(TableStyle([

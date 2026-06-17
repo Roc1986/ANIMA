@@ -170,7 +170,7 @@ def generate_finiquito_pdf_endpoint(
     emp = db.query(Employee).filter(Employee.id == data.employee_id).first()
     if not emp:
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
-    company = db.query(Company).first()
+    company = db.query(Company).filter(Company.id == emp.company_id).first() if emp.company_id else db.query(Company).first()
     filepath = generate_finiquito_pdf(data.calculation, emp, company)
 
     # Auto-save to employee dossier
