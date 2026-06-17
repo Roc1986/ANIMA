@@ -4,6 +4,22 @@ import toast from 'react-hot-toast'
 import { ArrowDownTrayIcon, CalculatorIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import { api, finiquitoApi, employeesApi, formatCLP, downloadBlob } from '../api/client'
 
+function formatRUT(raw: string): string {
+  if (!raw) return '—'
+  const clean = raw.replace(/[^0-9kK]/g, '').toUpperCase()
+  if (clean.length < 2) return raw
+  const body = clean.slice(0, -1)
+  const dv = clean.slice(-1)
+  return `${body.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}-${dv}`
+}
+
+function formatDateCL(iso: string): string {
+  if (!iso) return '—'
+  const parts = String(iso).split('-')
+  if (parts.length !== 3) return iso
+  return `${parts[2]}/${parts[1]}/${parts[0]}`
+}
+
 interface Employee {
   id: number
   rut: string
@@ -83,7 +99,7 @@ export default function Finiquito() {
       const emp = employees.find((e) => e.id === Number(watchedEmployee))
       if (emp) {
         setSelectedEmp(emp)
-        setValue('last_salary', emp.base_salary)
+        setValue('last_salary', Math.round(emp.base_salary))
       }
     }
   }, [watchedEmployee, employees, setValue])
@@ -162,7 +178,7 @@ export default function Finiquito() {
                 <option value="">Seleccionar empleado...</option>
                 {employees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} — {emp.rut} — Ingreso: {emp.hire_date}
+                    {emp.first_name} {emp.last_name} — {formatRUT(emp.rut)} — Ingreso: {formatDateCL(emp.hire_date)}
                   </option>
                 ))}
               </select>
@@ -284,7 +300,7 @@ export default function Finiquito() {
             </div>
             <div>
               <p className="text-gray-500">RUT</p>
-              <p className="font-semibold">{result.employee_rut}</p>
+              <p className="font-semibold">{formatRUT(result.employee_rut)}</p>
             </div>
             <div>
               <p className="text-gray-500">Antigüedad</p>
