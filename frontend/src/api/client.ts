@@ -233,6 +233,14 @@ export const accountingApi = {
     api.post(`/api/accounting/journal/pago-cotizaciones/${runId}`),
 }
 
+export const ufValuesApi = {
+  list: () => api.get('/api/uf-values/'),
+  forDate: (date: string) => api.get('/api/uf-values/for-date', { params: { query_date: date } }),
+  create: (data: { date: string; value: number; source?: string }) => api.post('/api/uf-values/', data),
+  delete: (id: number) => api.delete(`/api/uf-values/${id}`),
+  seed: () => api.post('/api/uf-values/seed'),
+}
+
 // Helper to download blob
 export function downloadBlob(blob: Blob, filename: string) {
   const url = window.URL.createObjectURL(blob)

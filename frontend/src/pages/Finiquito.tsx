@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowDownTrayIcon, CalculatorIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
-import { api, finiquitoApi, employeesApi, vacationsApi, contractsApi, payrollApi, formatCLP, downloadBlob } from '../api/client'
+import { api, finiquitoApi, employeesApi, vacationsApi, contractsApi, payrollApi, superAdminApi, formatCLP, downloadBlob } from '../api/client'
 
 function formatRUT(raw: string): string {
   if (!raw) return '—'
@@ -70,6 +70,22 @@ interface FiniquitoResult {
   }
 }
 
+function calcGratificacionProporcional(lastSalary: number, terminationDateISO: string, hireDateISO: string, imm: number): number {
+  const termDate = new Date(terminationDateISO)
+  const hireDate = new Date(hireDateISO)
+  const termYear = termDate.getFullYear()
+  const termMonth = termDate.getMonth() + 1 // 1-12
+
+  // Start of period: Jan 1 of termination year, or hire date if hired this year
+  const startYear = hireDate.getFullYear() === termYear ? hireDate.getMonth() + 1 : 1
+  const monthsInYear = termMonth - startYear + 1
+
+  const annualSalary = lastSalary * 12
+  const gratiMax = 4.75 * imm
+  const gratiBruta = Math.min(annualSalary * 0.25, gratiMax)
+  return Math.round(gratiBruta * monthsInYear / 12)
+}
+
 const TERMINATION_CAUSES = [
   { value: 'Art. 159 N°1', label: 'Art. 159 N°1 — Mutuo acuerdo de las partes' },
   { value: 'Art. 159 N°2', label: 'Art. 159 N°2 — Renuncia del trabajador' },
@@ -95,6 +111,7 @@ export default function Finiquito() {
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null)
   const [showGratificacion, setShowGratificacion] = useState(false)
   const [terminationDateDisplay, setTerminationDateDisplay] = useState('')
+  const [imm, setImm] = useState(510114)
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm()
 
@@ -103,6 +120,12 @@ export default function Finiquito() {
 
   useEffect(() => {
     employeesApi.list({ is_active: true }).then((res) => setEmployees(res.data)).catch(() => {})
+    // Fetch IMM from global params
+    superAdminApi.listGlobalParams().then(res => {
+      const params = res.data
+      const immParam = params.find((p: { key: string; value: number }) => p.key === 'imm_value' || p.key === 'IMM')
+      if (immParam) setImm(Number(immParam.value))
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -169,6 +192,20 @@ export default function Finiquito() {
       }
     }).catch(() => {})
   }, [terminationDateDisplay, setValue])
+
+  // Auto-calculate gratificación proporcional when termination date and employee are set
+  useEffect(() => {
+    if (!terminationDateDisplay || !showGratificacion || !selectedEmp) return
+    const isoDate = parseDateCL(terminationDateDisplay)
+    if (!isoDate) return
+    const termDate = new Date(isoDate)
+    if (isNaN(termDate.getTime())) return
+    const lastSalary = Math.round(selectedEmp.base_salary)
+    const calculated = calcGratificacionProporcional(lastSalary, isoDate, selectedEmp.hire_date, imm)
+    if (calculated > 0) {
+      setValue('pending_gratificacion', calculated)
+    }
+  }, [terminationDateDisplay, showGratificacion, selectedEmp, imm, setValue])
 
   const onCalculate = async (data: Record<string, unknown>) => {
     setCalculating(true)
@@ -345,7 +382,11 @@ export default function Finiquito() {
                   className="input-field"
                   {...register('pending_gratificacion', { valueAsNumber: true })}
                 />
-                <p className="text-xs text-gray-400 mt-1">Solo para gratificación anual no pagada en el año de término</p>
+                {selectedEmp && terminationDateDisplay ? (
+                  <p className="text-xs text-indigo-500 mt-1">Auto-calculado: gratificación legal proporcional</p>
+                ) : (
+                  <p className="text-xs text-gray-400 mt-1">Solo para gratificación anual no pagada en el año de término</p>
+                )}
               </div>
             )}
 

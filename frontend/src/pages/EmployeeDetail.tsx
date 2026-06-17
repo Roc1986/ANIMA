@@ -59,6 +59,7 @@ interface Employee {
   health_system: string
   isapre_name?: string
   isapre_monthly_amount?: number
+  isapre_amount_type?: string
   hire_date: string
   position: string
   department?: string
@@ -455,11 +456,30 @@ export default function EmployeeDetail() {
                   )}
                 </div>
                 <div>
-                  <label className="label">Monto mensual ISAPRE ($)</label>
+                  <label className="label">Tipo monto ISAPRE</label>
                   {editing ? (
-                    <input type="number" className="input" placeholder="0" {...register('isapre_monthly_amount')} />
+                    <select className="input" {...register('isapre_amount_type')}>
+                      <option value="pesos">Pesos ($)</option>
+                      <option value="uf">UF</option>
+                    </select>
                   ) : (
-                    <p className="text-sm text-gray-800 py-2">{employee.isapre_monthly_amount ? formatCLP(employee.isapre_monthly_amount) : '—'}</p>
+                    <p className="text-sm text-gray-800 py-2">{employee.isapre_amount_type === 'uf' ? 'UF' : 'Pesos ($)'}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="label">
+                    {employee.isapre_amount_type === 'uf' ? 'Monto mensual ISAPRE (UF)' : 'Monto mensual ISAPRE ($)'}
+                  </label>
+                  {editing ? (
+                    <input type="number" className="input" placeholder="0" step={employee.isapre_amount_type === 'uf' ? '0.01' : '1'} {...register('isapre_monthly_amount')} />
+                  ) : (
+                    <p className="text-sm text-gray-800 py-2">
+                      {employee.isapre_monthly_amount
+                        ? (employee.isapre_amount_type === 'uf'
+                            ? `UF ${Number(employee.isapre_monthly_amount).toLocaleString('es-CL', { minimumFractionDigits: 2 })}`
+                            : formatCLP(employee.isapre_monthly_amount))
+                        : '—'}
+                    </p>
                   )}
                 </div>
               </>

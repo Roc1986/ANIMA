@@ -58,6 +58,7 @@ class Employee(Base):
     health_system = Column(Enum(HealthSystem), nullable=False)
     isapre_name = Column(String(100))
     isapre_monthly_amount = Column(Numeric(12, 2), default=0)
+    isapre_amount_type = Column(String(10), default="pesos")  # "pesos" or "uf"
 
     # Haberes permanentes (se cargan automáticamente en cada nómina)
     bono_colacion = Column(Numeric(12, 2), default=0)

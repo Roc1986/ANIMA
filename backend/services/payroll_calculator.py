@@ -287,7 +287,12 @@ class ChileanPayrollCalculator:
         descuento_afp = base_afp * afp_rate
 
         # Salud: 7% sobre base con tope, o plan ISAPRE (el mayor)
-        isapre_amount = float(employee.isapre_monthly_amount or 0)
+        isapre_amount_raw = float(employee.isapre_monthly_amount or 0)
+        isapre_amount_type = getattr(employee, 'isapre_amount_type', 'pesos') or 'pesos'
+        if isapre_amount_type == "uf":
+            isapre_amount = isapre_amount_raw * self.uf_value
+        else:
+            isapre_amount = isapre_amount_raw
         if health_system == "ISAPRE" and isapre_amount > 0:
             descuento_salud = max(base_salud * self.tasa_salud, isapre_amount)
         else:

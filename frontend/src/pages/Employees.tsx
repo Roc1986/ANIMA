@@ -17,6 +17,7 @@ interface Employee {
   base_salary: number
   afp: string
   health_system: string
+  isapre_amount_type?: string
   hire_date: string
   is_active: boolean
 }
@@ -47,6 +48,7 @@ export default function Employees() {
   const [submitting, setSubmitting] = useState(false)
   const [rutDisplay, setRutDisplay] = useState('')
   const [healthSystem, setHealthSystem] = useState('FONASA')
+  const [isapreAmountType, setIsapreAmountType] = useState('pesos')
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm()
 
@@ -84,6 +86,7 @@ export default function Employees() {
       reset()
       setRutDisplay('')
       setHealthSystem('FONASA')
+      setIsapreAmountType('pesos')
       fetchEmployees()
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } }
@@ -269,8 +272,18 @@ export default function Employees() {
                       <input className="input" placeholder="Cruz Blanca, Banmédica..." {...register('isapre_name')} />
                     </div>
                     <div>
-                      <label className="label">Monto plan mensual ($)</label>
-                      <input className="input" type="number" min={0} placeholder="Ej: 45000"
+                      <label className="label">Tipo monto ISAPRE</label>
+                      <select className="input" {...register('isapre_amount_type')}
+                        onChange={e => setIsapreAmountType(e.target.value)}>
+                        <option value="pesos">Pesos ($)</option>
+                        <option value="uf">UF</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Monto plan mensual ({isapreAmountType === 'uf' ? 'UF' : '$'})</label>
+                      <input className="input" type="number" min={0}
+                        placeholder={isapreAmountType === 'uf' ? 'Ej: 1.5' : 'Ej: 45000'}
+                        step={isapreAmountType === 'uf' ? '0.01' : '1'}
                         {...register('isapre_monthly_amount')} />
                       <p className="text-[10px] text-gray-400 mt-1">Se descuenta vs 7% imponible (el mayor)</p>
                     </div>
@@ -286,7 +299,7 @@ export default function Employees() {
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => { setShowModal(false); reset(); setRutDisplay(''); setHealthSystem('FONASA') }} className="btn-secondary">
+                <button type="button" onClick={() => { setShowModal(false); reset(); setRutDisplay(''); setHealthSystem('FONASA'); setIsapreAmountType('pesos') }} className="btn-secondary">
                   Cancelar
                 </button>
                 <button type="submit" disabled={submitting} className="btn-primary">
