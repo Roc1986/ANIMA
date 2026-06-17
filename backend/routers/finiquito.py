@@ -18,6 +18,21 @@ from services.pdf_generator import generate_finiquito_pdf
 router = APIRouter()
 
 
+@router.get("/legal-params")
+def get_legal_params_public(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns basic legal parameters (IMM, UF, UTM) for any authenticated user."""
+    keys = ["imm_value", "uf_value", "utm_value"]
+    params = db.query(LegalParameter).filter(
+        LegalParameter.key.in_(keys),
+        LegalParameter.company_id == None,
+        LegalParameter.is_active == True,
+    ).all()
+    return {p.key: float(p.value) for p in params}
+
+
 class FiniquitoRequest(BaseModel):
     employee_id: int
     termination_date: date

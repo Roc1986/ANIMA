@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowDownTrayIcon, CalculatorIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
-import { api, finiquitoApi, employeesApi, vacationsApi, contractsApi, payrollApi, superAdminApi, formatCLP, downloadBlob } from '../api/client'
+import { api, finiquitoApi, employeesApi, vacationsApi, contractsApi, payrollApi, formatCLP, downloadBlob } from '../api/client'
 
 function formatRUT(raw: string): string {
   if (!raw) return '—'
@@ -120,11 +120,9 @@ export default function Finiquito() {
 
   useEffect(() => {
     employeesApi.list({ is_active: true }).then((res) => setEmployees(res.data)).catch(() => {})
-    // Fetch IMM from global params
-    superAdminApi.listGlobalParams().then(res => {
-      const params = res.data
-      const immParam = params.find((p: { key: string; value: number }) => p.key === 'imm_value' || p.key === 'IMM')
-      if (immParam) setImm(Number(immParam.value))
+    // Fetch IMM from public legal params endpoint
+    api.get('/api/finiquito/legal-params').then(res => {
+      if (res.data.imm_value) setImm(Number(res.data.imm_value))
     }).catch(() => {})
   }, [])
 
