@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowDownTrayIcon, CalculatorIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
-import { api, finiquitoApi, employeesApi, formatCLP, downloadBlob } from '../api/client'
+import { api, finiquitoApi, employeesApi, vacationsApi, contractsApi, payrollApi, formatCLP, downloadBlob } from '../api/client'
 
 function formatRUT(raw: string): string {
   if (!raw) return '—'
@@ -18,6 +18,14 @@ function formatDateCL(iso: string): string {
   const parts = String(iso).split('-')
   if (parts.length !== 3) return iso
   return `${parts[2]}/${parts[1]}/${parts[0]}`
+}
+
+// Convert DD/MM/YYYY → YYYY-MM-DD for API
+function parseDateCL(ddmmyyyy: string): string {
+  if (!ddmmyyyy) return ''
+  const parts = ddmmyyyy.replace(/[^0-9]/g, '')
+  if (parts.length < 8) return ''
+  return `${parts.slice(4, 8)}-${parts.slice(2, 4)}-${parts.slice(0, 2)}`
 }
 
 interface Employee {
@@ -85,30 +93,98 @@ export default function Finiquito() {
   const [confirming, setConfirming] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null)
+  const [showGratificacion, setShowGratificacion] = useState(false)
+  const [terminationDateDisplay, setTerminationDateDisplay] = useState('')
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm()
 
   const watchedEmployee = watch('employee_id')
+  const watchedCause = watch('termination_cause', '')
 
   useEffect(() => {
     employeesApi.list({ is_active: true }).then((res) => setEmployees(res.data)).catch(() => {})
   }, [])
 
   useEffect(() => {
-    if (watchedEmployee) {
-      const emp = employees.find((e) => e.id === Number(watchedEmployee))
-      if (emp) {
-        setSelectedEmp(emp)
-        setValue('last_salary', Math.round(emp.base_salary))
-      }
-    }
+    if (!watchedEmployee) return
+    const emp = employees.find((e) => e.id === Number(watchedEmployee))
+    if (!emp) return
+    setSelectedEmp(emp)
+    setValue('last_salary', Math.round(emp.base_salary))
+
+    // Auto-fill vacation balance
+    vacationsApi.getBalance(emp.id).then(res => {
+      const pending = res.data.days_pending ?? 0
+      setValue('pending_vacation_days', Math.round(pending * 2) / 2) // round to 0.5
+    }).catch(() => {})
+
+    // Check contract gratificacion_type
+    contractsApi.list({ employee_id: emp.id, is_active: true }).then(res => {
+      const contracts = res.data
+      const active = contracts.find((c: { is_active: boolean }) => c.is_active)
+      const gratType = active?.gratificacion_type || 'legal'
+      // Show gratificacion field only if annual (not included monthly)
+      setShowGratificacion(gratType === 'legal' || gratType === 'garantizada')
+    }).catch(() => setShowGratificacion(false))
+
+    // Auto-fill pending salary days from last payroll
+    payrollApi.list().then(res => {
+      const runs = res.data
+      if (!runs.length) return
+      // Find last run (sorted desc by year/month)
+      const last = runs[0]
+      setValue('_last_run_month', last.period_month)
+      setValue('_last_run_year', last.period_year)
+    }).catch(() => {})
   }, [watchedEmployee, employees, setValue])
 
-  const onCalculate = async (data: unknown) => {
+  // Recalculate pending salary days when termination date changes
+  useEffect(() => {
+    if (!terminationDateDisplay) return
+    const isoDate = parseDateCL(terminationDateDisplay)
+    if (!isoDate) return
+    const termDate = new Date(isoDate)
+    if (isNaN(termDate.getTime())) return
+
+    payrollApi.list().then(res => {
+      const runs = res.data
+      if (!runs.length) {
+        // No payroll runs: all days of current month up to termination
+        setValue('pending_salary_days', termDate.getDate())
+        return
+      }
+      const last = runs[0]
+      const lastRunYear = last.period_year
+      const lastRunMonth = last.period_month
+
+      const termYear = termDate.getFullYear()
+      const termMonth = termDate.getMonth() + 1
+
+      if (termYear === lastRunYear && termMonth === lastRunMonth) {
+        // Termination in same period as last run — 0 pending days
+        setValue('pending_salary_days', 0)
+      } else if (termYear > lastRunYear || (termYear === lastRunYear && termMonth > lastRunMonth)) {
+        // Days worked in the termination month (not yet paid)
+        setValue('pending_salary_days', termDate.getDate())
+      }
+    }).catch(() => {})
+  }, [terminationDateDisplay, setValue])
+
+  const onCalculate = async (data: Record<string, unknown>) => {
     setCalculating(true)
     setResult(null)
     try {
-      const res = await api.post('/api/finiquito/calculate', data)
+      // Convert date from DD/MM/YYYY to YYYY-MM-DD
+      const termDateIso = parseDateCL(terminationDateDisplay)
+      if (!termDateIso) {
+        toast.error('Fecha de término inválida. Use formato DD/MM/YYYY')
+        setCalculating(false)
+        return
+      }
+      const payload = { ...data, termination_date: termDateIso }
+      delete payload._last_run_month
+      delete payload._last_run_year
+      const res = await api.post('/api/finiquito/calculate', payload)
       setResult(res.data)
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } }
@@ -158,7 +234,14 @@ export default function Finiquito() {
     }
   }
 
-  const watchedCause = watch('termination_cause', '')
+  // Format date input as user types: auto-insert / separators
+  const handleDateInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let v = e.target.value.replace(/[^0-9]/g, '')
+    if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2)
+    if (v.length > 5) v = v.slice(0, 5) + '/' + v.slice(5)
+    if (v.length > 10) v = v.slice(0, 10)
+    setTerminationDateDisplay(v)
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -187,8 +270,15 @@ export default function Finiquito() {
 
             <div>
               <label className="label-field">Fecha de término *</label>
-              <input type="date" className="input-field" {...register('termination_date', { required: true })} />
-              {errors.termination_date && <p className="error-text">Fecha requerida</p>}
+              <input
+                type="text"
+                className="input-field"
+                placeholder="DD/MM/YYYY"
+                value={terminationDateDisplay}
+                onChange={handleDateInput}
+                maxLength={10}
+              />
+              {!terminationDateDisplay && errors.termination_date && <p className="error-text">Fecha requerida</p>}
             </div>
 
             <div>
@@ -224,6 +314,9 @@ export default function Finiquito() {
                 className="input-field"
                 {...register('pending_vacation_days', { valueAsNumber: true })}
               />
+              {selectedEmp && (
+                <p className="text-xs text-indigo-500 mt-1">Auto-calculado desde saldo de vacaciones</p>
+              )}
             </div>
 
             <div>
@@ -236,19 +329,25 @@ export default function Finiquito() {
                 className="input-field"
                 {...register('pending_salary_days', { valueAsNumber: true })}
               />
+              {selectedEmp && (
+                <p className="text-xs text-indigo-500 mt-1">Días del mes de término no incluidos en última nómina</p>
+              )}
             </div>
 
-            <div>
-              <label className="label-field">Gratificación proporcional pendiente (CLP)</label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                defaultValue="0"
-                className="input-field"
-                {...register('pending_gratificacion', { valueAsNumber: true })}
-              />
-            </div>
+            {showGratificacion && (
+              <div>
+                <label className="label-field">Gratificación proporcional pendiente (CLP)</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  defaultValue="0"
+                  className="input-field"
+                  {...register('pending_gratificacion', { valueAsNumber: true })}
+                />
+                <p className="text-xs text-gray-400 mt-1">Solo para gratificación anual no pagada en el año de término</p>
+              </div>
+            )}
 
             {watchedCause && watchedCause.includes('161') && (
               <div className="md:col-span-2 flex items-center gap-2">
