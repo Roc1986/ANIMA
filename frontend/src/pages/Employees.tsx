@@ -235,6 +235,23 @@ export default function Employees() {
                   <input className="input" placeholder="+56 9 1234 5678" {...register('phone')} />
                 </div>
                 <div>
+                  <label className="label">Tipo de Contrato *</label>
+                  <select className="input" {...register('contract_type', { required: true })}>
+                    <option value="indefinido">Indefinido</option>
+                    <option value="plazo_fijo">Plazo Fijo</option>
+                    <option value="obra_faena">Obra o Faena</option>
+                    <option value="part_time">Part Time</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Gratificación</label>
+                  <select className="input" {...register('gratificacion_type')}>
+                    <option value="legal">Legal (anual, Art. 47)</option>
+                    <option value="garantizada">Garantizada (anual, Art. 50)</option>
+                    <option value="mensual">Incluida en sueldo mensual</option>
+                  </select>
+                </div>
+                <div>
                   <label className="label">Cargo *</label>
                   <input className="input" {...register('position', { required: true })} />
                 </div>

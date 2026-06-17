@@ -62,6 +62,8 @@ def create_employee(
 
     emp_data = data.model_dump()
     emp_data['company_id'] = company_id
+    contract_type = emp_data.pop('contract_type', 'indefinido') or 'indefinido'
+    gratificacion_type = emp_data.pop('gratificacion_type', 'legal') or 'legal'
     emp = Employee(**emp_data)
     db.add(emp)
     db.commit()
@@ -69,10 +71,11 @@ def create_employee(
     # Auto-create contract
     contract = Contract(
         employee_id=emp.id,
-        contract_type="indefinido",
+        contract_type=contract_type,
         start_date=data.hire_date,
         base_salary=data.base_salary,
         weekly_hours=40,
+        gratificacion_type=gratificacion_type,
         is_active=True,
     )
     db.add(contract)

@@ -32,6 +32,8 @@ class EmployeeCreate(BaseModel):
     bank_name: Optional[str] = None
     bank_account_type: Optional[str] = None
     bank_account_number: Optional[str] = None
+    contract_type: Optional[str] = "indefinido"
+    gratificacion_type: Optional[str] = "legal"
 
 
 class EmployeeUpdate(BaseModel):
