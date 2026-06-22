@@ -298,8 +298,11 @@ class ChileanPayrollCalculator:
         else:
             descuento_salud = base_salud * self.tasa_salud
 
-        # Cesantía trabajador: 0.6% sobre base AFC (tope UF 128.4)
-        descuento_cesantia_trabajador = base_afc * self.cesantia_trabajador
+        # Cesantía trabajador: 0.6% indefinido/part_time, 0% plazo_fijo/obra_faena (Ley 19.728 Art. 5)
+        if contract_type in ("plazo_fijo", "obra_faena"):
+            descuento_cesantia_trabajador = 0.0
+        else:
+            descuento_cesantia_trabajador = base_afc * self.cesantia_trabajador
 
         total_descuentos_prev = descuento_afp + descuento_salud + descuento_cesantia_trabajador
 
