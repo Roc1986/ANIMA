@@ -75,6 +75,26 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Initial indicator sync failed (non-fatal): {e}")
 
+    # Migrate IMM to $553.553 (Ley N°21.830, vigente desde 01/05/2026)
+    try:
+        from database import SessionLocal
+        from models.legal_params import LegalParameter
+        _db = SessionLocal()
+        _imm_outdated = _db.query(LegalParameter).filter(
+            LegalParameter.key == "imm_value",
+            LegalParameter.value < 553553,
+            LegalParameter.company_id == None,
+        ).all()
+        for _p in _imm_outdated:
+            _p.value = 553553
+            _p.source = "DT-Ley21830"
+        if _imm_outdated:
+            _db.commit()
+            logger.info(f"Migrated imm_value to 553553 in {len(_imm_outdated)} record(s)")
+        _db.close()
+    except Exception as e:
+        logger.warning(f"IMM migration failed (non-fatal): {e}")
+
     # Migrate SIS rate from 1.49% to 1.62% if outdated
     try:
         from database import SessionLocal
