@@ -21,9 +21,34 @@ from services.payroll_calculator import ChileanPayrollCalculator
 from services.pdf_generator import generate_liquidacion_pdf
 from fastapi.responses import FileResponse
 from dependencies import filter_by_company
+from models.imm_value import IMMValue
+from models.uf_value import UFValue
 import os
 
 router = APIRouter()
+
+
+def _get_imm_for_period(db: Session, year: int, month: int) -> float:
+    """Returns the IMM value vigente for a given payroll period."""
+    from datetime import date
+    period_date = date(year, month, 1)
+    row = db.query(IMMValue).filter(IMMValue.date <= period_date).order_by(IMMValue.date.desc()).first()
+    if row:
+        return float(row.value)
+    # Fallback to global param
+    param = db.query(LegalParameter).filter(LegalParameter.key == "imm_value").first()
+    return float(param.value) if param else 553553.0
+
+
+def _get_uf_for_period(db: Session, year: int, month: int) -> float:
+    """Returns the UF value for the first day of a payroll period."""
+    from datetime import date
+    period_date = date(year, month, 1)
+    row = db.query(UFValue).filter(UFValue.date <= period_date).order_by(UFValue.date.desc()).first()
+    if row:
+        return float(row.value)
+    param = db.query(LegalParameter).filter(LegalParameter.key == "uf_value").first()
+    return float(param.value) if param else 38500.0
 
 
 def _get_legal_params(db: Session) -> dict:
@@ -64,6 +89,13 @@ def create_payroll_run(
 
     run_data = data.model_dump()
     run_data['company_id'] = company_id
+
+    # Use historical IMM and UF for the period (retroactive accuracy)
+    if not run_data.get('imm_value') or float(run_data.get('imm_value', 0)) <= 0:
+        run_data['imm_value'] = _get_imm_for_period(db, data.period_year, data.period_month)
+    if not run_data.get('uf_value') or float(run_data.get('uf_value', 0)) <= 0:
+        run_data['uf_value'] = _get_uf_for_period(db, data.period_year, data.period_month)
+
     run = PayrollRun(**run_data)
     db.add(run)
     db.commit()

@@ -10,12 +10,14 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database import engine, Base
 from models import *  # noqa - ensures all models are registered
 from models.uf_value import UFValue  # noqa - ensure uf_values table is created
+from models.imm_value import IMMValue  # noqa - ensure imm_values table is created
 
 from routers import (
     auth, employees, payroll, attendance, documents, reports,
     ai_legal, warning_letters, finiquito, company, vacations, contracts, super_admin, accounting
 )
 from routers.uf_values import router as uf_values_router
+from routers.imm_values import router as imm_values_router
 from routers.calendar import router as calendar_router
 from services.indicators_sync import sync_all, sync_uf, sync_utm
 from services.email_service import send_deadline_reminder
@@ -94,6 +96,7 @@ def run_column_migrations(eng):
         "ALTER TABLE employees ADD COLUMN IF NOT EXISTS descuento_vivienda NUMERIC(12,2) DEFAULT 0",
         "ALTER TABLE employees ADD COLUMN IF NOT EXISTS isapre_amount_type VARCHAR(10) DEFAULT 'pesos'",
         "CREATE TABLE IF NOT EXISTS uf_values (id SERIAL PRIMARY KEY, date DATE UNIQUE NOT NULL, value NUMERIC(12,2) NOT NULL, source VARCHAR(100) DEFAULT 'manual', created_at TIMESTAMPTZ DEFAULT NOW())",
+        "CREATE TABLE IF NOT EXISTS imm_values (id SERIAL PRIMARY KEY, date DATE UNIQUE NOT NULL, value NUMERIC(12,2) NOT NULL, source VARCHAR(100) DEFAULT 'manual', created_at TIMESTAMPTZ DEFAULT NOW())",
     ]
     with eng.connect() as conn:
         for sql in migrations:
@@ -203,6 +206,7 @@ app.include_router(contracts.router, prefix="/api/contracts", tags=["Contratos d
 app.include_router(super_admin.router, prefix="/api/super", tags=["Super Administración"])
 app.include_router(accounting.router, prefix="/api/accounting", tags=["Contabilidad"])
 app.include_router(uf_values_router, prefix="/api/uf-values", tags=["uf-values"])
+app.include_router(imm_values_router, prefix="/api/imm-values", tags=["imm-values"])
 app.include_router(calendar_router, prefix="/api/calendar", tags=["Calendario"])
 
 

@@ -13,6 +13,7 @@ from models.legal_params import LegalParameter
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 from models.document import Document, DocumentType
+from models.imm_value import IMMValue
 from services.pdf_generator import generate_finiquito_pdf
 
 router = APIRouter()
@@ -67,6 +68,15 @@ class FiniquitoCalculation(BaseModel):
     breakdown: dict
 
 
+def _get_imm_for_date(db: Session, ref_date: date) -> float:
+    """Returns the IMM vigente on a given date using historical table."""
+    row = db.query(IMMValue).filter(IMMValue.date <= ref_date).order_by(IMMValue.date.desc()).first()
+    if row:
+        return float(row.value)
+    param = db.query(LegalParameter).filter(LegalParameter.key == "imm_value").first()
+    return float(param.value) if param else 553553.0
+
+
 def _get_uf(db: Session) -> float:
     param = db.query(LegalParameter).filter(LegalParameter.key == "uf_value").first()
     if param:
@@ -86,6 +96,7 @@ def calculate_finiquito(
 
     uf_value = _get_uf(db)
     uf_cap = 90 * uf_value  # 90 UF cap for indemnización
+    imm_value = _get_imm_for_date(db, data.termination_date)
 
     # Calculate years of service
     hire = emp.hire_date
@@ -166,6 +177,7 @@ def calculate_finiquito(
             "total_vacation_days": round(vacation_days_total, 2),
             "daily_salary": round(daily_salary, 2),
             "no_advance_notice": data.no_advance_notice,
+            "imm_value": imm_value,
         }
     }
     return result

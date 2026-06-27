@@ -241,6 +241,14 @@ export const ufValuesApi = {
   seed: () => api.post('/api/uf-values/seed'),
 }
 
+export const immValuesApi = {
+  list: () => api.get('/api/imm-values/'),
+  forDate: (date: string) => api.get('/api/imm-values/for-date', { params: { query_date: date } }),
+  create: (data: { date: string; value: number; source?: string }) => api.post('/api/imm-values/', data),
+  delete: (id: number) => api.delete(`/api/imm-values/${id}`),
+  seed: () => api.post('/api/imm-values/seed'),
+}
+
 // Helper to download blob
 export function downloadBlob(blob: Blob, filename: string) {
   const url = window.URL.createObjectURL(blob)
