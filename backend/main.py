@@ -16,11 +16,59 @@ from routers import (
     ai_legal, warning_letters, finiquito, company, vacations, contracts, super_admin, accounting
 )
 from routers.uf_values import router as uf_values_router
+from routers.calendar import router as calendar_router
 from services.indicators_sync import sync_all, sync_uf, sync_utm
+from services.email_service import send_deadline_reminder
 
 logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler(timezone="America/Santiago")
+
+
+def _send_deadline_reminders():
+    """Checks upcoming deadlines and sends email reminders 4 days before."""
+    from datetime import date, timedelta
+    from database import SessionLocal
+    from models.company import Company
+    from models.user import User as UserModel
+    from routers.calendar import _get_deadline_events, _days_until
+
+    db = SessionLocal()
+    try:
+        today = date.today()
+        events = _get_deadline_events(today.year, today.month)
+        # Also check next month if we're near end of month
+        if today.day >= 25:
+            m = today.month + 1 if today.month < 12 else 1
+            y = today.year if today.month < 12 else today.year + 1
+            events.extend(_get_deadline_events(y, m))
+
+        companies = db.query(Company).filter(Company.is_active == True).all()
+        for company in companies:
+            # Find admin emails for this company
+            admins = db.query(UserModel).filter(
+                UserModel.company_id == company.id,
+                UserModel.role.in_(["admin", "company_admin"]),
+                UserModel.is_active == True,
+            ).all()
+            emails = [u.email for u in admins if u.email]
+            if not emails:
+                continue
+            for ev in events:
+                days = _days_until(ev["date"])
+                if days == 4:  # exactly 4 days before
+                    for email in emails:
+                        send_deadline_reminder(
+                            to=email,
+                            event_name=ev["title"],
+                            event_date=date.fromisoformat(ev["date"]),
+                            days_left=days,
+                            company_name=company.name,
+                        )
+    except Exception as e:
+        logger.error("Deadline reminder job failed: %s", e)
+    finally:
+        db.close()
 
 
 def run_column_migrations(eng):
@@ -67,6 +115,8 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(sync_uf, "cron", hour=9, minute=5, id="sync_uf")
     # Schedule UTM sync: 1st of each month at 09:10
     scheduler.add_job(sync_utm, "cron", day=1, hour=9, minute=10, id="sync_utm")
+    # Schedule deadline reminders: daily at 08:00
+    scheduler.add_job(_send_deadline_reminders, "cron", hour=8, minute=0, id="deadline_reminders")
     scheduler.start()
 
     # Sync on startup so values are fresh
@@ -153,6 +203,7 @@ app.include_router(contracts.router, prefix="/api/contracts", tags=["Contratos d
 app.include_router(super_admin.router, prefix="/api/super", tags=["Super Administración"])
 app.include_router(accounting.router, prefix="/api/accounting", tags=["Contabilidad"])
 app.include_router(uf_values_router, prefix="/api/uf-values", tags=["uf-values"])
+app.include_router(calendar_router, prefix="/api/calendar", tags=["Calendario"])
 
 
 @app.get("/")

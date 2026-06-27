@@ -20,6 +20,7 @@ import SuperDashboard from './pages/SuperDashboard'
 import CompanyList from './pages/CompanyList'
 import Landing from './pages/Landing'
 import Accounting from './pages/Accounting'
+import Calendar from './pages/Calendar'
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/super/dashboard" element={<SuperDashboard />} />
           <Route path="/super/companies" element={<CompanyList />} />
           <Route path="/accounting" element={<Accounting />} />
+          <Route path="/calendar" element={<Calendar />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

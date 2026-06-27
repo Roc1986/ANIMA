@@ -18,6 +18,7 @@ import {
   BuildingStorefrontIcon,
   CalculatorIcon,
   ChevronDownIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline'
 
 interface NavItem {
@@ -70,6 +71,7 @@ const hrNavGroups: NavGroup[] = [
     label: 'Configuración',
     icon: BuildingOfficeIcon,
     items: [
+      { to: '/calendar', label: 'Calendario', icon: CalendarDaysIcon },
       { to: '/legal', label: 'IA Legal', icon: ScaleIcon },
       { to: '/company-settings', label: 'Empresa', icon: BuildingOfficeIcon },
     ],
