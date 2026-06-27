@@ -64,15 +64,15 @@ def delete_imm_value(imm_id: int, db: Session = Depends(get_db), current_user: U
 def seed_imm_values(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """Seed historical IMM values. Source: Dirección del Trabajo / BCCh."""
     values = [
-        # (vigente_desde, valor)
-        ("2020-03-01", 320.500),
-        ("2021-03-01", 337.000),
-        ("2022-05-01", 380.000),
-        ("2022-08-01", 400.000),
-        ("2023-05-01", 440.000),
-        ("2024-05-01", 500.000),
-        ("2025-05-01", 530.000),
-        ("2026-05-01", 553.553),
+        # (vigente_desde, valor) — Fuente: Dirección del Trabajo, Ley respectiva
+        ("2023-05-01", 440000.00),   # Ley 21.561
+        ("2023-09-01", 460000.00),   # Reajuste septiembre 2023
+        ("2024-01-01", 500000.00),   # Compromiso anticipado julio→enero 2024
+        ("2024-07-01", 500000.00),   # Sin cambio (ya se cumplió anticipado)
+        ("2025-01-01", 510616.00),   # Reajuste enero 2025
+        ("2025-05-01", 529000.00),   # Reajuste mayo 2025
+        ("2026-01-01", 539000.00),   # Reajuste enero 2026
+        ("2026-05-01", 553553.00),   # Ley 21.830 (ef. retroactivo 01/05/2026)
     ]
     count = 0
     for d, v in values:
