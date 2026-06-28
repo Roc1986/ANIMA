@@ -376,7 +376,7 @@ def reopen_payroll(
         raise HTTPException(status_code=404, detail="Nómina no encontrada")
     if run.status not in (PayrollStatus.approved, PayrollStatus.calculated):
         raise HTTPException(status_code=400, detail="Solo se pueden reabrir nóminas calculadas o aprobadas")
-    run.status = PayrollStatus.calculated
+    run.status = PayrollStatus.draft
     run.approved_by = None
     run.approved_at = None
     db.commit()
