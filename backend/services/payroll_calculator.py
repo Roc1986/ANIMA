@@ -1,11 +1,11 @@
 """
-Chilean Payroll Calculator - 2024/2025
+Chilean Payroll Calculator - 2026
 Implements Chilean labor law (Código del Trabajo) for payroll calculations.
 
 Key legal references:
 - AFP rates: Superintendencia de Pensiones
-- Salud: 7% FONASA/ISAPRE, tope 81.6 UF
-- Seguro Cesantía AFC: tope 128.4 UF (diferente al tope AFP/salud)
+- Salud: 7% FONASA/ISAPRE, tope 90.0 UF (vigente desde feb 2026, SP)
+- Seguro Cesantía AFC: tope 135.2 UF (vigente desde feb 2026, SP)
 - SIS: Seguro Invalidez y Sobrevivencia 1.62% empleador (tasa vigente 2026, SP)
 - IUSC: Impuesto Único de Segunda Categoría (tabla SII mensual en UTM)
 - Gratificación: Art. 50 Código del Trabajo
@@ -74,10 +74,10 @@ class ChileanPayrollCalculator:
 
         # Override rates from DB if provided
         lp = legal_params or {}
-        self.tope_afp_uf = lp.get("TOPE_IMPONIBLE_AFP_UF", 81.6)
-        self.tope_salud_uf = lp.get("TOPE_IMPONIBLE_SALUD_UF", 81.6)
+        self.tope_afp_uf = lp.get("TOPE_IMPONIBLE_AFP_UF", 90.0)
+        self.tope_salud_uf = lp.get("TOPE_IMPONIBLE_SALUD_UF", 90.0)
         # AFC (Cesantía) has a DIFFERENT and HIGHER tope than AFP/salud
-        self.tope_afc_uf = lp.get("TOPE_IMPONIBLE_AFC_UF", 128.4)
+        self.tope_afc_uf = lp.get("TOPE_IMPONIBLE_AFC_UF", 135.2)
         self.tasa_salud = lp.get("TASA_SALUD", 7.0) / 100
         self.cesantia_trabajador = lp.get("CESANTIA_TRABAJADOR", 0.6) / 100
         self.cesantia_empleador_indefinido = lp.get("CESANTIA_EMPLEADOR_INDEFINIDO", 2.4) / 100

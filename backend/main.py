@@ -149,6 +149,31 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"IMM migration failed (non-fatal): {e}")
 
+    # Migrate topes imponibles AFP/Salud 81.6→90.0 UF y AFC 128.4→135.2 UF (vigente feb 2026, SP)
+    try:
+        from database import SessionLocal
+        from models.legal_params import LegalParameter
+        _db = SessionLocal()
+        _tope_updates = [
+            ("TOPE_IMPONIBLE_AFP_UF", 81.6, 90.0),
+            ("TOPE_IMPONIBLE_SALUD_UF", 81.6, 90.0),
+            ("TOPE_IMPONIBLE_AFC_UF", 128.4, 135.2),
+        ]
+        for key, old_val, new_val in _tope_updates:
+            _rows = _db.query(LegalParameter).filter(
+                LegalParameter.key == key,
+                LegalParameter.value == old_val,
+            ).all()
+            for _p in _rows:
+                _p.value = new_val
+                _p.source = "SP-2026"
+            if _rows:
+                _db.commit()
+                logger.info(f"Migrated {key} {old_val}→{new_val}")
+        _db.close()
+    except Exception as e:
+        logger.warning(f"Topes migration failed (non-fatal): {e}")
+
     # Migrate SIS rate from 1.49% to 1.62% if outdated
     try:
         from database import SessionLocal
