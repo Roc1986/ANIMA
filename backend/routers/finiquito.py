@@ -14,6 +14,7 @@ from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 from models.document import Document, DocumentType
 from models.imm_value import IMMValue
+from models.uf_value import UFValue
 from services.pdf_generator import generate_finiquito_pdf
 
 router = APIRouter()
@@ -77,11 +78,17 @@ def _get_imm_for_date(db: Session, ref_date: date) -> float:
     return float(param.value) if param else 553553.0
 
 
-def _get_uf(db: Session) -> float:
+def _get_uf_for_date(db: Session, ref_date: date) -> float:
+    """Returns end-of-month UF for the month of termination (Previred standard)."""
+    import calendar
+    last_day = calendar.monthrange(ref_date.year, ref_date.month)[1]
+    end_of_month = ref_date.replace(day=last_day)
+    row = db.query(UFValue).filter(UFValue.date <= end_of_month).order_by(UFValue.date.desc()).first()
+    if row:
+        return float(row.value)
+    # fallback to global param
     param = db.query(LegalParameter).filter(LegalParameter.key == "uf_value").first()
-    if param:
-        return float(param.value)
-    return 38000.0  # fallback
+    return float(param.value) if param else 40820.0
 
 
 @router.post("/calculate")
@@ -94,8 +101,8 @@ def calculate_finiquito(
     if not emp:
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
 
-    uf_value = _get_uf(db)
-    uf_cap = 90 * uf_value  # 90 UF cap for indemnización
+    uf_value = _get_uf_for_date(db, data.termination_date)
+    uf_cap = 90 * uf_value  # 90 UF cap for indemnización (Art. 163)
     imm_value = _get_imm_for_date(db, data.termination_date)
 
     # Calculate years of service
@@ -105,6 +112,12 @@ def calculate_finiquito(
     years = total_days / 365.25
     months = int(total_days / 30.44)
 
+    # Legal rounding: fraction > 6 months counts as a full year (Art. 163 CT)
+    complete_years_raw = total_days / 365.25
+    full_years = int(complete_years_raw)
+    remaining_months = (complete_years_raw - full_years) * 12
+    complete_years_legal = full_years + (1 if remaining_months >= 6 else 0)
+
     # Daily salary
     daily_salary = data.last_salary / 30
 
@@ -112,15 +125,13 @@ def calculate_finiquito(
     indemnizacion_anos = 0.0
     capped_salary = min(data.last_salary, uf_cap)
     if "161" in data.termination_cause:
-        complete_years = int(years)
-        if complete_years > 11:
-            complete_years = 11
-        indemnizacion_anos = capped_salary * complete_years
+        indemnizacion_years = min(complete_years_legal, 11)
+        indemnizacion_anos = capped_salary * indemnizacion_years
 
-    # Indemnización sustitutiva aviso previo (Art. 161 with no notice)
+    # Indemnización sustitutiva aviso previo (Art. 161 with no notice) — also capped at 90 UF
     indemnizacion_aviso_previo = 0.0
     if "161" in data.termination_cause and data.no_advance_notice:
-        indemnizacion_aviso_previo = data.last_salary
+        indemnizacion_aviso_previo = capped_salary
 
     # Vacaciones proporcionales
     # Legally: 15 working days per year = 1.25 days/month
@@ -171,7 +182,7 @@ def calculate_finiquito(
             "uf_value": uf_value,
             "uf_cap": uf_cap,
             "capped_salary": capped_salary,
-            "complete_years": int(years),
+            "complete_years": complete_years_legal,
             "vacation_earned_days": round(vacation_earned, 2),
             "pending_vacation_days": data.pending_vacation_days,
             "total_vacation_days": round(vacation_days_total, 2),
