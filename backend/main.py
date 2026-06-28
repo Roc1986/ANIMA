@@ -193,6 +193,29 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"SIS migration failed (non-fatal): {e}")
 
+    # Migrate accounting accounts: split Cesantía into trabajador/empleador, add 2-01-007 SIS
+    try:
+        from database import SessionLocal
+        from models.accounting import AccountingAccount
+        _db = SessionLocal()
+        _update_map = {
+            "2-01-005": "Cesantía Trabajador por Pagar",
+            "2-01-006": "Cesantía Empleador por Pagar",
+        }
+        for code, new_name in _update_map.items():
+            _db.query(AccountingAccount).filter(AccountingAccount.code == code).update({"name": new_name})
+        # Add 2-01-007 SIS for companies that don't have it yet
+        existing_sis = _db.query(AccountingAccount).filter(AccountingAccount.code == "2-01-007").all()
+        existing_codes = {a.code for a in existing_sis}
+        existing_companies = {a.company_id for a in _db.query(AccountingAccount).filter(AccountingAccount.code == "2-01-006").all()}
+        for cid in existing_companies:
+            if not _db.query(AccountingAccount).filter(AccountingAccount.code == "2-01-007", AccountingAccount.company_id == cid).first():
+                _db.add(AccountingAccount(company_id=cid, code="2-01-007", name="SIS por Pagar", account_type="pasivo"))
+        _db.commit()
+        _db.close()
+    except Exception as e:
+        logger.warning(f"Accounting accounts migration failed (non-fatal): {e}")
+
     yield
 
     # Shutdown

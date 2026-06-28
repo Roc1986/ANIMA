@@ -73,8 +73,9 @@ def get_default_accounts():
         {"code": "2-01-002", "name": "AFP por Pagar", "account_type": "pasivo"},
         {"code": "2-01-003", "name": "Salud por Pagar", "account_type": "pasivo"},
         {"code": "2-01-004", "name": "Impuesto Único por Pagar", "account_type": "pasivo"},
-        {"code": "2-01-005", "name": "Cesantía por Pagar", "account_type": "pasivo"},
-        {"code": "2-01-006", "name": "SIS por Pagar", "account_type": "pasivo"},
+        {"code": "2-01-005", "name": "Cesantía Trabajador por Pagar", "account_type": "pasivo"},
+        {"code": "2-01-006", "name": "Cesantía Empleador por Pagar", "account_type": "pasivo"},
+        {"code": "2-01-007", "name": "SIS por Pagar", "account_type": "pasivo"},
         {"code": "5-01-001", "name": "Gasto Remuneraciones", "account_type": "gasto"},
         {"code": "5-01-002", "name": "Gasto Previsión Empleador", "account_type": "gasto"},
     ]

@@ -110,6 +110,7 @@ def generate_provision(
     total_afp = sum(float(e.descuento_afp or 0) for e in entries)
     total_salud = sum(float(e.descuento_salud or 0) for e in entries)
     total_iusc = sum(float(e.impuesto_unico or 0) for e in entries)
+    total_cesantia_trabajador = sum(float(e.descuento_cesantia or 0) for e in entries)
     total_cesantia_empleador = sum(float(e.aporte_cesantia_empleador or 0) for e in entries)
     total_sis = sum(float(e.aporte_sis or 0) for e in entries)
     costo_empleador = total_cesantia_empleador + total_sis
@@ -142,8 +143,9 @@ def generate_provision(
         (_get_account_by_code(db, company_id, "2-01-002"), "AFP por Pagar", 0, total_afp),
         (_get_account_by_code(db, company_id, "2-01-003"), "Salud por Pagar", 0, total_salud),
         (_get_account_by_code(db, company_id, "2-01-004"), "Impuesto Único por Pagar", 0, total_iusc),
-        (_get_account_by_code(db, company_id, "2-01-005"), "Cesantía por Pagar", 0, total_cesantia_empleador),
-        (_get_account_by_code(db, company_id, "2-01-006"), "SIS por Pagar", 0, total_sis),
+        (_get_account_by_code(db, company_id, "2-01-005"), "Cesantía Trabajador por Pagar", 0, total_cesantia_trabajador),
+        (_get_account_by_code(db, company_id, "2-01-006"), "Cesantía Empleador por Pagar", 0, total_cesantia_empleador),
+        (_get_account_by_code(db, company_id, "2-01-007"), "SIS por Pagar", 0, total_sis),
     ]
 
     for account, glosa, debe, haber in lines_data:
@@ -184,9 +186,10 @@ def generate_pago_cotizaciones(
 
     total_afp = sum(float(e.descuento_afp or 0) for e in entries)
     total_salud = sum(float(e.descuento_salud or 0) for e in entries)
+    total_cesantia_trabajador = sum(float(e.descuento_cesantia or 0) for e in entries)
     total_cesantia_empleador = sum(float(e.aporte_cesantia_empleador or 0) for e in entries)
     total_sis = sum(float(e.aporte_sis or 0) for e in entries)
-    total_banco = total_afp + total_salud + total_cesantia_empleador + total_sis
+    total_banco = total_afp + total_salud + total_cesantia_trabajador + total_cesantia_empleador + total_sis
 
     accounts = db.query(AccountingAccount).filter(
         AccountingAccount.company_id == company_id,
@@ -210,8 +213,9 @@ def generate_pago_cotizaciones(
     lines_data = [
         (_get_account_by_code(db, company_id, "2-01-002"), "AFP por Pagar", total_afp, 0),
         (_get_account_by_code(db, company_id, "2-01-003"), "Salud por Pagar", total_salud, 0),
-        (_get_account_by_code(db, company_id, "2-01-005"), "Cesantía por Pagar", total_cesantia_empleador, 0),
-        (_get_account_by_code(db, company_id, "2-01-006"), "SIS por Pagar", total_sis, 0),
+        (_get_account_by_code(db, company_id, "2-01-005"), "Cesantía Trabajador por Pagar", total_cesantia_trabajador, 0),
+        (_get_account_by_code(db, company_id, "2-01-006"), "Cesantía Empleador por Pagar", total_cesantia_empleador, 0),
+        (_get_account_by_code(db, company_id, "2-01-007"), "SIS por Pagar", total_sis, 0),
         (_get_account_by_code(db, company_id, "1-01-001"), "Banco / Cuenta Corriente", 0, total_banco),
     ]
 
