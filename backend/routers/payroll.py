@@ -334,6 +334,36 @@ def reopen_payroll(
     return {"message": "Nómina reabierta — puede agregar o modificar entradas y volver a aprobar"}
 
 
+class UpdateRunParamsRequest(BaseModel):
+    imm_value: float | None = None
+    uf_value: float | None = None
+    utm_value: float | None = None
+
+
+@router.patch("/{run_id}/params")
+def update_run_params(
+    run_id: int,
+    data: UpdateRunParamsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Update IMM/UF/UTM of a payroll run and reset to draft for recalculation."""
+    q = db.query(PayrollRun).filter(PayrollRun.id == run_id)
+    q = filter_by_company(q, PayrollRun, current_user)
+    run = q.first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Nómina no encontrada")
+    if data.imm_value is not None:
+        run.imm_value = data.imm_value
+    if data.uf_value is not None:
+        run.uf_value = data.uf_value
+    if data.utm_value is not None:
+        run.utm_value = data.utm_value
+    run.status = PayrollStatus.draft
+    db.commit()
+    return {"message": f"Parámetros actualizados. Recalcula la nómina para aplicar los cambios.", "run_id": run_id}
+
+
 class ReverseCalculateRequest(BaseModel):
     liquido_deseado: float
     afp: str = "Habitat"
