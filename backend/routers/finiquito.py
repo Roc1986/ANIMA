@@ -40,10 +40,11 @@ class FiniquitoRequest(BaseModel):
     termination_date: date
     termination_cause: str  # "Art. 159", "Art. 160", "Art. 161 N°1", "Art. 161 N°2"
     last_salary: float
-    pending_vacation_days: float = 0
+    pending_vacation_days: float = 0  # días hábiles
     pending_salary_days: int = 0
     pending_gratificacion: float = 0
     no_advance_notice: bool = False  # if no 30-day notice given
+    afc_deduction: float = 0  # monto acumulado AFC empleador a descontar (Art. 13 Ley 19.728)
 
 
 class FiniquitoCalculation(BaseModel):
@@ -134,11 +135,14 @@ def calculate_finiquito(
         indemnizacion_aviso_previo = capped_salary
 
     # Vacaciones proporcionales
-    # Legally: 15 working days per year = 1.25 days/month
+    # pending_vacation_days is in días hábiles (Mon-Fri).
+    # DT requires converting to días corridos (× 7/5) for payment.
+    # This includes the weekends that fall within the vacation period.
     months_worked_current_year = months % 12
-    vacation_earned = months_worked_current_year * 1.25
-    vacation_days_total = vacation_earned + data.pending_vacation_days
-    vacaciones_proporcionales = vacation_days_total * daily_salary
+    vacation_earned_habiles = months_worked_current_year * 1.25
+    vacation_days_habiles_total = vacation_earned_habiles + data.pending_vacation_days
+    vacation_days_corridos = vacation_days_habiles_total * (7 / 5)
+    vacaciones_proporcionales = vacation_days_corridos * daily_salary
 
     # Remuneraciones pendientes
     remuneraciones_pendientes = daily_salary * data.pending_salary_days
@@ -157,7 +161,11 @@ def calculate_finiquito(
     # Descuentos previsionales (7% salud + AFP) on remuneraciones pendientes only
     descuentos_previsionales = remuneraciones_pendientes * 0.127  # approx 7% + 5.7% AFP
 
-    total_neto = total_haberes - descuentos_previsionales
+    # AFC employer deduction (Art. 13 Ley 19.728) — optional, applied against indemnización años
+    # Cannot exceed indemnización_anos
+    afc_deduction = min(data.afc_deduction, indemnizacion_anos)
+
+    total_neto = total_haberes - descuentos_previsionales - afc_deduction
 
     result = {
         "employee_id": emp.id,
@@ -178,14 +186,16 @@ def calculate_finiquito(
         "total_haberes": round(total_haberes, 0),
         "descuentos_previsionales": round(descuentos_previsionales, 0),
         "total_neto": round(total_neto, 0),
+        "afc_deduction": round(afc_deduction, 0),
         "breakdown": {
             "uf_value": uf_value,
             "uf_cap": uf_cap,
             "capped_salary": capped_salary,
             "complete_years": complete_years_legal,
-            "vacation_earned_days": round(vacation_earned, 2),
+            "vacation_earned_habiles": round(vacation_earned_habiles, 2),
             "pending_vacation_days": data.pending_vacation_days,
-            "total_vacation_days": round(vacation_days_total, 2),
+            "total_vacation_habiles": round(vacation_days_habiles_total, 2),
+            "total_vacation_days": round(vacation_days_corridos, 2),
             "daily_salary": round(daily_salary, 2),
             "no_advance_notice": data.no_advance_notice,
             "imm_value": imm_value,

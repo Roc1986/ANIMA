@@ -56,14 +56,16 @@ interface FiniquitoResult {
   gratificacion_proporcional: number
   total_haberes: number
   descuentos_previsionales: number
+  afc_deduction: number
   total_neto: number
   breakdown: {
     uf_value: number
     uf_cap: number
     capped_salary: number
     complete_years: number
-    vacation_earned_days: number
+    vacation_earned_habiles?: number
     pending_vacation_days: number
+    total_vacation_habiles?: number
     total_vacation_days: number
     daily_salary: number
     no_advance_notice: boolean
@@ -391,6 +393,23 @@ export default function Finiquito() {
                 </label>
               </div>
             )}
+
+            {watchedCause && watchedCause.includes('161') && (
+              <div>
+                <label className="label-field">Descuento AFC empleador (CLP)</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  defaultValue="0"
+                  className="input-field"
+                  {...register('afc_deduction', { valueAsNumber: true })}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Opcional — Art. 13 Ley 19.728: monto acumulado en cuenta individual AFC (1,6% mensual empleador). Se descuenta de la indemnización por años.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end pt-2">
@@ -476,8 +495,8 @@ export default function Finiquito() {
                 <tr className="hover:bg-gray-50">
                   <td className="px-4 py-2">Vacaciones proporcionales (Art. 73)</td>
                   <td className="px-4 py-2 text-gray-500 text-xs">
-                    {result.breakdown.total_vacation_days.toFixed(2)} días ×{' '}
-                    {formatCLP(result.breakdown.daily_salary)}/día
+                    {result.breakdown.total_vacation_habiles?.toFixed(2) ?? result.breakdown.total_vacation_days.toFixed(2)} días hábiles
+                    {' '}→ {result.breakdown.total_vacation_days.toFixed(2)} días corridos × {formatCLP(result.breakdown.daily_salary)}/día
                   </td>
                   <td className="px-4 py-2 text-right font-medium">{formatCLP(result.vacaciones_proporcionales)}</td>
                 </tr>
@@ -506,6 +525,13 @@ export default function Finiquito() {
                   <td className="px-4 py-2">(-) Descuentos previsionales</td>
                   <td className="px-4 py-2 text-xs">AFP + Salud sobre rem. pendientes</td>
                   <td className="px-4 py-2 text-right">−{formatCLP(result.descuentos_previsionales)}</td>
+                </tr>
+              )}
+              {result.afc_deduction > 0 && (
+                <tr className="hover:bg-gray-50 text-orange-700">
+                  <td className="px-4 py-2">(-) Descuento AFC empleador (Art. 13 Ley 19.728)</td>
+                  <td className="px-4 py-2 text-xs">Aporte acumulado en cuenta individual AFC</td>
+                  <td className="px-4 py-2 text-right">−{formatCLP(result.afc_deduction)}</td>
                 </tr>
               )}
               <tr className="bg-anima-blue text-white font-bold text-base">
