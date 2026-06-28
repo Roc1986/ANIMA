@@ -11,6 +11,7 @@ from database import engine, Base
 from models import *  # noqa - ensures all models are registered
 from models.uf_value import UFValue  # noqa - ensure uf_values table is created
 from models.imm_value import IMMValue  # noqa - ensure imm_values table is created
+from models.utm_value import UTMValue  # noqa - ensure utm_values table is created
 
 from routers import (
     auth, employees, payroll, attendance, documents, reports,
@@ -18,6 +19,7 @@ from routers import (
 )
 from routers.uf_values import router as uf_values_router
 from routers.imm_values import router as imm_values_router
+from routers.utm_values import router as utm_values_router
 from routers.calendar import router as calendar_router
 from routers.seed_test import router as seed_test_router
 from services.indicators_sync import sync_all, sync_uf, sync_utm
@@ -98,6 +100,7 @@ def run_column_migrations(eng):
         "ALTER TABLE employees ADD COLUMN IF NOT EXISTS isapre_amount_type VARCHAR(10) DEFAULT 'pesos'",
         "CREATE TABLE IF NOT EXISTS uf_values (id SERIAL PRIMARY KEY, date DATE UNIQUE NOT NULL, value NUMERIC(12,2) NOT NULL, source VARCHAR(100) DEFAULT 'manual', created_at TIMESTAMPTZ DEFAULT NOW())",
         "CREATE TABLE IF NOT EXISTS imm_values (id SERIAL PRIMARY KEY, date DATE UNIQUE NOT NULL, value NUMERIC(12,2) NOT NULL, source VARCHAR(100) DEFAULT 'manual', created_at TIMESTAMPTZ DEFAULT NOW())",
+        "CREATE TABLE IF NOT EXISTS utm_values (id SERIAL PRIMARY KEY, date DATE UNIQUE NOT NULL, value NUMERIC(12,2) NOT NULL, source VARCHAR(100) DEFAULT 'manual', created_at TIMESTAMPTZ DEFAULT NOW())",
     ]
     with eng.connect() as conn:
         for sql in migrations:
@@ -233,6 +236,7 @@ app.include_router(super_admin.router, prefix="/api/super", tags=["Super Adminis
 app.include_router(accounting.router, prefix="/api/accounting", tags=["Contabilidad"])
 app.include_router(uf_values_router, prefix="/api/uf-values", tags=["uf-values"])
 app.include_router(imm_values_router, prefix="/api/imm-values", tags=["imm-values"])
+app.include_router(utm_values_router, prefix="/api/utm-values", tags=["utm-values"])
 app.include_router(calendar_router, prefix="/api/calendar", tags=["Calendario"])
 app.include_router(seed_test_router, prefix="/api/seed", tags=["Seed Test Data"])
 

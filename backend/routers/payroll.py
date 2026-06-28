@@ -23,6 +23,7 @@ from fastapi.responses import FileResponse
 from dependencies import filter_by_company
 from models.imm_value import IMMValue
 from models.uf_value import UFValue
+from models.utm_value import UTMValue
 import os
 
 router = APIRouter()
@@ -51,6 +52,17 @@ def _get_uf_for_period(db: Session, year: int, month: int) -> float:
         return float(row.value)
     param = db.query(LegalParameter).filter(LegalParameter.key == "uf_value").first()
     return float(param.value) if param else 38500.0
+
+
+def _get_utm_for_period(db: Session, year: int, month: int) -> float:
+    """Returns the UTM value for the first day of a payroll period."""
+    from datetime import date
+    period_date = date(year, month, 1)
+    row = db.query(UTMValue).filter(UTMValue.date <= period_date).order_by(UTMValue.date.desc()).first()
+    if row:
+        return float(row.value)
+    param = db.query(LegalParameter).filter(LegalParameter.key == "UTM").first()
+    return float(param.value) if param else 70588.0
 
 
 def _get_legal_params(db: Session) -> dict:
@@ -116,11 +128,13 @@ def create_payroll_run(
     run_data = data.model_dump()
     run_data['company_id'] = company_id
 
-    # Use historical IMM and UF for the period (retroactive accuracy)
+    # Use historical IMM, UF and UTM for the period (retroactive accuracy)
     if not run_data.get('imm_value') or float(run_data.get('imm_value', 0)) <= 0:
         run_data['imm_value'] = _get_imm_for_period(db, data.period_year, data.period_month)
     if not run_data.get('uf_value') or float(run_data.get('uf_value', 0)) <= 0:
         run_data['uf_value'] = _get_uf_for_period(db, data.period_year, data.period_month)
+    if not run_data.get('utm_value') or float(run_data.get('utm_value', 0)) <= 0:
+        run_data['utm_value'] = _get_utm_for_period(db, data.period_year, data.period_month)
 
     run = PayrollRun(**run_data)
     db.add(run)
@@ -420,17 +434,9 @@ def reverse_calculate(
     legal_params = _get_legal_params(db)
 
     # Use current reference values (approximate if no run context available)
-    uf_value = legal_params.get("UF_VALUE", 38500.0)
-    utm_value = legal_params.get("UTM_VALUE", 67294.0)
-    imm_value = legal_params.get("IMM_VALUE", 500000.0)
-
-    # Fallback defaults if not in legal_params
-    if uf_value == 38500.0 and "UF_VALUE" not in legal_params:
-        uf_value = 38500.0
-    if utm_value == 67294.0 and "UTM_VALUE" not in legal_params:
-        utm_value = 67294.0
-    if imm_value == 500000.0 and "IMM_VALUE" not in legal_params:
-        imm_value = 500000.0
+    uf_value = legal_params.get("UF", legal_params.get("UF_VALUE", 38500.0))
+    utm_value = legal_params.get("UTM", legal_params.get("UTM_VALUE", 70588.0))
+    imm_value = legal_params.get("IMM", legal_params.get("IMM_VALUE", 553553.0))
 
     calculator = ChileanPayrollCalculator(
         uf_value=uf_value,
