@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { PlusIcon, ClockIcon } from '@heroicons/react/24/outline'
+import DateInput from '../components/DateInput'
 
 interface AttendanceRecord {
   id: number
@@ -125,7 +126,7 @@ export default function Attendance() {
           </div>
           <div>
             <label className="label text-xs">Fecha</label>
-            <input className="input" type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
+            <DateInput className="input" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
           </div>
           <div className="flex items-end">
             <button onClick={() => { setFilterEmp(''); setFilterDate('') }} className="btn-secondary text-sm">
@@ -199,7 +200,7 @@ export default function Attendance() {
               </div>
               <div>
                 <label className="label">Fecha *</label>
-                <input className="input" type="date" {...register('date', { required: true })} />
+                <DateInput className="input" {...register('date', { required: true })} />
               </div>
               <div>
                 <label className="label">Tipo de Registro</label>

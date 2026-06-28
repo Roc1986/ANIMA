@@ -9,6 +9,7 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 import { contractsApi, employeesApi, downloadBlob } from '../api/client'
+import DateInput from '../components/DateInput'
 import { useAuth } from '../contexts/AuthContext'
 
 interface Contract {
@@ -357,7 +358,7 @@ export default function Contracts() {
 
                 <div>
                   <label className="label-field">Fecha de Inicio *</label>
-                  <input type="date" className="input-field" {...register('start_date', { required: true })} />
+                  <DateInput className="input-field" {...register('start_date', { required: true })} />
                   {errors.start_date && <p className="error-text">Fecha requerida</p>}
                 </div>
 
@@ -365,8 +366,7 @@ export default function Contracts() {
                   <label className="label-field">
                     Fecha de Término {watchType === 'plazo_fijo' ? '*' : '(solo plazo fijo)'}
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     className="input-field"
                     {...register('end_date', { required: watchType === 'plazo_fijo' })}
                   />
@@ -441,7 +441,7 @@ export default function Contracts() {
 
                 <div>
                   <label className="label-field">Fecha de firma</label>
-                  <input type="date" className="input-field" {...register('signed_at')} />
+                  <DateInput className="input-field" {...register('signed_at')} />
                 </div>
 
                 <div className="flex items-center gap-2 pt-6">

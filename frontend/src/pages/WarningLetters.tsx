@@ -8,6 +8,7 @@ import {
   ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline'
 import { api, employeesApi, downloadBlob } from '../api/client'
+import DateInput from '../components/DateInput'
 import { useAuth } from '../contexts/AuthContext'
 
 interface Employee {
@@ -245,7 +246,7 @@ export default function WarningLetters() {
 
                 <div>
                   <label className="label-field">Fecha *</label>
-                  <input type="date" className="input-field" {...register('date', { required: true })} />
+                  <DateInput className="input-field" {...register('date', { required: true })} />
                   {errors.date && <p className="error-text">Fecha requerida</p>}
                 </div>
 

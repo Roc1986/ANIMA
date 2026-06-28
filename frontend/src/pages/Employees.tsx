@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { PlusIcon, MagnifyingGlassIcon, UserIcon } from '@heroicons/react/24/outline'
+import DateInput from '../components/DateInput'
 
 interface Employee {
   id: number
@@ -261,7 +262,7 @@ export default function Employees() {
                 </div>
                 <div>
                   <label className="label">Fecha de Ingreso *</label>
-                  <input className="input" type="date" {...register('hire_date', { required: true })} />
+                  <DateInput className="input" {...register('hire_date', { required: true })} />
                 </div>
                 <div>
                   <label className="label">Sueldo Base *</label>

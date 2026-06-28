@@ -7,6 +7,7 @@ import {
   PlusIcon, CalculatorIcon, CheckIcon, DocumentArrowDownIcon,
   ChevronDownIcon, ChevronRightIcon, ArrowsRightLeftIcon
 } from '@heroicons/react/24/outline'
+import DateInput from '../components/DateInput'
 
 interface PayrollRun {
   id: number
@@ -897,7 +898,7 @@ export default function Payroll() {
                 </div>
                 <div>
                   <label className="label">Fecha de Pago</label>
-                  <input className="input" type="date" {...register('payment_date')} />
+                  <DateInput className="input" {...register('payment_date')} />
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">

@@ -13,6 +13,7 @@ import {
   ChevronUpIcon,
 } from '@heroicons/react/24/outline'
 import { vacationsApi, employeesApi, downloadBlob } from '../api/client'
+import DateInput from '../components/DateInput'
 import { useAuth } from '../contexts/AuthContext'
 
 interface VacationSummary {
@@ -467,12 +468,12 @@ export default function Vacations() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label-field">Fecha inicio *</label>
-                  <input type="date" className="input-field" {...register('start_date', { required: true })} />
+                  <DateInput className="input-field" {...register('start_date', { required: true })} />
                   {errors.start_date && <p className="error-text">Fecha requerida</p>}
                 </div>
                 <div>
                   <label className="label-field">Fecha término *</label>
-                  <input type="date" className="input-field" {...register('end_date', { required: true })} />
+                  <DateInput className="input-field" {...register('end_date', { required: true })} />
                   {errors.end_date && <p className="error-text">Fecha requerida</p>}
                 </div>
               </div>

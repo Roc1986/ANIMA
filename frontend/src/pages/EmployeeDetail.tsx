@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon, NoSymbolIcon, DocumentArrowDownIcon, TrashIcon, ArrowUpTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import DateInput from '../components/DateInput'
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   liquidacion: 'Liquidación',
@@ -396,7 +397,7 @@ export default function EmployeeDetail() {
             <div>
               <label className="label">Fecha Ingreso</label>
               {editing
-                ? <input className="input" type="date" {...register('hire_date')} />
+                ? <DateInput className="input" {...register('hire_date')} />
                 : <p className="text-sm text-gray-800 py-2">{formatDateCL(employee.hire_date)}</p>
               }
             </div>
@@ -608,7 +609,7 @@ export default function EmployeeDetail() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Fecha de término *</label>
-                <input type="date" className="input" value={terminateData.termination_date}
+                <DateInput className="input" value={terminateData.termination_date}
                   onChange={e => setTerminateData(d => ({ ...d, termination_date: e.target.value }))} />
               </div>
               <div>
