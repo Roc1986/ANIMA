@@ -62,23 +62,24 @@ def delete_imm_value(imm_id: int, db: Session = Depends(get_db), current_user: U
 
 @router.post("/seed")
 def seed_imm_values(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
-    """Seed historical IMM values. Source: Dirección del Trabajo / BCCh."""
+    """Seed historical IMM values. Source: Dirección del Trabajo / Leyes vigentes."""
     values = [
-        # (vigente_desde, valor) — Fuente: Dirección del Trabajo, Ley respectiva
-        ("2023-05-01", 440000.00),   # Ley 21.561
-        ("2023-09-01", 460000.00),   # Reajuste septiembre 2023
-        ("2024-01-01", 500000.00),   # Compromiso anticipado julio→enero 2024
-        ("2024-07-01", 500000.00),   # Sin cambio (ya se cumplió anticipado)
-        ("2025-01-01", 510616.00),   # Reajuste enero 2025
-        ("2025-05-01", 529000.00),   # Reajuste mayo 2025
-        ("2026-01-01", 539000.00),   # Reajuste enero 2026
-        ("2026-05-01", 553553.00),   # Ley 21.830 (ef. retroactivo 01/05/2026)
+        # (vigente_desde, valor) — Fuente: DT, leyes respectivas
+        ("2022-05-01", 380000.00),   # Ley 21.431 — reajuste mayo 2022
+        ("2022-08-01", 400000.00),   # Ley 21.456 — reajuste agosto 2022
+        ("2023-05-01", 440000.00),   # Ley 21.578 — reajuste mayo 2023
+        ("2024-01-01", 500000.00),   # Ley 21.578 art.2 — adelanto "500 en 4" a enero 2024
+        ("2025-03-01", 510650.00),   # Reajuste marzo 2025 (DT)
+        ("2026-05-01", 553553.00),   # Ley 21.830 — vigente 01/05/2026
     ]
     count = 0
     for d, v in values:
         existing = db.query(IMMValue).filter(IMMValue.date == d).first()
         if not existing:
-            db.add(IMMValue(date=d, value=v, source="seed_historico"))
+            db.add(IMMValue(date=d, value=v, source="seed_historico_DT"))
             count += 1
+        else:
+            existing.value = v
+            existing.source = "seed_historico_DT"
     db.commit()
-    return {"message": f"Seeded {count} IMM values"}
+    return {"message": f"Seeded/updated {count} IMM values (de {len(values)} totales)"}

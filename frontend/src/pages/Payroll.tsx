@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { payrollApi, employeesApi, reportsApi, aiLegalApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
+import { payrollApi, employeesApi, reportsApi, aiLegalApi, ufValuesApi, immValuesApi, utmValuesApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -97,7 +97,11 @@ export default function Payroll() {
     }
   })
 
-  const { register, handleSubmit, reset } = useForm({
+  const [createPeriodYear, setCreatePeriodYear] = useState(new Date().getFullYear())
+  const [createPeriodMonth, setCreatePeriodMonth] = useState(new Date().getMonth() + 1)
+  const [periodValuesLoading, setPeriodValuesLoading] = useState(false)
+
+  const { register, handleSubmit, reset, setValue } = useForm({
     defaultValues: {
       period_year: new Date().getFullYear(),
       period_month: new Date().getMonth() + 1,
@@ -123,16 +127,31 @@ export default function Payroll() {
   useEffect(() => {
     fetchRuns()
     employeesApi.list({ is_active: true }).then(r => setEmployees(r.data)).catch(() => {})
-    // Load current legal params to pre-fill UF/UTM/IMM in new payroll form
-    aiLegalApi.getParameters().then(r => {
-      const map: Record<string, number> = {}
-      r.data.forEach((p: { key: string; value: number }) => { map[p.key] = Number(p.value) })
-      const uf = map['UF'] ?? 38500
-      const utm = map['UTM'] ?? 67294
-      const imm = map['IMM'] ?? 500000
-      reset(prev => ({ ...prev, uf_value: uf, utm_value: utm, imm_value: imm }))
-    }).catch(() => {})
   }, [])
+
+  // Auto-load historical UF/UTM/IMM whenever the selected period changes
+  useEffect(() => {
+    const year = createPeriodYear
+    const month = createPeriodMonth
+    if (!year || !month) return
+    setPeriodValuesLoading(true)
+    // UF: last day of the period month (Previred standard)
+    const lastDay = new Date(year, month, 0).getDate()
+    const ufDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+    // UTM/IMM: first day of the period month
+    const periodDate = `${year}-${String(month).padStart(2, '0')}-01`
+    Promise.all([
+      ufValuesApi.forDate(ufDate),
+      utmValuesApi.forDate(periodDate),
+      immValuesApi.forDate(periodDate),
+    ]).then(([ufRes, utmRes, immRes]) => {
+      setValue('period_year', year)
+      setValue('period_month', month)
+      setValue('uf_value', Number(ufRes.data.value))
+      setValue('utm_value', Number(utmRes.data.value))
+      setValue('imm_value', Number(immRes.data.value))
+    }).catch(() => {}).finally(() => setPeriodValuesLoading(false))
+  }, [createPeriodYear, createPeriodMonth])
 
   const openEditEntry = (runId: number, entry: PayrollEntry) => {
     setEditingEntry({ runId, entry })
@@ -876,14 +895,29 @@ export default function Payroll() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label">Año</label>
-                  <input className="input" type="number" {...register('period_year', { required: true, valueAsNumber: true })} />
+                  <input className="input" type="number"
+                    {...register('period_year', { required: true, valueAsNumber: true })}
+                    onChange={e => setCreatePeriodYear(Number(e.target.value))}
+                  />
                 </div>
                 <div>
                   <label className="label">Mes</label>
-                  <select className="input" {...register('period_month', { valueAsNumber: true })}>
+                  <select className="input"
+                    {...register('period_month', { valueAsNumber: true })}
+                    onChange={e => setCreatePeriodMonth(Number(e.target.value))}
+                  >
                     {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
                   </select>
                 </div>
+              </div>
+              {periodValuesLoading ? (
+                <p className="text-xs text-gray-400 text-center py-1">Consultando valores históricos...</p>
+              ) : (
+                <p className="text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2">
+                  Valores cargados automáticamente desde tablas históricas para {MONTHS[createPeriodMonth - 1]} {createPeriodYear}. Puedes editarlos si es necesario.
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label">Valor UF (CLP)</label>
                   <input className="input" type="number" step="0.01" {...register('uf_value', { required: true, valueAsNumber: true })} />
@@ -903,7 +937,7 @@ export default function Payroll() {
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary">Cancelar</button>
-                <button type="submit" disabled={processing} className="btn-primary">
+                <button type="submit" disabled={processing || periodValuesLoading} className="btn-primary">
                   {processing ? 'Creando...' : 'Crear Nómina'}
                 </button>
               </div>

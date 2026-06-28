@@ -255,6 +255,14 @@ export const immValuesApi = {
   seed: () => api.post('/api/imm-values/seed'),
 }
 
+export const utmValuesApi = {
+  list: () => api.get('/api/utm-values/'),
+  forDate: (date: string) => api.get('/api/utm-values/for-date', { params: { query_date: date } }),
+  create: (data: { date: string; value: number; source?: string }) => api.post('/api/utm-values/', data),
+  delete: (id: number) => api.delete(`/api/utm-values/${id}`),
+  seed: () => api.post('/api/utm-values/seed'),
+}
+
 // Helper to download blob
 export function downloadBlob(blob: Blob, filename: string) {
   const url = window.URL.createObjectURL(blob)
