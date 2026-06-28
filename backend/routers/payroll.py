@@ -61,6 +61,30 @@ def _get_legal_params(db: Session) -> dict:
     return {p.key: float(p.value) for p in params}
 
 
+@router.get("/iusc-table")
+def get_iusc_table(
+    utm_value: float = 71506.0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns IUSC table in both UTM and CLP for the given UTM value."""
+    from services.payroll_calculator import IUSC_TABLE_UTM
+    rows = []
+    for i, (desde, hasta, tasa, rebaja) in enumerate(IUSC_TABLE_UTM):
+        rows.append({
+            "tramo": i + 1,
+            "desde_utm": desde,
+            "hasta_utm": None if hasta == float('inf') else hasta,
+            "desde_clp": round(desde * utm_value),
+            "hasta_clp": None if hasta == float('inf') else round(hasta * utm_value),
+            "tasa": tasa,
+            "tasa_pct": f"{tasa*100:.1f}%",
+            "cantidad_rebajar_utm": rebaja,
+            "cantidad_rebajar_clp": round(rebaja * utm_value),
+        })
+    return {"utm_value": utm_value, "tabla": rows}
+
+
 @router.get("/", response_model=List[PayrollRunOut])
 def list_payroll_runs(
     db: Session = Depends(get_db),

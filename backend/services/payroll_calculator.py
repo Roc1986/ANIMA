@@ -31,18 +31,18 @@ AFP_RATES = {
     "Uno": 0.1049,
 }
 
-# IUSC tabla progresiva mensual en UTM (2024)
+# IUSC tabla progresiva mensual en UTM (2026)
 # Formato: (tramo_desde_utm, tramo_hasta_utm, tasa_marginal, cantidad_a_rebajar_utm)
-# Fuente: SII Art. 43 N°1 LIR (actualizado 2024)
+# Fuente: SII Art. 43 N°1 LIR — Circular N°19/2020, tabla vigente 2026
 IUSC_TABLE_UTM = [
-    (0,        13.5,   0.00,  0.000),
-    (13.5,     30.0,   0.04,  0.540),
-    (30.0,     50.0,   0.08,  1.740),
-    (50.0,     70.0,   0.135, 4.490),
-    (70.0,     90.0,   0.23,  11.140),
-    (90.0,     120.0,  0.304, 17.800),
-    (120.0,    150.0,  0.355, 23.920),
-    (150.0,    float('inf'), 0.40, 30.670),
+    (0,        13.5,   0.00,   0.000),
+    (13.5,     30.0,   0.04,   0.540),
+    (30.0,     50.0,   0.08,   1.740),
+    (50.0,     70.0,   0.135,  4.490),
+    (70.0,     90.0,   0.23,   11.140),
+    (90.0,     120.0,  0.304,  17.800),
+    (120.0,    310.0,  0.35,   23.320),   # Corregido 2026: tope 310 UTM, 35%, rebaja 23.32
+    (310.0,    float('inf'), 0.40, 38.820),  # Corregido 2026: desde 310 UTM, rebaja 38.82
 ]
 
 # Previred movement codes
