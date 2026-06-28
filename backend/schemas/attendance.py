@@ -49,3 +49,11 @@ class AttendanceOut(BaseModel):
 
 class AttendanceBulkCreate(BaseModel):
     records: List[AttendanceCreate]
+
+
+class AttendanceBulkPeriod(BaseModel):
+    employee_id: int
+    start_date: date
+    end_date: date
+    regular_hours: Decimal = Decimal("8")
+    skip_weekends: bool = True

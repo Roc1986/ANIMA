@@ -105,6 +105,8 @@ export const attendanceApi = {
   delete: (id: number) => api.delete(`/api/attendance/${id}`),
   summary: (employeeId: number, year: number, month: number) =>
     api.get(`/api/attendance/summary/${employeeId}`, { params: { year, month } }),
+  bulkPeriod: (data: { employee_id: number; start_date: string; end_date: string; regular_hours?: number }) =>
+    api.post('/api/attendance/bulk-period', data),
 }
 
 // --- Documents ---

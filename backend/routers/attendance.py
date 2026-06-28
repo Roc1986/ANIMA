@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import date
+from datetime import date, timedelta
 
 from database import get_db
 from models.attendance import Attendance
 from models.employee import Employee
-from schemas.attendance import AttendanceCreate, AttendanceUpdate, AttendanceOut, AttendanceBulkCreate
+from schemas.attendance import AttendanceCreate, AttendanceUpdate, AttendanceOut, AttendanceBulkCreate, AttendanceBulkPeriod
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 
@@ -60,6 +60,42 @@ def create_bulk_attendance(
     db.add_all(records)
     db.commit()
     return {"created": len(records)}
+
+
+@router.post("/bulk-period", status_code=201)
+def create_bulk_period_attendance(
+    data: AttendanceBulkPeriod,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create regular attendance records for all working days in a date range, skipping existing ones."""
+    # Collect dates to fill
+    existing = {
+        r.date for r in db.query(Attendance).filter(
+            Attendance.employee_id == data.employee_id,
+            Attendance.date >= data.start_date,
+            Attendance.date <= data.end_date,
+        ).all()
+    }
+
+    created = 0
+    current = data.start_date
+    while current <= data.end_date:
+        # weekday(): 0=Mon … 6=Sun
+        if not (data.skip_weekends and current.weekday() >= 5) and current not in existing:
+            db.add(Attendance(
+                employee_id=data.employee_id,
+                date=current,
+                attendance_type="regular",
+                regular_hours=data.regular_hours,
+                overtime_weekday_hours=0,
+                overtime_sunday_hours=0,
+            ))
+            created += 1
+        current += timedelta(days=1)
+
+    db.commit()
+    return {"created": created, "skipped_existing": len(existing)}
 
 
 @router.put("/{record_id}", response_model=AttendanceOut)
