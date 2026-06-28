@@ -98,9 +98,6 @@ def run_column_migrations(eng):
         "ALTER TABLE employees ADD COLUMN IF NOT EXISTS descuento_voluntario NUMERIC(12,2) DEFAULT 0",
         "ALTER TABLE employees ADD COLUMN IF NOT EXISTS descuento_vivienda NUMERIC(12,2) DEFAULT 0",
         "ALTER TABLE employees ADD COLUMN IF NOT EXISTS isapre_amount_type VARCHAR(10) DEFAULT 'pesos'",
-        "CREATE TABLE IF NOT EXISTS uf_values (id SERIAL PRIMARY KEY, date DATE UNIQUE NOT NULL, value NUMERIC(12,2) NOT NULL, source VARCHAR(100) DEFAULT 'manual', created_at TIMESTAMPTZ DEFAULT NOW())",
-        "CREATE TABLE IF NOT EXISTS imm_values (id SERIAL PRIMARY KEY, date DATE UNIQUE NOT NULL, value NUMERIC(12,2) NOT NULL, source VARCHAR(100) DEFAULT 'manual', created_at TIMESTAMPTZ DEFAULT NOW())",
-        "CREATE TABLE IF NOT EXISTS utm_values (id SERIAL PRIMARY KEY, date DATE UNIQUE NOT NULL, value NUMERIC(12,2) NOT NULL, source VARCHAR(100) DEFAULT 'manual', created_at TIMESTAMPTZ DEFAULT NOW())",
     ]
     with eng.connect() as conn:
         for sql in migrations:
@@ -165,7 +162,7 @@ async def lifespan(app: FastAPI):
         for key, old_val, new_val in _tope_updates:
             _rows = _db.query(LegalParameter).filter(
                 LegalParameter.key == key,
-                LegalParameter.value == old_val,
+                LegalParameter.value < new_val,
             ).all()
             for _p in _rows:
                 _p.value = new_val
@@ -184,7 +181,7 @@ async def lifespan(app: FastAPI):
         _db = SessionLocal()
         _sis = _db.query(LegalParameter).filter(
             LegalParameter.key == "SIS_EMPLEADOR",
-            LegalParameter.value == 1.49,
+            LegalParameter.value < 1.62,
         ).all()
         for _p in _sis:
             _p.value = 1.62

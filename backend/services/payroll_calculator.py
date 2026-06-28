@@ -16,7 +16,6 @@ Key legal references:
 """
 
 import math
-from decimal import Decimal
 from typing import Optional, List
 
 
@@ -196,8 +195,7 @@ class ChileanPayrollCalculator:
         return PREVIRED_CODES["activo"]
 
     def _round_clp(self, value: float) -> float:
-        """Round to nearest peso (CLP has no cents in practice)."""
-        return math.floor(value)
+        return round(value)
 
     def calculate(
         self,

@@ -328,12 +328,10 @@ def seed_test_payroll_runs(
                 ContractModel.is_active == True,
             ).first()
             ct = str(contract.contract_type).split(".")[-1] if contract else "indefinido"
-            gt = str(contract.gratificacion_type) if contract else "legal"
 
             result = calculator.calculate(
                 emp,
                 contract_type=ct,
-                gratificacion_type=gt,
             )
 
             entry = PayrollEntry(
@@ -350,15 +348,15 @@ def seed_test_payroll_runs(
                 remuneracion_tributable=result.get("remuneracion_tributable", 0),
                 descuento_afp=result.get("descuento_afp", 0),
                 descuento_salud=result.get("descuento_salud", 0),
-                descuento_cesantia=result.get("descuento_cesantia_trabajador", 0),
+                descuento_cesantia=result.get("descuento_cesantia", 0),
                 impuesto_unico=result.get("impuesto_unico", 0),
                 pension_alimenticia=result.get("pension_alimenticia", 0),
                 descuento_voluntario=result.get("descuento_voluntario", 0),
                 descuento_ccaf=result.get("descuento_ccaf", 0),
                 descuento_vivienda=result.get("descuento_vivienda", 0),
                 liquido_pagar=result.get("liquido_pagar", 0),
-                aporte_cesantia_empleador=result.get("aporte_empleador_cesantia", 0),
-                aporte_sis=result.get("aporte_empleador_sis", 0),
+                aporte_cesantia_empleador=result.get("aporte_cesantia_empleador", 0),
+                aporte_sis=result.get("aporte_sis", 0),
                 total_costo_empleador=result.get("total_costo_empleador", 0),
                 pension_alimenticia_tipo=str(emp.pension_alimenticia_tipo) if emp.pension_alimenticia_tipo else None,
                 pension_alimenticia_raw=float(emp.pension_alimenticia_raw) if emp.pension_alimenticia_raw else 0,

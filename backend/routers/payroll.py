@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from decimal import Decimal
 from pydantic import BaseModel
 
 from database import get_db
@@ -62,7 +61,7 @@ def _get_utm_for_period(db: Session, year: int, month: int) -> float:
     if row:
         return float(row.value)
     param = db.query(LegalParameter).filter(LegalParameter.key == "UTM").first()
-    return float(param.value) if param else 70588.0
+    return float(param.value) if param else 71506.0
 
 
 def _get_legal_params(db: Session) -> dict:
@@ -75,7 +74,7 @@ def _get_legal_params(db: Session) -> dict:
 
 @router.get("/iusc-table")
 def get_iusc_table(
-    utm_value: float = 71506.0,
+    utm_value: float = 70588.0,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -443,8 +442,8 @@ def reverse_calculate(
     legal_params = _get_legal_params(db)
 
     # Use current reference values (approximate if no run context available)
-    uf_value = legal_params.get("UF", legal_params.get("UF_VALUE", 38500.0))
-    utm_value = legal_params.get("UTM", legal_params.get("UTM_VALUE", 70588.0))
+    uf_value = legal_params.get("UF", legal_params.get("UF_VALUE", 40820.0))
+    utm_value = legal_params.get("UTM", legal_params.get("UTM_VALUE", 71506.0))
     imm_value = legal_params.get("IMM", legal_params.get("IMM_VALUE", 553553.0))
 
     calculator = ChileanPayrollCalculator(
