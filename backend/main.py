@@ -19,6 +19,7 @@ from routers import (
 from routers.uf_values import router as uf_values_router
 from routers.imm_values import router as imm_values_router
 from routers.calendar import router as calendar_router
+from routers.seed_test import router as seed_test_router
 from services.indicators_sync import sync_all, sync_uf, sync_utm
 from services.email_service import send_deadline_reminder
 
@@ -208,6 +209,7 @@ app.include_router(accounting.router, prefix="/api/accounting", tags=["Contabili
 app.include_router(uf_values_router, prefix="/api/uf-values", tags=["uf-values"])
 app.include_router(imm_values_router, prefix="/api/imm-values", tags=["imm-values"])
 app.include_router(calendar_router, prefix="/api/calendar", tags=["Calendario"])
+app.include_router(seed_test_router, prefix="/api/seed", tags=["Seed Test Data"])
 
 
 @app.get("/")
