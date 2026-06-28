@@ -21,10 +21,11 @@ router = APIRouter()
 
 # IMM/UF values per period for retroactive accuracy
 PERIOD_VALUES = {
-    (2026, 3): {"imm": 539000.0, "uf": 38702.0, "utm": 71506.0},
-    (2026, 4): {"imm": 539000.0, "uf": 38780.0, "utm": 71506.0},
-    (2026, 5): {"imm": 553553.0, "uf": 38858.0, "utm": 71506.0},
-    (2026, 6): {"imm": 553553.0, "uf": 38935.0, "utm": 71506.0},
+    # UF = valor del último día del mes (Previred usa UF fin de mes para topes)
+    (2026, 3): {"imm": 539000.0, "uf": 38702.00, "utm": 71506.0},
+    (2026, 4): {"imm": 539000.0, "uf": 38780.00, "utm": 71506.0},
+    (2026, 5): {"imm": 553553.0, "uf": 40610.69, "utm": 71506.0},
+    (2026, 6): {"imm": 553553.0, "uf": 40820.31, "utm": 71506.0},
 }
 
 EMPLOYEES_DATA = [

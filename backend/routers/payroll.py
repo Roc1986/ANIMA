@@ -41,9 +41,11 @@ def _get_imm_for_period(db: Session, year: int, month: int) -> float:
 
 
 def _get_uf_for_period(db: Session, year: int, month: int) -> float:
-    """Returns the UF value for the first day of a payroll period."""
+    """Returns the UF value for the last day of a payroll period (Previred standard)."""
+    import calendar as cal_mod
     from datetime import date
-    period_date = date(year, month, 1)
+    last_day = cal_mod.monthrange(year, month)[1]
+    period_date = date(year, month, last_day)
     row = db.query(UFValue).filter(UFValue.date <= period_date).order_by(UFValue.date.desc()).first()
     if row:
         return float(row.value)

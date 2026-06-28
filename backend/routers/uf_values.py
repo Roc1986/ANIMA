@@ -58,9 +58,12 @@ def delete_uf_value(uf_id: int, db: Session = Depends(get_db), current_user: Use
 def seed_uf_values(db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """Seed recent UF values (2026). Source: CMF Chile."""
     values = [
+        # Valores inicio de mes
         ("2026-01-01", 38543.00), ("2026-02-01", 38623.00), ("2026-03-01", 38702.00),
         ("2026-04-01", 38780.00), ("2026-05-01", 38858.00), ("2026-06-01", 38935.00),
-        ("2026-06-16", 38970.00),
+        # Valores fin de mes (usados por Previred para cálculo de topes)
+        ("2026-03-31", 38702.00), ("2026-04-30", 38780.00),
+        ("2026-05-31", 40610.69), ("2026-06-30", 40820.31),
     ]
     for d, v in values:
         existing = db.query(UFValue).filter(UFValue.date == d).first()
