@@ -180,11 +180,20 @@ def calculate_payroll(
     if run.status not in (PayrollStatus.draft,):
         raise HTTPException(status_code=400, detail="La nómina ya fue calculada o aprobada")
 
+    # Refresh historical values from tables (ensures recalculate picks up correct period values)
+    historical_imm = _get_imm_for_period(db, run.period_year, run.period_month)
+    historical_uf = _get_uf_for_period(db, run.period_year, run.period_month)
+    historical_utm = _get_utm_for_period(db, run.period_year, run.period_month)
+    run.imm_value = historical_imm
+    run.uf_value = historical_uf
+    run.utm_value = historical_utm
+    db.flush()
+
     legal_params = _get_legal_params(db)
     calculator = ChileanPayrollCalculator(
-        uf_value=float(run.uf_value),
-        utm_value=float(run.utm_value),
-        imm_value=float(run.imm_value),
+        uf_value=historical_uf,
+        utm_value=historical_utm,
+        imm_value=historical_imm,
         legal_params=legal_params,
     )
 
