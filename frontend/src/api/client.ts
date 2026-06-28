@@ -88,6 +88,10 @@ export const payrollApi = {
     contract_type: string
     isapre_monthly_amount: number
   }) => api.post('/api/payroll/reverse-calculate', data),
+  iuscTable: (utmValue?: number) =>
+    api.get('/api/payroll/iusc-table', { params: { utm_value: utmValue } }),
+  updateParams: (id: number, data: { imm_value?: number; uf_value?: number; utm_value?: number }) =>
+    api.patch(`/api/payroll/${id}/params`, data),
 }
 
 // --- Attendance ---

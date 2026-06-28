@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import {
   PlusIcon, CalculatorIcon, CheckIcon, DocumentArrowDownIcon,
-  ChevronDownIcon, ChevronRightIcon, ArrowsRightLeftIcon
+  ChevronDownIcon, ChevronRightIcon, ArrowsRightLeftIcon, TableCellsIcon, XMarkIcon
 } from '@heroicons/react/24/outline'
 
 interface PayrollRun {
@@ -76,6 +76,22 @@ export default function Payroll() {
   const [editEntryData, setEditEntryData] = useState<Record<string, number | string>>({})
   const [editLoading, setEditLoading] = useState(false)
   const [editWarnings, setEditWarnings] = useState<string[]>([])
+  const [showIuscTable, setShowIuscTable] = useState(false)
+  const [iuscTableData, setIuscTableData] = useState<{
+    utm_value: number
+    tabla: {
+      tramo: number
+      desde_utm: number
+      hasta_utm: number | null
+      desde_clp: number
+      hasta_clp: number | null
+      tasa: number
+      tasa_pct: string
+      cantidad_rebajar_utm: number
+      cantidad_rebajar_clp: number
+    }[]
+  } | null>(null)
+  const [iuscTableUtm, setIuscTableUtm] = useState<number>(70588)
   const {
     register: registerAdd,
     handleSubmit: handleSubmitAdd,
@@ -360,6 +376,18 @@ export default function Payroll() {
     }
   }
 
+  const openIuscTable = async (utmValue?: number) => {
+    const utm = utmValue ?? iuscTableUtm
+    try {
+      const res = await payrollApi.iuscTable(utm)
+      setIuscTableData(res.data)
+      setIuscTableUtm(res.data.utm_value)
+      setShowIuscTable(true)
+    } catch {
+      toast.error('Error al cargar tabla IUSC')
+    }
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -368,6 +396,9 @@ export default function Payroll() {
           <p className="text-gray-500 text-sm mt-1">Gestión de nóminas y liquidaciones de sueldo</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => openIuscTable()} className="btn-secondary">
+            <TableCellsIcon className="w-4 h-4" /> Tabla IUSC
+          </button>
           <button onClick={() => { setShowReverseCalc(true); setReverseCalcResult(null); resetReverse() }} className="btn-secondary">
             <ArrowsRightLeftIcon className="w-4 h-4" /> Calcular Sueldo Base
           </button>
@@ -409,6 +440,14 @@ export default function Payroll() {
                 </div>
                 <span className={si.cls}>{si.label}</span>
                 <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => openIuscTable(run.utm_value)}
+                    className="btn-secondary text-xs px-2 py-1.5 text-purple-700 border-purple-200 hover:bg-purple-50"
+                    title={`Ver tabla IUSC para UTM $${Number(run.utm_value).toLocaleString('es-CL')}`}
+                  >
+                    <TableCellsIcon className="w-3.5 h-3.5" />
+                    IUSC
+                  </button>
                   {isHR && run.status === 'draft' && (
                     <button
                       onClick={() => onCalculate(run.id)}
@@ -907,6 +946,90 @@ export default function Payroll() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* IUSC Table Modal */}
+      {showIuscTable && iuscTableData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Tabla Impuesto Único de Segunda Categoría (IUSC)</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Art. 43 N°1 LIR — Período mensual</p>
+              </div>
+              <button onClick={() => setShowIuscTable(false)} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-4 border-b bg-gray-50 flex items-center gap-4">
+              <label className="text-sm font-medium text-gray-700">Valor UTM (CLP):</label>
+              <input
+                type="number"
+                value={iuscTableUtm}
+                onChange={e => setIuscTableUtm(Number(e.target.value))}
+                className="input w-36 text-right"
+                step="1"
+              />
+              <button onClick={() => openIuscTable(iuscTableUtm)} className="btn-secondary text-sm px-3 py-1.5">
+                Actualizar
+              </button>
+              <span className="text-xs text-gray-400 ml-2">
+                UTM mayo 2026 = $70.588 · UTM varía mensualmente según SII
+              </span>
+            </div>
+            <div className="overflow-auto flex-1">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100 sticky top-0">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-medium text-gray-600">Tramo</th>
+                    <th className="text-right px-4 py-2 font-medium text-gray-600">Desde (UTM)</th>
+                    <th className="text-right px-4 py-2 font-medium text-gray-600">Hasta (UTM)</th>
+                    <th className="text-right px-4 py-2 font-medium text-gray-600">Desde (CLP)</th>
+                    <th className="text-right px-4 py-2 font-medium text-gray-600">Hasta (CLP)</th>
+                    <th className="text-right px-4 py-2 font-medium text-gray-600">Factor</th>
+                    <th className="text-right px-4 py-2 font-medium text-gray-600">Rebaja (UTM)</th>
+                    <th className="text-right px-4 py-2 font-medium text-gray-600">Rebaja (CLP)</th>
+                    <th className="text-right px-4 py-2 font-medium text-gray-600">Tasa Ef. Máx.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {iuscTableData.tabla.map((row) => (
+                    <tr key={row.tramo} className={`border-t ${row.tasa === 0 ? 'bg-green-50' : row.tramo % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                      <td className="px-4 py-2 font-medium text-gray-700">{row.tramo}</td>
+                      <td className="px-4 py-2 text-right text-gray-600">
+                        {row.desde_utm === 0 ? '—' : row.desde_utm.toFixed(1)}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-600">
+                        {row.hasta_utm === null ? 'Y más' : row.hasta_utm.toFixed(1)}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-600">
+                        {row.desde_clp === 0 ? '—' : formatCLP(row.desde_clp)}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-600">
+                        {row.hasta_clp === null ? 'Y más' : formatCLP(row.hasta_clp)}
+                      </td>
+                      <td className="px-4 py-2 text-right font-semibold text-blue-700">
+                        {row.tasa === 0 ? 'Exento' : row.tasa.toFixed(3)}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-600">
+                        {row.cantidad_rebajar_utm === 0 ? '—' : row.cantidad_rebajar_utm.toFixed(3)}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-600">
+                        {row.cantidad_rebajar_clp === 0 ? '—' : formatCLP(row.cantidad_rebajar_clp)}
+                      </td>
+                      <td className="px-4 py-2 text-right text-emerald-700 font-medium">
+                        {row.tasa === 0 ? 'Exento' : row.tasa_pct}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-4 border-t bg-gray-50 text-xs text-gray-500">
+              Fórmula: IUSC = (Renta Tributable en UTM × Factor − Cantidad a Rebajar en UTM) × Valor UTM · Renta Tributable = Imponible − AFP − Salud − Cesantía Trabajador
+            </div>
           </div>
         </div>
       )}
