@@ -164,29 +164,24 @@ export default function Finiquito() {
     if (!terminationDateDisplay) return
     const isoDate = parseDateCL(terminationDateDisplay)
     if (!isoDate) return
-    const termDate = new Date(isoDate)
-    if (isNaN(termDate.getTime())) return
+    // Parse locally to avoid UTC timezone shift (new Date("YYYY-MM-DD") is UTC midnight)
+    const [termYear, termMonth, termDay] = isoDate.split('-').map(Number)
+    if (!termYear || !termMonth || !termDay) return
 
     payrollApi.list().then(res => {
       const runs = res.data
       if (!runs.length) {
-        // No payroll runs: all days of current month up to termination
-        setValue('pending_salary_days', termDate.getDate())
+        setValue('pending_salary_days', termDay)
         return
       }
       const last = runs[0]
       const lastRunYear = last.period_year
       const lastRunMonth = last.period_month
 
-      const termYear = termDate.getFullYear()
-      const termMonth = termDate.getMonth() + 1
-
       if (termYear === lastRunYear && termMonth === lastRunMonth) {
-        // Termination in same period as last run — 0 pending days
         setValue('pending_salary_days', 0)
       } else if (termYear > lastRunYear || (termYear === lastRunYear && termMonth > lastRunMonth)) {
-        // Days worked in the termination month (not yet paid)
-        setValue('pending_salary_days', termDate.getDate())
+        setValue('pending_salary_days', termDay)
       }
     }).catch(() => {})
   }, [terminationDateDisplay, setValue])
