@@ -341,11 +341,11 @@ export default function Finiquito() {
                 step="0.5"
                 min="0"
                 defaultValue="0"
-                className="input-field"
+                className="input-field border-2 border-indigo-300 focus:border-indigo-500 bg-indigo-50"
                 {...register('pending_vacation_days', { valueAsNumber: true })}
               />
               {selectedEmp && (
-                <p className="text-xs text-indigo-500 mt-1">Auto-calculado desde saldo de vacaciones</p>
+                <p className="text-xs text-indigo-500 mt-1">Auto-calculado desde saldo de vacaciones — editable</p>
               )}
             </div>
 
