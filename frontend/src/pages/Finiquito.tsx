@@ -114,6 +114,8 @@ export default function Finiquito() {
   const [showGratificacion, setShowGratificacion] = useState(false)
   const [terminationDateDisplay, setTerminationDateDisplay] = useState('')
   const [imm, setImm] = useState(510114)
+  const [afcMonthsInSystem, setAfcMonthsInSystem] = useState(0)
+  const [afcNote, setAfcNote] = useState('')
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm()
 
@@ -140,6 +142,14 @@ export default function Finiquito() {
       const pending = res.data.days_pending ?? 0
       setValue('pending_vacation_days', Math.round(pending * 2) / 2) // round to 0.5
     }).catch(() => {})
+
+    // Auto-fetch AFC accumulated from system payroll records
+    finiquitoApi.afcEstimate(emp.id).then(res => {
+      const { afc_employer_accumulated, months_in_system, note } = res.data
+      setAfcMonthsInSystem(months_in_system)
+      setAfcNote(note)
+      setValue('afc_deduction', months_in_system > 0 ? afc_employer_accumulated : 0)
+    }).catch(() => { setAfcMonthsInSystem(0); setAfcNote('') })
 
     // Check contract gratificacion_type
     contractsApi.list({ employee_id: emp.id, is_active: true }).then(res => {
@@ -396,18 +406,26 @@ export default function Finiquito() {
 
             {watchedCause && watchedCause.includes('161') && (
               <div>
-                <label className="label-field">Descuento AFC empleador (CLP)</label>
+                <label className="label-field">Descuento AFC empleador — Art. 13 Ley 19.728 (CLP)</label>
                 <input
                   type="number"
                   step="1"
                   min="0"
                   defaultValue="0"
-                  className="input-field"
+                  className={`input-field ${afcMonthsInSystem > 0 ? 'border-2 border-green-300 bg-green-50' : 'border-2 border-amber-300 bg-amber-50'}`}
                   {...register('afc_deduction', { valueAsNumber: true })}
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  Opcional — Art. 13 Ley 19.728: monto acumulado en cuenta individual AFC (1,6% mensual empleador). Se descuenta de la indemnización por años.
-                </p>
+                {afcNote ? (
+                  <p className={`text-xs mt-1 ${afcMonthsInSystem > 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {afcMonthsInSystem > 0
+                      ? `✓ Calculado desde ${afcMonthsInSystem} nómina(s) en el sistema (1,6% sobre remuneración imponible). Editable.`
+                      : '⚠ Sin nóminas en el sistema — ingrese el monto acumulado desde registros históricos de la empresa.'}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Opcional — se descuenta de la indemnización por años de servicio.
+                  </p>
+                )}
               </div>
             )}
           </div>

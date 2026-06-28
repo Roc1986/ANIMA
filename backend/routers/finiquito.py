@@ -15,6 +15,7 @@ from models.user import User
 from models.document import Document, DocumentType
 from models.imm_value import IMMValue
 from models.uf_value import UFValue
+from models.payroll import PayrollEntry, PayrollRun
 from services.pdf_generator import generate_finiquito_pdf
 
 router = APIRouter()
@@ -90,6 +91,33 @@ def _get_uf_for_date(db: Session, ref_date: date) -> float:
     # fallback to global param
     param = db.query(LegalParameter).filter(LegalParameter.key == "uf_value").first()
     return float(param.value) if param else 40820.0
+
+
+@router.get("/afc-estimate/{employee_id}")
+def get_afc_estimate(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Estimates the accumulated AFC employer contribution (1.6%) from payroll history.
+    Returns the sum from system records and the number of months found.
+    If months_in_system == 0 the caller should prompt manual entry.
+    """
+    entries = (
+        db.query(PayrollEntry)
+        .join(PayrollRun, PayrollEntry.payroll_run_id == PayrollRun.id)
+        .filter(PayrollEntry.employee_id == employee_id)
+        .all()
+    )
+    total_afc = sum(float(e.remuneracion_imponible or 0) * 0.016 for e in entries)
+    return {
+        "employee_id": employee_id,
+        "months_in_system": len(entries),
+        "afc_employer_accumulated": round(total_afc, 0),
+        "rate_used": 0.016,
+        "note": "Calculado desde nóminas registradas en el sistema" if entries else "Sin nóminas en el sistema — ingrese el monto desde registros históricos de la empresa",
+    }
 
 
 @router.post("/calculate")
