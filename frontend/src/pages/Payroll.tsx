@@ -292,6 +292,24 @@ export default function Payroll() {
     }
   }
 
+  const onRecalculate = async (runId: number) => {
+    if (!confirm('¿Recalcular toda la nómina? Se borrarán los valores actuales y se recalculará con los parámetros vigentes del período.')) return
+    setProcessing(true)
+    try {
+      // Reopen to draft first, then recalculate
+      await payrollApi.reopen(runId)
+      await payrollApi.calculate(runId)
+      toast.success('Nómina recalculada correctamente')
+      fetchRuns()
+      if (selectedRun === runId) fetchRunDetail(runId)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } }
+      toast.error(error.response?.data?.detail || 'Error al recalcular')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   const downloadLibroPdf = async (runId: number, year: number, month: number) => {
     try {
       const res = await reportsApi.libroPdf(runId)
@@ -402,14 +420,24 @@ export default function Payroll() {
                     </button>
                   )}
                   {isAdmin && run.status === 'calculated' && (
-                    <button
-                      onClick={() => onApprove(run.id)}
-                      disabled={processing}
-                      className="btn-primary text-xs px-2 py-1.5 bg-green-700 hover:bg-green-800"
-                    >
-                      <CheckIcon className="w-3.5 h-3.5" />
-                      Aprobar
-                    </button>
+                    <>
+                      <button
+                        onClick={() => onRecalculate(run.id)}
+                        disabled={processing}
+                        className="btn-secondary text-xs px-2 py-1.5 text-blue-700 border-blue-300 hover:bg-blue-50"
+                      >
+                        <CalculatorIcon className="w-3.5 h-3.5" />
+                        Recalcular
+                      </button>
+                      <button
+                        onClick={() => onApprove(run.id)}
+                        disabled={processing}
+                        className="btn-primary text-xs px-2 py-1.5 bg-green-700 hover:bg-green-800"
+                      >
+                        <CheckIcon className="w-3.5 h-3.5" />
+                        Aprobar
+                      </button>
+                    </>
                   )}
                   {isAdmin && run.status === 'approved' && (
                     <button

@@ -327,8 +327,8 @@ def reopen_payroll(
     run = q.first()
     if not run:
         raise HTTPException(status_code=404, detail="Nómina no encontrada")
-    if run.status != PayrollStatus.approved:
-        raise HTTPException(status_code=400, detail="Solo se pueden reabrir nóminas aprobadas")
+    if run.status not in (PayrollStatus.approved, PayrollStatus.calculated):
+        raise HTTPException(status_code=400, detail="Solo se pueden reabrir nóminas calculadas o aprobadas")
     run.status = PayrollStatus.calculated
     run.approved_by = None
     run.approved_at = None
