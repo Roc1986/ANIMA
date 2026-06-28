@@ -113,14 +113,14 @@ export default function LegalUpdates() {
   }
 
   // Group params by category
-  const paramGroups: Record<string, LegalParam[]> = {
-    'Valores Base': params.filter(p => ['IMM', 'UF', 'UTM'].includes(p.key)),
-    'AFP': params.filter(p => p.key.startsWith('AFP_')),
-    'Salud y Previsión': params.filter(p => ['TASA_SALUD', 'TOPE_IMPONIBLE_AFP_UF', 'TOPE_IMPONIBLE_SALUD_UF', 'SIS_EMPLEADOR'].includes(p.key)),
-    'Seguro Cesantía': params.filter(p => p.key.startsWith('CESANTIA_')),
-    'Gratificación': params.filter(p => p.key.startsWith('GRATIFICACION_')),
-    'Jornada y HH.EE': params.filter(p => p.key.startsWith('RECARGO_') || p.key.startsWith('JORNADA_')),
-  }
+  const paramGroups: { label: string; defaultOpen: boolean; params: LegalParam[] }[] = [
+    { label: 'Valores Base', defaultOpen: true,  params: params.filter(p => ['IMM', 'UF', 'UTM'].includes(p.key)) },
+    { label: 'AFP',          defaultOpen: false, params: params.filter(p => p.key.startsWith('AFP_')) },
+    { label: 'Salud y Previsión', defaultOpen: false, params: params.filter(p => ['TASA_SALUD', 'TOPE_IMPONIBLE_AFP_UF', 'TOPE_IMPONIBLE_SALUD_UF', 'TOPE_IMPONIBLE_AFC_UF', 'SIS_EMPLEADOR'].includes(p.key)) },
+    { label: 'Seguro Cesantía', defaultOpen: false, params: params.filter(p => p.key.startsWith('CESANTIA_')) },
+    { label: 'Gratificación',   defaultOpen: false, params: params.filter(p => p.key.startsWith('GRATIFICACION_')) },
+    { label: 'Jornada y HH.EE', defaultOpen: false, params: params.filter(p => p.key.startsWith('RECARGO_') || p.key.startsWith('JORNADA_')) },
+  ]
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -276,13 +276,17 @@ export default function LegalUpdates() {
         </div>
       )}
 
-      {/* Parameters by group */}
-      {Object.entries(paramGroups).map(([group, groupParams]) => {
+      {/* Parameters by group — accordion */}
+      {paramGroups.map(({ label, defaultOpen, params: groupParams }) => {
         if (groupParams.length === 0) return null
         return (
-          <div key={group} className="card mb-4">
-            <h2 className="font-semibold text-gray-800 mb-3">{group}</h2>
-            <div className="space-y-2">
+          <details key={label} className="card mb-3 group" open={defaultOpen}>
+            <summary className="flex items-center justify-between cursor-pointer select-none list-none">
+              <h2 className="font-semibold text-gray-800">{label}</h2>
+              <span className="text-xs text-gray-400 group-open:hidden">▶ {groupParams.length} parámetros</span>
+              <span className="text-xs text-gray-400 hidden group-open:inline">▼ cerrar</span>
+            </summary>
+            <div className="mt-3 space-y-2">
               {groupParams.map(param => (
                 <div key={param.key} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
                   <div className="flex-1">
@@ -332,7 +336,7 @@ export default function LegalUpdates() {
                 </div>
               ))}
             </div>
-          </div>
+          </details>
         )
       })}
 
