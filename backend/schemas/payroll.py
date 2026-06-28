@@ -17,6 +17,8 @@ class PayrollRunCreate(BaseModel):
 
 class PayrollRunOut(BaseModel):
     id: int
+    company_id: Optional[int] = None
+    company_name: Optional[str] = None
     period_year: int
     period_month: int
     status: PayrollStatus

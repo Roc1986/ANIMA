@@ -98,12 +98,20 @@ def get_iusc_table(
 
 @router.get("/", response_model=List[PayrollRunOut])
 def list_payroll_runs(
+    company_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    q = db.query(PayrollRun)
+    q = db.query(PayrollRun).join(Company, PayrollRun.company_id == Company.id)
     q = filter_by_company(q, PayrollRun, current_user)
-    return q.order_by(PayrollRun.period_year.desc(), PayrollRun.period_month.desc()).all()
+    if company_id and current_user.role == "super_admin":
+        q = q.filter(PayrollRun.company_id == company_id)
+    runs = q.order_by(PayrollRun.period_year.desc(), PayrollRun.period_month.desc()).all()
+    # Attach company_name to each run
+    company_map = {c.id: c.name for c in db.query(Company).all()}
+    for run in runs:
+        run.company_name = company_map.get(run.company_id, "—")
+    return runs
 
 
 @router.post("/", response_model=PayrollRunOut, status_code=201)

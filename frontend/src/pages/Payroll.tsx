@@ -11,6 +11,8 @@ import DateInput from '../components/DateInput'
 
 interface PayrollRun {
   id: number
+  company_id?: number
+  company_name?: string
   period_year: number
   period_month: number
   status: string
@@ -61,9 +63,11 @@ interface ReverseCalcResult {
 }
 
 export default function Payroll() {
-  const { isHR, isAdmin } = useAuth()
+  const { isHR, isAdmin, isSuperAdmin } = useAuth()
   const [runs, setRuns] = useState<PayrollRun[]>([])
   const [loading, setLoading] = useState(true)
+  const [filterCompanyId, setFilterCompanyId] = useState<number | ''>('')
+  const [companies, setCompanies] = useState<{ id: number; name: string }[]>([])
   const [showCreate, setShowCreate] = useState(false)
   const [showReverseCalc, setShowReverseCalc] = useState(false)
   const [reverseCalcResult, setReverseCalcResult] = useState<ReverseCalcResult | null>(null)
@@ -112,10 +116,11 @@ export default function Payroll() {
     }
   })
 
-  const fetchRuns = async () => {
+  const fetchRuns = async (companyId?: number | '') => {
     setLoading(true)
     try {
-      const res = await payrollApi.list()
+      const params = companyId ? { company_id: companyId as number } : undefined
+      const res = await payrollApi.list(params)
       setRuns(res.data)
     } catch {
       toast.error('Error al cargar nóminas')
@@ -127,6 +132,11 @@ export default function Payroll() {
   useEffect(() => {
     fetchRuns()
     employeesApi.list({ is_active: true }).then(r => setEmployees(r.data)).catch(() => {})
+    if (isSuperAdmin()) {
+      import('../api/client').then(({ api }) =>
+        api.get('/api/super/companies').then(r => setCompanies(r.data)).catch(() => {})
+      )
+    }
   }, [])
 
   // Auto-load historical UF/UTM/IMM whenever the selected period changes
@@ -399,6 +409,27 @@ export default function Payroll() {
         </div>
       </div>
 
+      {/* Company filter — super admin only */}
+      {isSuperAdmin() && companies.length > 0 && (
+        <div className="card mb-4 py-3">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Filtrar por empresa:</label>
+            <select
+              className="input max-w-xs"
+              value={filterCompanyId}
+              onChange={e => {
+                const val = e.target.value ? Number(e.target.value) : ''
+                setFilterCompanyId(val)
+                fetchRuns(val)
+              }}
+            >
+              <option value="">Todas las empresas</option>
+              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Runs list */}
       <div className="space-y-3">
         {loading ? (
@@ -422,6 +453,11 @@ export default function Payroll() {
                 <div className="flex-1">
                   <p className="font-semibold text-gray-800">
                     {MONTHS[run.period_month - 1]} {run.period_year}
+                    {isSuperAdmin() && run.company_name && (
+                      <span className="ml-2 text-xs font-normal text-white bg-indigo-500 rounded-full px-2 py-0.5">
+                        {run.company_name}
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-400">
                     UF: ${Number(run.uf_value).toLocaleString('es-CL')} · UTM: ${Number(run.utm_value).toLocaleString('es-CL')} · IMM: ${Number(run.imm_value).toLocaleString('es-CL')}

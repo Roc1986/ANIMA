@@ -72,7 +72,7 @@ export const employeesApi = {
 
 // --- Payroll ---
 export const payrollApi = {
-  list: () => api.get('/api/payroll/'),
+  list: (params?: { company_id?: number }) => api.get('/api/payroll/', { params }),
   create: (data: unknown) => api.post('/api/payroll/', data),
   get: (id: number) => api.get(`/api/payroll/${id}`),
   calculate: (id: number) => api.post(`/api/payroll/${id}/calculate`),
