@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { superAdminApi } from '../api/client'
+import { superAdminApi, payrollApi } from '../api/client'
 import toast from 'react-hot-toast'
 import {
   BuildingStorefrontIcon,
@@ -59,6 +59,18 @@ const KEY_LABELS: Record<string, string> = {
 
 const HIGHLIGHT_KEYS = ['IMM', 'UF', 'UTM', 'TOPE_IMPONIBLE_AFP_UF', 'TOPE_IMPONIBLE_SALUD_UF']
 
+interface IuscRow {
+  tramo: number
+  desde_utm: number
+  hasta_utm: number | null
+  desde_clp: number
+  hasta_clp: number | null
+  tasa: number
+  tasa_pct: string
+  cantidad_rebajar_utm: number
+  cantidad_rebajar_clp: number
+}
+
 export default function SuperDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [companies, setCompanies] = useState<Company[]>([])
@@ -67,16 +79,37 @@ export default function SuperDashboard() {
   const [syncing, setSyncing] = useState(false)
   const [editKey, setEditKey] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [iuscRows, setIuscRows] = useState<IuscRow[]>([])
+  const [iuscUtm, setIuscUtm] = useState<number>(70588)
+  const [iuscLoading, setIuscLoading] = useState(false)
 
   const loadParams = () =>
     superAdminApi.listGlobalParams().then(r => setGlobalParams(r.data)).catch(() => {})
+
+  const loadIuscTable = async (utm: number) => {
+    setIuscLoading(true)
+    try {
+      const res = await payrollApi.iuscTable(utm)
+      setIuscRows(res.data.tabla)
+      setIuscUtm(res.data.utm_value)
+    } catch {
+      toast.error('Error al cargar tabla IUSC')
+    } finally {
+      setIuscLoading(false)
+    }
+  }
 
   useEffect(() => {
     Promise.all([superAdminApi.dashboard(), superAdminApi.listCompanies(), superAdminApi.listGlobalParams()])
       .then(([statsRes, companiesRes, paramsRes]) => {
         setStats(statsRes.data)
         setCompanies(companiesRes.data)
-        setGlobalParams(paramsRes.data)
+        const params: GlobalParam[] = paramsRes.data
+        setGlobalParams(params)
+        const utmParam = params.find(p => p.key === 'UTM')
+        const utm = utmParam ? Number(utmParam.value) : 70588
+        setIuscUtm(utm)
+        loadIuscTable(utm)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -279,6 +312,69 @@ export default function SuperDashboard() {
             </table>
           </div>
         </details>
+      </div>
+
+      {/* IUSC Table */}
+      <div className="card mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-semibold text-gray-800">Tabla IUSC — Art. 43 N°1 LIR</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Impuesto Único de Segunda Categoría. Se actualiza con el UTM del período.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-600 font-medium">UTM (CLP):</label>
+            <input
+              type="number"
+              value={iuscUtm}
+              onChange={e => setIuscUtm(Number(e.target.value))}
+              className="input w-28 text-right text-sm py-1"
+              step="1"
+            />
+            <button
+              onClick={() => loadIuscTable(iuscUtm)}
+              disabled={iuscLoading}
+              className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
+            >
+              <ArrowPathIcon className={`w-3.5 h-3.5 ${iuscLoading ? 'animate-spin' : ''}`} />
+              Actualizar
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr className="text-left text-gray-500 text-xs">
+                <th className="px-3 py-2 font-medium">Tramo</th>
+                <th className="px-3 py-2 font-medium text-right">Desde (UTM)</th>
+                <th className="px-3 py-2 font-medium text-right">Hasta (UTM)</th>
+                <th className="px-3 py-2 font-medium text-right">Desde (CLP)</th>
+                <th className="px-3 py-2 font-medium text-right">Hasta (CLP)</th>
+                <th className="px-3 py-2 font-medium text-right">Factor</th>
+                <th className="px-3 py-2 font-medium text-right">Rebaja (UTM)</th>
+                <th className="px-3 py-2 font-medium text-right">Rebaja (CLP)</th>
+                <th className="px-3 py-2 font-medium text-right">Tasa Ef. Máx.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {iuscRows.map(row => (
+                <tr key={row.tramo} className={`border-t text-sm ${row.tasa === 0 ? 'bg-green-50' : row.tramo % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                  <td className="px-3 py-2 font-medium text-gray-700">{row.tramo}</td>
+                  <td className="px-3 py-2 text-right text-gray-500">{row.desde_utm === 0 ? '—' : row.desde_utm.toFixed(1)}</td>
+                  <td className="px-3 py-2 text-right text-gray-500">{row.hasta_utm === null ? 'Y más' : row.hasta_utm.toFixed(1)}</td>
+                  <td className="px-3 py-2 text-right text-gray-600">{row.desde_clp === 0 ? '—' : formatCLP(row.desde_clp)}</td>
+                  <td className="px-3 py-2 text-right text-gray-600">{row.hasta_clp === null ? 'Y más' : formatCLP(row.hasta_clp)}</td>
+                  <td className="px-3 py-2 text-right font-semibold text-blue-700">{row.tasa === 0 ? 'Exento' : row.tasa.toFixed(3)}</td>
+                  <td className="px-3 py-2 text-right text-gray-500">{row.cantidad_rebajar_utm === 0 ? '—' : row.cantidad_rebajar_utm.toFixed(3)}</td>
+                  <td className="px-3 py-2 text-right text-gray-600">{row.cantidad_rebajar_clp === 0 ? '—' : formatCLP(row.cantidad_rebajar_clp)}</td>
+                  <td className="px-3 py-2 text-right font-medium text-emerald-700">{row.tasa === 0 ? 'Exento' : row.tasa_pct}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">
+          Fórmula: IUSC = (Renta en UTM × Factor − Rebaja en UTM) × UTM · Renta tributable = Imponible − AFP − Salud − Cesantía trabajador
+        </p>
       </div>
 
       {/* Company table */}
