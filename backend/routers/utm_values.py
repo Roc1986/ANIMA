@@ -1,3 +1,4 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import date
@@ -10,9 +11,13 @@ from models.user import User
 
 router = APIRouter()
 
+MINDICADOR_API = "https://mindicador.cl/api"
+
+
 @router.get("/")
 def list_utm_values(limit: int = 60, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(UTMValue).order_by(UTMValue.date.desc()).limit(limit).all()
+
 
 @router.get("/for-date")
 def get_utm_for_date(query_date: date, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -24,10 +29,12 @@ def get_utm_for_date(query_date: date, db: Session = Depends(get_db), current_us
     fallback = float(param.value) if param else 70588.0
     return {"date": str(query_date), "value": fallback}
 
+
 class UTMValueCreate(BaseModel):
     date: date
     value: float
     source: str = "manual"
+
 
 @router.post("/", status_code=201)
 def create_utm_value(data: UTMValueCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
@@ -44,6 +51,7 @@ def create_utm_value(data: UTMValueCreate, db: Session = Depends(get_db), curren
     db.refresh(row)
     return row
 
+
 @router.delete("/{utm_id}")
 def delete_utm_value(utm_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     row = db.query(UTMValue).filter(UTMValue.id == utm_id).first()
@@ -53,35 +61,61 @@ def delete_utm_value(utm_id: int, db: Session = Depends(get_db), current_user: U
     db.commit()
     return {"message": "Eliminado"}
 
+
+@router.post("/sync-historical")
+def sync_utm_historical(
+    from_year: int = 2022,
+    to_year: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """
+    Descarga valores UTM desde mindicador.cl (SII) para cada año en el rango
+    y los almacena con fecha del primer día del mes vigente.
+    """
+    today = date.today()
+    if to_year == 0:
+        to_year = today.year
+
+    saved = 0
+    errors = []
+
+    for year in range(from_year, to_year + 1):
+        try:
+            with httpx.Client(timeout=20) as client:
+                r = client.get(f"{MINDICADOR_API}/utm/{year}")
+                r.raise_for_status()
+                serie = r.json().get("serie", [])
+
+            for entry in serie:
+                entry_date_str = entry["fecha"][:10]
+                entry_date = date.fromisoformat(entry_date_str)
+                # Store as first day of the month the UTM is valid for
+                first_of_month = date(entry_date.year, entry_date.month, 1)
+                if first_of_month > today:
+                    continue
+                value = float(entry["valor"])
+                existing = db.query(UTMValue).filter(UTMValue.date == first_of_month).first()
+                if existing:
+                    existing.value = value
+                    existing.source = "mindicador.cl/SII"
+                else:
+                    db.add(UTMValue(date=first_of_month, value=value, source="mindicador.cl/SII"))
+                    saved += 1
+
+            db.commit()
+
+        except Exception as e:
+            errors.append(f"Error año {year}: {str(e)}")
+
+    return {
+        "message": f"Sincronizados {saved} valores UTM desde mindicador.cl (SII)",
+        "years": list(range(from_year, to_year + 1)),
+        "errors": errors,
+    }
+
+
 @router.post("/seed")
 def seed_utm_values(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Seed historical UTM values. Source: SII Chile."""
-    values = [
-        # 2023 - valor primer día de cada mes
-        ("2023-01-01", 57123.00), ("2023-02-01", 57123.00), ("2023-03-01", 57388.00),
-        ("2023-04-01", 57388.00), ("2023-05-01", 57907.00), ("2023-06-01", 58455.00),
-        ("2023-07-01", 58934.00), ("2023-08-01", 59439.00), ("2023-09-01", 59439.00),
-        ("2023-10-01", 59803.00), ("2023-11-01", 60159.00), ("2023-12-01", 60159.00),
-        # 2024
-        ("2024-01-01", 61515.00), ("2024-02-01", 61515.00), ("2024-03-01", 62006.00),
-        ("2024-04-01", 62006.00), ("2024-05-01", 62557.00), ("2024-06-01", 63123.00),
-        ("2024-07-01", 63523.00), ("2024-08-01", 63905.00), ("2024-09-01", 63905.00),
-        ("2024-10-01", 64217.00), ("2024-11-01", 64629.00), ("2024-12-01", 64629.00),
-        # 2025
-        ("2025-01-01", 65443.00), ("2025-02-01", 65443.00), ("2025-03-01", 65934.00),
-        ("2025-04-01", 65934.00), ("2025-05-01", 66509.00), ("2025-06-01", 66891.00),
-        ("2025-07-01", 67294.00), ("2025-08-01", 67727.00), ("2025-09-01", 67727.00),
-        ("2025-10-01", 68088.00), ("2025-11-01", 68088.00), ("2025-12-01", 68605.00),
-        # 2026 - valores oficiales SII
-        ("2026-01-01", 69751.00), ("2026-02-01", 69611.00), ("2026-03-01", 69889.00),
-        ("2026-04-01", 69889.00), ("2026-05-01", 70588.00), ("2026-06-01", 71506.00),
-        ("2026-07-01", 71649.00),
-    ]
-    seeded = 0
-    for d, v in values:
-        existing = db.query(UTMValue).filter(UTMValue.date == d).first()
-        if not existing:
-            db.add(UTMValue(date=d, value=v, source="seed_sii"))
-            seeded += 1
-    db.commit()
-    return {"message": f"Seeded {seeded} UTM values (de {len(values)} totales)"}
+    """Alias de sync-historical para compatibilidad. Descarga desde mindicador.cl/SII."""
+    return sync_utm_historical(from_year=2022, db=db, current_user=current_user)
