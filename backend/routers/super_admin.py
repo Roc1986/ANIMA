@@ -278,12 +278,18 @@ def delete_company_payroll_data(
 ):
     """Delete all payroll runs and entries for a company (test data cleanup)."""
     from models.payroll import PayrollRun, PayrollEntry
+    from models.accounting import JournalEntry, JournalEntryLine
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
     runs = db.query(PayrollRun).filter(PayrollRun.company_id == company_id).all()
     run_ids = [r.id for r in runs]
     if run_ids:
+        # Delete accounting journal lines and entries linked to these runs
+        journal_ids = [j.id for j in db.query(JournalEntry).filter(JournalEntry.payroll_run_id.in_(run_ids)).all()]
+        if journal_ids:
+            db.query(JournalEntryLine).filter(JournalEntryLine.journal_entry_id.in_(journal_ids)).delete(synchronize_session=False)
+            db.query(JournalEntry).filter(JournalEntry.id.in_(journal_ids)).delete(synchronize_session=False)
         db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id.in_(run_ids)).delete(synchronize_session=False)
         db.query(PayrollRun).filter(PayrollRun.company_id == company_id).delete(synchronize_session=False)
     db.commit()
