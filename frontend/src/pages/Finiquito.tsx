@@ -115,7 +115,8 @@ export default function Finiquito() {
   const [terminationDateDisplay, setTerminationDateDisplay] = useState('')
   const [imm, setImm] = useState(510114)
   const [afcMonthsInSystem, setAfcMonthsInSystem] = useState(0)
-  const [afcNote, setAfcNote] = useState('')
+  const [afcMissingMonths, setAfcMissingMonths] = useState(0)
+  const [afcCoverage, setAfcCoverage] = useState<'none' | 'partial' | 'full' | ''>('')
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm()
 
@@ -144,12 +145,14 @@ export default function Finiquito() {
     }).catch(() => {})
 
     // Auto-fetch AFC accumulated from system payroll records
-    finiquitoApi.afcEstimate(emp.id).then(res => {
-      const { afc_employer_accumulated, months_in_system, note } = res.data
+    const termIso = parseDateCL(terminationDateDisplay) || undefined
+    finiquitoApi.afcEstimate(emp.id, termIso).then(res => {
+      const { afc_from_system, months_in_system, months_missing, coverage } = res.data
       setAfcMonthsInSystem(months_in_system)
-      setAfcNote(note)
-      setValue('afc_deduction', months_in_system > 0 ? afc_employer_accumulated : 0)
-    }).catch(() => { setAfcMonthsInSystem(0); setAfcNote('') })
+      setAfcMissingMonths(months_missing)
+      setAfcCoverage(coverage)
+      setValue('afc_deduction', afc_from_system)
+    }).catch(() => { setAfcMonthsInSystem(0); setAfcMissingMonths(0); setAfcCoverage('') })
 
     // Check contract gratificacion_type
     contractsApi.list({ employee_id: emp.id, is_active: true }).then(res => {
@@ -170,6 +173,20 @@ export default function Finiquito() {
       setValue('_last_run_year', last.period_year)
     }).catch(() => {})
   }, [watchedEmployee, employees, setValue])
+
+  // Re-fetch AFC estimate when termination date changes (affects total months calculation)
+  useEffect(() => {
+    if (!selectedEmp || !terminationDateDisplay) return
+    const termIso = parseDateCL(terminationDateDisplay)
+    if (!termIso) return
+    finiquitoApi.afcEstimate(selectedEmp.id, termIso).then(res => {
+      const { afc_from_system, months_in_system, months_missing, coverage } = res.data
+      setAfcMonthsInSystem(months_in_system)
+      setAfcMissingMonths(months_missing)
+      setAfcCoverage(coverage)
+      setValue('afc_deduction', afc_from_system)
+    }).catch(() => {})
+  }, [terminationDateDisplay, selectedEmp, setValue])
 
   // Recalculate pending salary days when termination date changes
   useEffect(() => {
@@ -412,18 +429,33 @@ export default function Finiquito() {
                   step="1"
                   min="0"
                   defaultValue="0"
-                  className={`input-field ${afcMonthsInSystem > 0 ? 'border-2 border-green-300 bg-green-50' : 'border-2 border-amber-300 bg-amber-50'}`}
+                  className={`input-field border-2 ${
+                    afcCoverage === 'full' ? 'border-green-300 bg-green-50' :
+                    afcCoverage === 'partial' ? 'border-amber-300 bg-amber-50' :
+                    afcCoverage === 'none' ? 'border-red-200 bg-red-50' :
+                    ''
+                  }`}
                   {...register('afc_deduction', { valueAsNumber: true })}
                 />
-                {afcNote ? (
-                  <p className={`text-xs mt-1 ${afcMonthsInSystem > 0 ? 'text-green-600' : 'text-amber-600'}`}>
-                    {afcMonthsInSystem > 0
-                      ? `✓ Calculado desde ${afcMonthsInSystem} nómina(s) en el sistema (1,6% sobre remuneración imponible). Editable.`
-                      : '⚠ Sin nóminas en el sistema — ingrese el monto acumulado desde registros históricos de la empresa.'}
+                {afcCoverage === 'full' && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ {afcMonthsInSystem} meses calculados desde nóminas del sistema (cobertura completa). Editable.
                   </p>
-                ) : (
+                )}
+                {afcCoverage === 'partial' && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    ⚠ {afcMonthsInSystem} mes(es) calculado(s) desde el sistema — faltan {afcMissingMonths} mes(es) históricos.
+                    Ajuste el monto para incluir el período anterior al sistema (registros de la empresa).
+                  </p>
+                )}
+                {afcCoverage === 'none' && (
+                  <p className="text-xs text-red-600 mt-1">
+                    ✗ Sin nóminas en el sistema — ingrese el monto acumulado desde registros históricos de la empresa.
+                  </p>
+                )}
+                {!afcCoverage && (
                   <p className="text-xs text-gray-400 mt-1">
-                    Opcional — se descuenta de la indemnización por años de servicio.
+                    Opcional — se descuenta de la indemnización por años de servicio (Art. 13 Ley 19.728).
                   </p>
                 )}
               </div>

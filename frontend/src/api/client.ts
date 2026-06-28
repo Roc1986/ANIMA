@@ -187,7 +187,8 @@ export const finiquitoApi = {
   generatePdf: (data: unknown) =>
     api.post('/api/finiquito/generate-pdf', data, { responseType: 'blob' }),
   confirm: (data: unknown) => api.post('/api/finiquito/confirm', data),
-  afcEstimate: (employeeId: number) => api.get(`/api/finiquito/afc-estimate/${employeeId}`),
+  afcEstimate: (employeeId: number, terminationDate?: string) =>
+    api.get(`/api/finiquito/afc-estimate/${employeeId}`, { params: terminationDate ? { termination_date: terminationDate } : {} }),
 }
 
 // --- Company ---

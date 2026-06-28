@@ -96,27 +96,53 @@ def _get_uf_for_date(db: Session, ref_date: date) -> float:
 @router.get("/afc-estimate/{employee_id}")
 def get_afc_estimate(
     employee_id: int,
+    termination_date: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
     Estimates the accumulated AFC employer contribution (1.6%) from payroll history.
-    Returns the sum from system records and the number of months found.
-    If months_in_system == 0 the caller should prompt manual entry.
+    Compares months with records against total months of service so the caller
+    can warn the user when historical periods are missing.
     """
+    emp = db.query(Employee).filter(Employee.id == employee_id).first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+
     entries = (
         db.query(PayrollEntry)
         .join(PayrollRun, PayrollEntry.payroll_run_id == PayrollRun.id)
         .filter(PayrollEntry.employee_id == employee_id)
         .all()
     )
-    total_afc = sum(float(e.remuneracion_imponible or 0) * 0.016 for e in entries)
+    afc_from_system = sum(float(e.remuneracion_imponible or 0) * 0.016 for e in entries)
+
+    # Total months of service
+    term = date.fromisoformat(termination_date) if termination_date else date.today()
+    hire = emp.hire_date
+    total_months = (term.year - hire.year) * 12 + (term.month - hire.month)
+    if term.day < hire.day:
+        total_months -= 1
+    total_months = max(total_months, 0)
+
+    months_in_system = len(entries)
+    months_missing = max(total_months - months_in_system, 0)
+
+    if months_in_system == 0:
+        coverage = "none"
+    elif months_missing == 0:
+        coverage = "full"
+    else:
+        coverage = "partial"
+
     return {
         "employee_id": employee_id,
-        "months_in_system": len(entries),
-        "afc_employer_accumulated": round(total_afc, 0),
+        "months_in_system": months_in_system,
+        "total_months_service": total_months,
+        "months_missing": months_missing,
+        "afc_from_system": round(afc_from_system, 0),
+        "coverage": coverage,  # "none" | "partial" | "full"
         "rate_used": 0.016,
-        "note": "Calculado desde nóminas registradas en el sistema" if entries else "Sin nóminas en el sistema — ingrese el monto desde registros históricos de la empresa",
     }
 
 
