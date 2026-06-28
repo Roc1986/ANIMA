@@ -55,6 +55,8 @@ export const superAdminApi = {
   syncIndicators: () => api.post('/api/super/sync-indicators'),
   deletePayrollData: (companyId: number) =>
     api.delete(`/api/super/companies/${companyId}/payroll-data`),
+  seedContracts: (companyId: number) =>
+    api.post(`/api/super/companies/${companyId}/seed-contracts`),
 }
 
 // --- Employees ---

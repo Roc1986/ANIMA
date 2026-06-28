@@ -268,6 +268,62 @@ def company_stats(
     }
 
 
+# ─── Bulk Contract Seed ─────────────────────────────────────────────────────────
+
+@router.post("/companies/{company_id}/seed-contracts")
+def seed_contracts_for_company(
+    company_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    """
+    Auto-create indefinite contracts for all active employees in a company
+    that don't already have an active contract.
+    Uses hire_date as start_date and base_salary from the employee record.
+    """
+    from models.contract import Contract, ContractType, WorkSchedule
+
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    employees = db.query(Employee).filter(
+        Employee.company_id == company_id,
+        Employee.is_active == True,
+    ).all()
+
+    created = []
+    skipped = []
+    for emp in employees:
+        existing = db.query(Contract).filter(
+            Contract.employee_id == emp.id,
+            Contract.is_active == True,
+        ).first()
+        if existing:
+            skipped.append(emp.id)
+            continue
+
+        contract = Contract(
+            employee_id=emp.id,
+            contract_type=ContractType.indefinido,
+            start_date=emp.hire_date,
+            base_salary=emp.base_salary,
+            work_schedule=WorkSchedule.full_time_40,
+            weekly_hours=40,
+            gratificacion_type="legal",
+            is_active=True,
+        )
+        db.add(contract)
+        created.append(emp.id)
+
+    db.commit()
+    return {
+        "message": f"Contratos creados para {len(created)} empleados de {company.name}",
+        "created": len(created),
+        "skipped_already_had_contract": len(skipped),
+    }
+
+
 # ─── Global Legal Parameters ────────────────────────────────────────────────────
 
 @router.delete("/companies/{company_id}/payroll-data")

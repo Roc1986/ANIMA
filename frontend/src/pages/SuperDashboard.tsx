@@ -138,6 +138,16 @@ export default function SuperDashboard() {
     }
   }
 
+  const handleSeedContracts = async (company: Company) => {
+    if (!window.confirm(`Crear contratos indefinidos automáticamente para todos los empleados de "${company.name}" que no tengan contrato activo. ¿Continuar?`)) return
+    try {
+      const r = await superAdminApi.seedContracts(company.id)
+      toast.success(r.data.message || 'Contratos creados')
+    } catch {
+      toast.error('Error al crear contratos')
+    }
+  }
+
   const handleSaveParam = async (key: string) => {
     const val = parseFloat(editValue)
     if (isNaN(val)) return toast.error('Valor inválido')
@@ -416,13 +426,22 @@ export default function SuperDashboard() {
                     </span>
                   </td>
                   <td className="py-3">
-                    <button
-                      onClick={() => handleDeletePayrollData(c)}
-                      className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 font-medium"
-                      title="Borrar todas las nóminas de esta empresa"
-                    >
-                      Borrar nóminas
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleSeedContracts(c)}
+                        className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium"
+                        title="Crear contratos indefinidos para empleados sin contrato"
+                      >
+                        Crear contratos
+                      </button>
+                      <button
+                        onClick={() => handleDeletePayrollData(c)}
+                        className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 font-medium"
+                        title="Borrar todas las nóminas de esta empresa"
+                      >
+                        Borrar nóminas
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
