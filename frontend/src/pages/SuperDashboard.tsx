@@ -53,11 +53,11 @@ const KEY_LABELS: Record<string, string> = {
   IMM: 'Ingreso Mínimo Mensual (IMM)',
   UF: 'Unidad de Fomento (UF)',
   UTM: 'Unidad Tributaria Mensual (UTM)',
-  TOPE_IMPONIBLE_AFP_UF: 'Tope Imponible AFP/Salud (UF)',
-  TOPE_IMPONIBLE_SALUD_UF: 'Tope Imponible Salud (UF)',
+  TOPE_IMPONIBLE_AFP_UF: 'Tope AFP/Salud/SIS (UF)',
+  TOPE_IMPONIBLE_AFC_UF: 'Tope Cesantía AFC (UF)',
 }
 
-const HIGHLIGHT_KEYS = ['IMM', 'UF', 'UTM', 'TOPE_IMPONIBLE_AFP_UF', 'TOPE_IMPONIBLE_SALUD_UF']
+const HIGHLIGHT_KEYS = ['IMM', 'UF', 'UTM', 'TOPE_IMPONIBLE_AFP_UF', 'TOPE_IMPONIBLE_AFC_UF']
 
 interface IuscRow {
   tramo: number

@@ -91,7 +91,7 @@ class ChileanPayrollCalculator:
         # Topes imponibles en CLP
         self.tope_imponible_afp_clp = self.tope_afp_uf * self.uf_value
         self.tope_imponible_salud_clp = self.tope_salud_uf * self.uf_value
-        self.tope_imponible_afc_clp = self.tope_afc_uf * self.uf_value  # UF 128.4
+        self.tope_imponible_afc_clp = self.tope_afc_uf * self.uf_value
 
     def _get_afp_rate(self, afp_name: str, legal_params: dict = None) -> float:
         """Get AFP rate from legal params or fallback to hardcoded."""
@@ -279,7 +279,6 @@ class ChileanPayrollCalculator:
         # --- Topes imponibles (AFP/Salud vs AFC son DIFERENTES) ---
         base_afp = min(total_imponible_bruto, self.tope_imponible_afp_clp)
         base_salud = min(total_imponible_bruto, self.tope_imponible_salud_clp)
-        # AFC tope UF 128.4 — DISTINTO al tope AFP (UF 81.6)
         base_afc = min(total_imponible_bruto, self.tope_imponible_afc_clp)
 
         # --- Descuentos previsionales trabajador ---
