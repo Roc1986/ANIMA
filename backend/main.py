@@ -23,6 +23,7 @@ from routers.utm_values import router as utm_values_router
 from routers.calendar import router as calendar_router
 from routers.seed_test import router as seed_test_router
 from services.indicators_sync import sync_all, sync_uf, sync_utm
+from services.historical_sync import sync_uf_historical_bg, sync_utm_historical_bg
 from services.email_service import send_deadline_reminder
 
 logger = logging.getLogger(__name__)
@@ -119,6 +120,9 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(sync_uf, "cron", hour=9, minute=5, id="sync_uf")
     # Schedule UTM sync: 1st of each month at 09:10
     scheduler.add_job(sync_utm, "cron", day=1, hour=9, minute=10, id="sync_utm")
+    # Schedule historical UF/UTM sync: 1st of each month at 09:15 (catches new month end-of-month values)
+    scheduler.add_job(sync_uf_historical_bg, "cron", day=1, hour=9, minute=15, id="sync_uf_historical")
+    scheduler.add_job(sync_utm_historical_bg, "cron", day=1, hour=9, minute=20, id="sync_utm_historical")
     # Schedule deadline reminders: daily at 08:00
     scheduler.add_job(_send_deadline_reminders, "cron", hour=8, minute=0, id="deadline_reminders")
     scheduler.start()
