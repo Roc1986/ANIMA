@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from database import get_db
-from auth.jwt_handler import require_admin
+from auth.jwt_handler import get_current_user
 from models.user import User
 from models.employee import Employee, AFP, HealthSystem, Gender, MaritalStatus
 from models.contract import Contract, ContractType
@@ -186,7 +186,7 @@ def _ensure_vacation_balance(db: Session, emp: Employee):
 @router.post("/employees")
 def seed_test_employees(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     """Creates test employees for Test SRL. Idempotent — skips existing RUTs."""
     company = _get_test_company(db)
@@ -264,7 +264,7 @@ def seed_test_employees(
 @router.post("/payroll-runs")
 def seed_test_payroll_runs(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     """Creates draft payroll runs for March–June 2026 for Test SRL."""
     from services.payroll_calculator import ChileanPayrollCalculator
