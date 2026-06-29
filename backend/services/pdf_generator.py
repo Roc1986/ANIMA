@@ -354,7 +354,9 @@ def _company_fields(company):
     address = (company.address if company and company.address else settings.COMPANY_ADDRESS)
     phone = (company.phone if company and company.phone else settings.COMPANY_PHONE)
     city = (company.city if company and company.city else "Santiago")
-    return primary_color, name, rut, address, phone, city
+    legal_rep_name = (company.legal_rep_name if company and getattr(company, 'legal_rep_name', None) else "")
+    legal_rep_rut = (company.legal_rep_rut if company and getattr(company, 'legal_rep_rut', None) else "")
+    return primary_color, name, rut, address, phone, city, legal_rep_name, legal_rep_rut
 
 
 def _company_header_elements(company, elements, styles):
@@ -640,7 +642,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     )
 
     elements = []
-    primary_color, company_name, company_rut, company_address, company_phone, company_city = \
+    primary_color, company_name, company_rut, company_address, company_phone, company_city, legal_rep_name, legal_rep_rut = \
         _company_fields(company)
 
     title_style = ParagraphStyle("FT", fontSize=15, fontName="Helvetica-Bold",
@@ -664,9 +666,13 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         except Exception:
             pass
 
+    if legal_rep_name:
+        rep_clause = f"representada legalmente por don/doña <b>{legal_rep_name}</b>, Cédula de Identidad N° {_fmt_rut(legal_rep_rut)}"
+    else:
+        rep_clause = "representada legalmente por su representante legal"
     intro = (
-        f"En {city}, a {term_date_str}, entre <b>{company_name}</b>, RUT {company_rut}, "
-        f'domiciliada en {company_address} (en adelante "la Empresa"), representada para estos efectos por su empleador, '
+        f"En {city}, a {term_date_str}, entre <b>{company_name}</b>, RUT {_fmt_rut(company_rut)}, "
+        f'domiciliada en {company_address} (en adelante "la Empresa"), {rep_clause}, '
         f"y el(la) trabajador(a) <b>{data.get('employee_name', '')}</b>, RUT <b>{_fmt_rut(data.get('employee_rut', ''))}</b>, "
         f'domiciliado(a) en Chile (en adelante "el(la) Trabajador(a)"), se ha convenido el siguiente finiquito:'
     )

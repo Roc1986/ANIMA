@@ -26,6 +26,8 @@ class CompanyUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     primary_color: Optional[str] = None
+    legal_rep_name: Optional[str] = None
+    legal_rep_rut: Optional[str] = None
 
 
 def _get_company(db: Session, current_user: User) -> Company:

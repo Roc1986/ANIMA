@@ -14,6 +14,8 @@ interface CompanyData {
   email: string
   logo_path?: string
   primary_color: string
+  legal_rep_name?: string
+  legal_rep_rut?: string
 }
 
 const PRESET_COLORS = [
@@ -221,6 +223,31 @@ export default function CompanySettings() {
                 placeholder="contacto@empresa.cl"
                 {...register('email')}
               />
+            </div>
+
+            {/* Legal representative */}
+            <div className="md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Representante Legal (para finiquitos y contratos)</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label-field">Nombre del representante legal</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Ej: Juan Pérez González"
+                    {...register('legal_rep_name')}
+                  />
+                </div>
+                <div>
+                  <label className="label-field">RUT del representante legal</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="Ej: 12.345.678-9"
+                    {...register('legal_rep_rut')}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Color picker */}

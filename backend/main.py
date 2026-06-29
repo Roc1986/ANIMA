@@ -99,6 +99,8 @@ def run_column_migrations(eng):
         "ALTER TABLE employees ADD COLUMN IF NOT EXISTS descuento_voluntario NUMERIC(12,2) DEFAULT 0",
         "ALTER TABLE employees ADD COLUMN IF NOT EXISTS descuento_vivienda NUMERIC(12,2) DEFAULT 0",
         "ALTER TABLE employees ADD COLUMN IF NOT EXISTS isapre_amount_type VARCHAR(10) DEFAULT 'pesos'",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS legal_rep_name VARCHAR(150)",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS legal_rep_rut VARCHAR(20)",
     ]
     with eng.connect() as conn:
         for sql in migrations:

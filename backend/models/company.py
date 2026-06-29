@@ -21,6 +21,8 @@ class Company(Base):
     max_employees = Column(Integer, default=50)
     owner_name = Column(String(150))
     owner_phone = Column(String(30))
+    legal_rep_name = Column(String(150))   # Nombre representante legal
+    legal_rep_rut = Column(String(20))     # RUT representante legal
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
