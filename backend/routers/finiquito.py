@@ -107,8 +107,19 @@ def get_last_imponible(
         .order_by(PayrollRun.year.desc(), PayrollRun.month.desc())
         .first()
     )
-    if entry and entry.remuneracion_imponible:
-        return {"remuneracion_imponible": float(entry.remuneracion_imponible), "found": True}
+    if entry:
+        imponible = float(entry.remuneracion_imponible or 0)
+        if imponible == 0:
+            # Reconstruct from stored components: base + gratificacion + overtime + bono_otros
+            imponible = (
+                float(entry.base_salary or 0)
+                + float(entry.gratificacion or 0)
+                + float(entry.overtime_weekday or 0)
+                + float(entry.overtime_sunday or 0)
+                + float(entry.bono_otros or 0)
+            )
+        if imponible > 0:
+            return {"remuneracion_imponible": round(imponible), "found": True}
     # fallback: base salary from employee record
     emp = db.query(Employee).filter(Employee.id == employee_id).first()
     return {"remuneracion_imponible": float(emp.base_salary) if emp else 0, "found": False}
