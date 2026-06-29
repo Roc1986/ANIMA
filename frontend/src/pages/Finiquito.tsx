@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowDownTrayIcon, CalculatorIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import { api, finiquitoApi, employeesApi, vacationsApi, contractsApi, payrollApi, formatCLP, downloadBlob } from '../api/client'
+import { RHFSearchableSelect } from '../components/SearchableSelect'
 
 function formatRUT(raw: string): string {
   if (!raw) return '—'
@@ -123,7 +124,7 @@ export default function Finiquito() {
   const empComboRef = useRef<HTMLDivElement>(null)
   const empListRef = useRef<HTMLUListElement>(null)
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm()
+  const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm()
 
   const watchedEmployee = watch('employee_id')
   const watchedCause = watch('termination_cause', '')
@@ -417,12 +418,13 @@ export default function Finiquito() {
 
             <div>
               <label className="label-field">Causal de término *</label>
-              <select className="input-field" {...register('termination_cause', { required: true })}>
-                <option value="">Seleccionar causal...</option>
-                {TERMINATION_CAUSES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
+              <RHFSearchableSelect
+                name="termination_cause"
+                control={control}
+                rules={{ required: true }}
+                placeholder="Seleccionar causal..."
+                options={TERMINATION_CAUSES.map(opt => ({ value: opt.value, label: opt.label }))}
+              />
               {errors.termination_cause && <p className="error-text">Causal requerida</p>}
             </div>
 
