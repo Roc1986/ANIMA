@@ -299,10 +299,33 @@ def confirm_finiquito(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Persiste el finiquito y desactiva al empleado."""
+    """Persiste el finiquito, genera PDF al dossier y desactiva al empleado."""
     emp = db.query(Employee).filter(Employee.id == data.employee_id).first()
     if not emp:
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
+
+    # Auto-generate PDF and save to dossier if calculation provided
+    if data.calculation:
+        # Check if finiquito document already exists for this employee
+        existing_doc = db.query(Document).filter(
+            Document.employee_id == emp.id,
+            Document.document_type == DocumentType.finiquito,
+        ).first()
+        if not existing_doc:
+            try:
+                company = db.query(Company).filter(Company.id == emp.company_id).first() if emp.company_id else db.query(Company).first()
+                filepath = generate_finiquito_pdf(data.calculation, emp, company)
+                doc = Document(
+                    employee_id=emp.id,
+                    document_type=DocumentType.finiquito,
+                    title=f"Finiquito {emp.full_name} — {data.termination_date}",
+                    file_path=filepath,
+                    generated_by=current_user.id,
+                )
+                db.add(doc)
+            except Exception:
+                pass  # Don't block confirmation if PDF generation fails
+
     emp.is_active = False
     emp.termination_date = data.termination_date
     emp.termination_reason = data.termination_cause
