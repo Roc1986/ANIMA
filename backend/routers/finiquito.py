@@ -115,7 +115,7 @@ def get_last_imponible(
         # This mirrors the payroll calculator logic so the imponible matches the liquidación PDF.
         if stored_gratif == 0 and base > 0:
             imm = _get_imm_for_date(db, date.today())
-            gratif_legal_max = imm / 12.0
+            gratif_legal_max = (4.75 * imm) / 12.0  # CT Art. 50: tope mensual = 4.75 IMM / 12
             computed_gratif = min(base * 0.25, gratif_legal_max)
         else:
             computed_gratif = stored_gratif
