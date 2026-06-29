@@ -640,9 +640,12 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
          Paragraph("<b>Monto</b>", ParagraphStyle("H", fontSize=8, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_RIGHT))],
     ]
 
+    cell_style = ParagraphStyle("Cell", fontSize=8, leading=10)
+
     def add_concept(label, detail, amount):
         settlement_rows.append([
-            label, detail,
+            Paragraph(label, cell_style),
+            Paragraph(detail, cell_style),
             Paragraph(_fmt_clp(amount), ParagraphStyle("R", fontSize=8, alignment=TA_RIGHT))
         ])
 
@@ -689,10 +692,12 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         ])
     if data.get("afc_deduction", 0) > 0:
         settlement_rows.append([
-            "(-) Descuento AFC empleador (Art. 13 Ley N° 19.728)",
-            f"Aporte acumulado del empleador (1,6%) en cuenta individual AFC — monto: {_fmt_clp(data['afc_deduction'])}",
-            Paragraph(_fmt_clp(-data["afc_deduction"]),
-                      ParagraphStyle("DR2", fontSize=8, alignment=TA_RIGHT, textColor=colors.red))
+            Paragraph("(-) Descuento AFC empleador<br/>(Art. 13 Ley N° 19.728)",
+                      ParagraphStyle("AFC", fontSize=8, textColor=colors.red)),
+            Paragraph(f"Aporte acumulado empleador (1,6%) en cuenta individual AFC",
+                      ParagraphStyle("AFCD", fontSize=8)),
+            Paragraph(f"<font color='red'>−{_fmt_clp(data['afc_deduction'])}</font>",
+                      ParagraphStyle("DR2", fontSize=8, alignment=TA_RIGHT))
         ])
     # Total neto
     settlement_rows.append([
