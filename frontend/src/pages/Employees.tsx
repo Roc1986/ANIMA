@@ -6,6 +6,8 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { PlusIcon, MagnifyingGlassIcon, UserIcon } from '@heroicons/react/24/outline'
 import DateInput from '../components/DateInput'
+import { SearchableSelect, RHFSearchableSelect } from '../components/SearchableSelect'
+import { Controller } from 'react-hook-form'
 
 interface Employee {
   id: number
@@ -52,7 +54,7 @@ export default function Employees() {
   const [healthSystem, setHealthSystem] = useState('FONASA')
   const [isapreAmountType, setIsapreAmountType] = useState('pesos')
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm()
+  const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm()
 
   const handleRutChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatRUT(e.target.value)
@@ -265,20 +267,29 @@ export default function Employees() {
                 </div>
                 <div>
                   <label className="label">Tipo de Contrato *</label>
-                  <select className="input" {...register('contract_type', { required: true })}>
-                    <option value="indefinido">Indefinido</option>
-                    <option value="plazo_fijo">Plazo Fijo</option>
-                    <option value="obra_faena">Obra o Faena</option>
-                    <option value="part_time">Part Time</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="contract_type"
+                    control={control}
+                    rules={{ required: true }}
+                    options={[
+                      { value: 'indefinido', label: 'Indefinido' },
+                      { value: 'plazo_fijo', label: 'Plazo Fijo' },
+                      { value: 'obra_faena', label: 'Obra o Faena' },
+                      { value: 'part_time', label: 'Part Time' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="label">Gratificación</label>
-                  <select className="input" {...register('gratificacion_type')}>
-                    <option value="legal">Legal (anual, Art. 47)</option>
-                    <option value="garantizada">Garantizada (anual, Art. 50)</option>
-                    <option value="mensual">Incluida en sueldo mensual</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="gratificacion_type"
+                    control={control}
+                    options={[
+                      { value: 'legal', label: 'Legal (anual, Art. 47)' },
+                      { value: 'garantizada', label: 'Garantizada (anual, Art. 50)' },
+                      { value: 'mensual', label: 'Incluida en sueldo mensual' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="label">Cargo *</label>
@@ -299,17 +310,27 @@ export default function Employees() {
                 </div>
                 <div>
                   <label className="label">AFP *</label>
-                  <select className="input" {...register('afp', { required: true })}>
-                    {AFP_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                  </select>
+                  <RHFSearchableSelect
+                    name="afp"
+                    control={control}
+                    rules={{ required: true }}
+                    options={AFP_OPTIONS.map(a => ({ value: a, label: a }))}
+                  />
                 </div>
                 <div>
                   <label className="label">Sistema Salud *</label>
-                  <select className="input" {...register('health_system', { required: true })}
-                    onChange={e => setHealthSystem(e.target.value)}>
-                    <option value="FONASA">FONASA</option>
-                    <option value="ISAPRE">ISAPRE</option>
-                  </select>
+                  <Controller
+                    name="health_system"
+                    control={control}
+                    rules={{ required: true }}
+                    render={({ field }) => (
+                      <SearchableSelect
+                        options={[{ value: 'FONASA', label: 'FONASA' }, { value: 'ISAPRE', label: 'ISAPRE' }]}
+                        value={field.value}
+                        onChange={v => { field.onChange(v); setHealthSystem(String(v)) }}
+                      />
+                    )}
+                  />
                 </div>
                 {healthSystem === 'ISAPRE' && (
                   <>
@@ -319,11 +340,17 @@ export default function Employees() {
                     </div>
                     <div>
                       <label className="label">Tipo monto ISAPRE</label>
-                      <select className="input" {...register('isapre_amount_type')}
-                        onChange={e => setIsapreAmountType(e.target.value)}>
-                        <option value="pesos">Pesos ($)</option>
-                        <option value="uf">UF</option>
-                      </select>
+                      <Controller
+                        name="isapre_amount_type"
+                        control={control}
+                        render={({ field }) => (
+                          <SearchableSelect
+                            options={[{ value: 'pesos', label: 'Pesos ($)' }, { value: 'uf', label: 'UF' }]}
+                            value={field.value}
+                            onChange={v => { field.onChange(v); setIsapreAmountType(String(v)) }}
+                          />
+                        )}
+                      />
                     </div>
                     <div>
                       <label className="label">Monto plan mensual ({isapreAmountType === 'uf' ? 'UF' : '$'})</label>
@@ -337,12 +364,16 @@ export default function Employees() {
                 )}
                 <div>
                   <label className="label">Género</label>
-                  <select className="input" {...register('gender')}>
-                    <option value="">Sin especificar</option>
-                    <option value="female">Femenino (ella / la trabajadora)</option>
-                    <option value="male">Masculino (él / el trabajador)</option>
-                    <option value="other">Otro / No binario</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="gender"
+                    control={control}
+                    options={[
+                      { value: '', label: 'Sin especificar' },
+                      { value: 'female', label: 'Femenino (ella / la trabajadora)' },
+                      { value: 'male', label: 'Masculino (él / el trabajador)' },
+                      { value: 'other', label: 'Otro / No binario' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="label">Fecha de Nacimiento</label>

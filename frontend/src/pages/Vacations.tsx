@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { vacationsApi, employeesApi, downloadBlob } from '../api/client'
 import DateInput from '../components/DateInput'
+import { RHFSearchableSelect } from '../components/SearchableSelect'
 import { useAuth } from '../contexts/AuthContext'
 
 interface VacationSummary {
@@ -111,7 +112,7 @@ export default function Vacations() {
   const [expandedEmployee, setExpandedEmployee] = useState<number | null>(null)
   const [businessDays, setBusinessDays] = useState<number | null>(null)
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm()
+  const { register, handleSubmit, reset, watch, control, formState: { errors } } = useForm()
   const watchStart = watch('start_date')
   const watchEnd = watch('end_date')
 
@@ -455,14 +456,14 @@ export default function Vacations() {
             <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
               <div>
                 <label className="label-field">Empleado *</label>
-                <select className="input-field" {...register('employee_id', { required: true, valueAsNumber: true })}>
-                  <option value="">Seleccionar empleado...</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.first_name} {emp.last_name} — {emp.rut}
-                    </option>
-                  ))}
-                </select>
+                <RHFSearchableSelect
+                  name="employee_id"
+                  control={control}
+                  rules={{ required: true }}
+                  asNumber={true}
+                  options={employees.map(emp => ({ value: emp.id, label: `${emp.first_name} ${emp.last_name} — ${emp.rut}` }))}
+                  placeholder="Seleccionar empleado..."
+                />
                 {errors.employee_id && <p className="error-text">Empleado requerido</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">

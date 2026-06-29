@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { api, employeesApi, downloadBlob } from '../api/client'
 import DateInput from '../components/DateInput'
+import { SearchableSelect, RHFSearchableSelect } from '../components/SearchableSelect'
 import { useAuth } from '../contexts/AuthContext'
 
 interface Employee {
@@ -52,7 +53,7 @@ export default function WarningLetters() {
   const [filterEmployee, setFilterEmployee] = useState<number | undefined>(undefined)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm()
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm()
 
   const fetchLetters = async () => {
     setLoading(true)
@@ -149,18 +150,15 @@ export default function WarningLetters() {
       {/* Filter */}
       <div className="mb-4 flex gap-3 items-center">
         <label className="text-sm font-medium text-gray-700">Filtrar por empleado:</label>
-        <select
-          className="input-field w-64"
+        <SearchableSelect
           value={filterEmployee ?? ''}
-          onChange={(e) => setFilterEmployee(e.target.value ? Number(e.target.value) : undefined)}
-        >
-          <option value="">Todos los empleados</option>
-          {employees.map((emp) => (
-            <option key={emp.id} value={emp.id}>
-              {emp.first_name} {emp.last_name} — {emp.rut}
-            </option>
-          ))}
-        </select>
+          onChange={v => setFilterEmployee(v !== '' ? Number(v) : undefined)}
+          options={[
+            { value: '', label: 'Todos los empleados' },
+            ...employees.map(emp => ({ value: emp.id, label: `${emp.first_name} ${emp.last_name}` })),
+          ]}
+          placeholder="Todos los empleados"
+        />
       </div>
 
       {/* Table */}
@@ -233,14 +231,14 @@ export default function WarningLetters() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="label-field">Empleado *</label>
-                  <select className="input-field" {...register('employee_id', { required: true, valueAsNumber: true })}>
-                    <option value="">Seleccionar empleado...</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.first_name} {emp.last_name} — {emp.rut}
-                      </option>
-                    ))}
-                  </select>
+                  <RHFSearchableSelect
+                    name="employee_id"
+                    control={control}
+                    rules={{ required: true }}
+                    asNumber={true}
+                    options={employees.map(emp => ({ value: emp.id, label: `${emp.first_name} ${emp.last_name} — ${emp.rut}` }))}
+                    placeholder="Seleccionar empleado..."
+                  />
                   {errors.employee_id && <p className="error-text">Empleado requerido</p>}
                 </div>
 
@@ -252,12 +250,18 @@ export default function WarningLetters() {
 
                 <div>
                   <label className="label-field">Tipo de Amonestación *</label>
-                  <select className="input-field" {...register('type', { required: true })}>
-                    <option value="">Seleccionar tipo...</option>
-                    <option value="verbal">Verbal</option>
-                    <option value="escrita">Escrita</option>
-                    <option value="grave">Grave</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="type"
+                    control={control}
+                    rules={{ required: true }}
+                    options={[
+                      { value: '', label: 'Seleccionar tipo...' },
+                      { value: 'verbal', label: 'Verbal' },
+                      { value: 'escrita', label: 'Escrita' },
+                      { value: 'grave', label: 'Grave' },
+                    ]}
+                    placeholder="Seleccionar tipo..."
+                  />
                   {errors.type && <p className="error-text">Tipo requerido</p>}
                 </div>
 

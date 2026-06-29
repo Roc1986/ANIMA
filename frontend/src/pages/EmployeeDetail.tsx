@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowLeftIcon, PencilIcon, CheckIcon, XMarkIcon, NoSymbolIcon, DocumentArrowDownIcon, TrashIcon, ArrowUpTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 import DateInput from '../components/DateInput'
+import { SearchableSelect, RHFSearchableSelect } from '../components/SearchableSelect'
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   liquidacion: 'Liquidación',
@@ -102,7 +103,7 @@ export default function EmployeeDetail() {
   const [uploadMonth, setUploadMonth] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { register, handleSubmit, reset, watch } = useForm()
+  const { register, handleSubmit, reset, watch, control } = useForm()
   const watchedHealthSystem = watch('health_system')
 
   const handleTerminate = async () => {
@@ -276,11 +277,11 @@ export default function EmployeeDetail() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                 <div>
                   <label className="label">Tipo</label>
-                  <select className="input" value={uploadType} onChange={e => setUploadType(e.target.value)}>
-                    {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    value={uploadType}
+                    onChange={v => setUploadType(String(v))}
+                    options={Object.entries(DOC_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                  />
                 </div>
                 <div>
                   <label className="label">Título *</label>
@@ -292,10 +293,15 @@ export default function EmployeeDetail() {
                 </div>
                 <div>
                   <label className="label">Mes</label>
-                  <select className="input" value={uploadMonth} onChange={e => setUploadMonth(e.target.value)}>
-                    <option value="">— Sin mes —</option>
-                    {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
-                  </select>
+                  <SearchableSelect
+                    value={uploadMonth}
+                    onChange={v => setUploadMonth(String(v))}
+                    options={[
+                      { value: '', label: '— Sin mes —' },
+                      ...MONTHS.map((m, i) => ({ value: i + 1, label: m })),
+                    ]}
+                    placeholder="— Sin mes —"
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -385,12 +391,16 @@ export default function EmployeeDetail() {
           <div className="mt-4">
             <label className="label">Género</label>
             {editing ? (
-              <select className="input w-64" defaultValue={employee.gender || ''} {...register('gender')}>
-                <option value="">Sin especificar</option>
-                <option value="female">Femenino (ella / la trabajadora)</option>
-                <option value="male">Masculino (él / el trabajador)</option>
-                <option value="other">Otro / No binario</option>
-              </select>
+              <RHFSearchableSelect
+                name="gender"
+                control={control}
+                options={[
+                  { value: '', label: 'Sin especificar' },
+                  { value: 'female', label: 'Femenino (ella / la trabajadora)' },
+                  { value: 'male', label: 'Masculino (él / el trabajador)' },
+                  { value: 'other', label: 'Otro / No binario' },
+                ]}
+              />
             ) : (
               <p className="text-sm text-gray-800 py-2">
                 {employee.gender === 'female' ? 'Femenino' : employee.gender === 'male' ? 'Masculino' : employee.gender === 'other' ? 'Otro / No binario' : '—'}
@@ -444,10 +454,11 @@ export default function EmployeeDetail() {
             <div>
               <label className="label">AFP</label>
               {editing ? (
-                <select className="input" {...register('afp')}>
-                  {['Habitat','Provida','Capital','Cuprum','Planvital','Model','Uno'].map(a =>
-                    <option key={a} value={a}>{a}</option>)}
-                </select>
+                <RHFSearchableSelect
+                  name="afp"
+                  control={control}
+                  options={['Habitat','Provida','Capital','Cuprum','Planvital','Model','Uno'].map(a => ({ value: a, label: a }))}
+                />
               ) : (
                 <p className="text-sm text-gray-800 py-2">{employee.afp}</p>
               )}
@@ -455,10 +466,11 @@ export default function EmployeeDetail() {
             <div>
               <label className="label">Sistema Salud</label>
               {editing ? (
-                <select className="input" {...register('health_system')}>
-                  <option value="FONASA">FONASA</option>
-                  <option value="ISAPRE">ISAPRE</option>
-                </select>
+                <RHFSearchableSelect
+                  name="health_system"
+                  control={control}
+                  options={[{ value: 'FONASA', label: 'FONASA' }, { value: 'ISAPRE', label: 'ISAPRE' }]}
+                />
               ) : (
                 <p className="text-sm text-gray-800 py-2">{employee.health_system}</p>
               )}
@@ -476,10 +488,11 @@ export default function EmployeeDetail() {
                 <div>
                   <label className="label">Tipo monto ISAPRE</label>
                   {editing ? (
-                    <select className="input" {...register('isapre_amount_type')}>
-                      <option value="pesos">Pesos ($)</option>
-                      <option value="uf">UF</option>
-                    </select>
+                    <RHFSearchableSelect
+                      name="isapre_amount_type"
+                      control={control}
+                      options={[{ value: 'pesos', label: 'Pesos ($)' }, { value: 'uf', label: 'UF' }]}
+                    />
                   ) : (
                     <p className="text-sm text-gray-800 py-2">{employee.isapre_amount_type === 'uf' ? 'UF' : 'Pesos ($)'}</p>
                   )}
@@ -554,13 +567,17 @@ export default function EmployeeDetail() {
               <div>
                 <label className="label">Tipo de orden judicial</label>
                 {editing ? (
-                  <select className="input" {...register('pension_alimenticia_tipo')}>
-                    <option value="">Sin retención</option>
-                    <option value="pesos">Monto fijo en pesos</option>
-                    <option value="utm">UTM del mes (Ley 21.484)</option>
-                    <option value="porcentaje_sueldo">% de la remuneración total</option>
-                    <option value="porcentaje_imm">% del sueldo mínimo (IMM)</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="pension_alimenticia_tipo"
+                    control={control}
+                    options={[
+                      { value: '', label: 'Sin retención' },
+                      { value: 'pesos', label: 'Monto fijo en pesos' },
+                      { value: 'utm', label: 'UTM del mes (Ley 21.484)' },
+                      { value: 'porcentaje_sueldo', label: '% de la remuneración total' },
+                      { value: 'porcentaje_imm', label: '% del sueldo mínimo (IMM)' },
+                    ]}
+                  />
                 ) : (
                   <p className="text-sm text-gray-800 py-2">
                     {employee.pension_alimenticia_tipo === 'utm' ? 'UTM del mes' :
@@ -631,17 +648,21 @@ export default function EmployeeDetail() {
               </div>
               <div>
                 <label className="label">Causal de término *</label>
-                <select className="input" value={terminateData.termination_reason}
-                  onChange={e => setTerminateData(d => ({ ...d, termination_reason: e.target.value }))}>
-                  <option value="">Seleccionar causal...</option>
-                  <option value="Art. 159 N°1 — Mutuo acuerdo">Art. 159 N°1 — Mutuo acuerdo</option>
-                  <option value="Art. 159 N°2 — Renuncia del trabajador">Art. 159 N°2 — Renuncia</option>
-                  <option value="Art. 159 N°4 — Vencimiento del plazo">Art. 159 N°4 — Vencimiento plazo</option>
-                  <option value="Art. 159 N°5 — Conclusión del trabajo">Art. 159 N°5 — Conclusión obra</option>
-                  <option value="Art. 160 — Causal imputable al trabajador">Art. 160 — Despido por conducta</option>
-                  <option value="Art. 161 N°1 — Necesidades de la empresa">Art. 161 N°1 — Necesidades empresa</option>
-                  <option value="Art. 161 N°2 — Desahucio del empleador">Art. 161 N°2 — Desahucio</option>
-                </select>
+                <SearchableSelect
+                  value={terminateData.termination_reason}
+                  onChange={v => setTerminateData(d => ({ ...d, termination_reason: String(v) }))}
+                  options={[
+                    { value: '', label: 'Seleccionar causal...' },
+                    { value: 'Art. 159 N°1 — Mutuo acuerdo', label: 'Art. 159 N°1 — Mutuo acuerdo' },
+                    { value: 'Art. 159 N°2 — Renuncia del trabajador', label: 'Art. 159 N°2 — Renuncia' },
+                    { value: 'Art. 159 N°4 — Vencimiento del plazo', label: 'Art. 159 N°4 — Vencimiento plazo' },
+                    { value: 'Art. 159 N°5 — Conclusión del trabajo', label: 'Art. 159 N°5 — Conclusión obra' },
+                    { value: 'Art. 160 — Causal imputable al trabajador', label: 'Art. 160 — Despido por conducta' },
+                    { value: 'Art. 161 N°1 — Necesidades de la empresa', label: 'Art. 161 N°1 — Necesidades empresa' },
+                    { value: 'Art. 161 N°2 — Desahucio del empleador', label: 'Art. 161 N°2 — Desahucio' },
+                  ]}
+                  placeholder="Seleccionar causal..."
+                />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-4">
