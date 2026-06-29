@@ -108,16 +108,17 @@ def get_last_imponible(
         .first()
     )
     if entry:
-        imponible = float(entry.remuneracion_imponible or 0)
-        if imponible == 0:
-            # Reconstruct from stored components: base + gratificacion + overtime + bono_otros
-            imponible = (
-                float(entry.base_salary or 0)
-                + float(entry.gratificacion or 0)
-                + float(entry.overtime_weekday or 0)
-                + float(entry.overtime_sunday or 0)
-                + float(entry.bono_otros or 0)
-            )
+        # Always reconstruct from stored components (base + gratificacion + overtime + bono_otros)
+        # to avoid cases where remuneracion_imponible was stored incorrectly as just base_salary
+        reconstructed = (
+            float(entry.base_salary or 0)
+            + float(entry.gratificacion or 0)
+            + float(entry.overtime_weekday or 0)
+            + float(entry.overtime_sunday or 0)
+            + float(entry.bono_otros or 0)
+        )
+        stored = float(entry.remuneracion_imponible or 0)
+        imponible = max(reconstructed, stored)
         if imponible > 0:
             return {"remuneracion_imponible": round(imponible), "found": True}
     # fallback: base salary from employee record
