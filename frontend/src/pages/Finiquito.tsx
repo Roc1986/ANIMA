@@ -124,7 +124,7 @@ export default function Finiquito() {
   const watchedCause = watch('termination_cause', '')
 
   useEffect(() => {
-    employeesApi.list({ is_active: true }).then((res) => setEmployees(res.data)).catch(() => {})
+    employeesApi.list().then((res) => setEmployees(res.data)).catch(() => {})
     // Fetch IMM from public legal params endpoint
     api.get('/api/finiquito/legal-params').then(res => {
       if (res.data.imm_value) setImm(Number(res.data.imm_value))
