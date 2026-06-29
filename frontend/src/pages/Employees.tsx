@@ -45,6 +45,7 @@ export default function Employees() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active')
   const [showModal, setShowModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [rutDisplay, setRutDisplay] = useState('')
@@ -72,6 +73,12 @@ export default function Employees() {
   }
 
   useEffect(() => { fetchEmployees() }, [search])
+
+  const filteredEmployees = employees.filter(emp => {
+    if (statusFilter === 'active') return emp.is_active
+    if (statusFilter === 'inactive') return !emp.is_active
+    return true
+  })
 
   const onSubmit = async (data: Record<string, unknown>) => {
     setSubmitting(true)
@@ -102,7 +109,7 @@ export default function Employees() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Empleados</h1>
-          <p className="text-gray-500 text-sm mt-1">{employees.length} empleados registrados</p>
+          <p className="text-gray-500 text-sm mt-1">{filteredEmployees.length} de {employees.length} empleados</p>
         </div>
         {isHR && (
           <button onClick={() => setShowModal(true)} className="btn-primary">
@@ -112,16 +119,37 @@ export default function Employees() {
         )}
       </div>
 
-      {/* Search */}
+      {/* Search + filter */}
       <div className="card mb-4 py-3">
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            className="input pl-9"
-            placeholder="Buscar por nombre, RUT o email..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              className="input pl-9"
+              placeholder="Buscar por nombre, RUT o email..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm font-medium">
+            {([['all', 'Todos'], ['active', 'Activos'], ['inactive', 'Inactivos']] as const).map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => setStatusFilter(val)}
+                className={`px-4 py-2 transition-colors ${
+                  statusFilter === val
+                    ? val === 'inactive'
+                      ? 'bg-red-600 text-white'
+                      : val === 'active'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-blue-900 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -144,14 +172,14 @@ export default function Employees() {
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr><td colSpan={8} className="table-cell text-center py-8 text-gray-400">Cargando...</td></tr>
-              ) : employees.length === 0 ? (
+              ) : filteredEmployees.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="table-cell text-center py-12">
                     <UserIcon className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                     <p className="text-gray-400">Sin empleados registrados</p>
                   </td>
                 </tr>
-              ) : employees.map(emp => (
+              ) : filteredEmployees.map(emp => (
                 <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
                   <td className="table-cell">
                     <div className="flex items-center gap-3">
