@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { ArrowDownTrayIcon, CalculatorIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
@@ -117,6 +117,9 @@ export default function Finiquito() {
   const [afcMonthsInSystem, setAfcMonthsInSystem] = useState(0)
   const [afcMissingMonths, setAfcMissingMonths] = useState(0)
   const [afcCoverage, setAfcCoverage] = useState<'none' | 'partial' | 'full' | ''>('')
+  const [empSearch, setEmpSearch] = useState('')
+  const [empDropdownOpen, setEmpDropdownOpen] = useState(false)
+  const empComboRef = useRef<HTMLDivElement>(null)
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm()
 
@@ -316,14 +319,51 @@ export default function Finiquito() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="label-field">Empleado *</label>
-              <select className="input-field" {...register('employee_id', { required: true, valueAsNumber: true })}>
-                <option value="">Seleccionar empleado...</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} — {formatRUT(emp.rut)} — Ingreso: {formatDateCL(emp.hire_date)}
-                  </option>
-                ))}
-              </select>
+              <input type="hidden" {...register('employee_id', { required: true, valueAsNumber: true })} />
+              <div ref={empComboRef} className="relative">
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Buscar por nombre o RUT..."
+                  value={empSearch}
+                  autoComplete="off"
+                  onChange={e => { setEmpSearch(e.target.value); setEmpDropdownOpen(true) }}
+                  onFocus={() => setEmpDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setEmpDropdownOpen(false), 150)}
+                />
+                {empDropdownOpen && (
+                  <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto text-sm">
+                    {employees
+                      .filter(emp => {
+                        const q = empSearch.toLowerCase()
+                        return !q ||
+                          `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(q) ||
+                          (emp.rut || '').toLowerCase().includes(q)
+                      })
+                      .map(emp => (
+                        <li
+                          key={emp.id}
+                          className="px-4 py-2 cursor-pointer hover:bg-blue-50 flex justify-between items-center"
+                          onMouseDown={() => {
+                            setValue('employee_id', emp.id)
+                            setEmpSearch(`${emp.first_name} ${emp.last_name} — ${formatRUT(emp.rut)}`)
+                            setEmpDropdownOpen(false)
+                          }}
+                        >
+                          <span className="font-medium">{emp.first_name} {emp.last_name}</span>
+                          <span className="text-gray-400 font-mono text-xs">{formatRUT(emp.rut)} · Ingreso {formatDateCL(emp.hire_date)}</span>
+                        </li>
+                      ))
+                    }
+                    {employees.filter(emp => {
+                      const q = empSearch.toLowerCase()
+                      return !q || `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(q) || (emp.rut || '').toLowerCase().includes(q)
+                    }).length === 0 && (
+                      <li className="px-4 py-2 text-gray-400">Sin resultados</li>
+                    )}
+                  </ul>
+                )}
+              </div>
               {errors.employee_id && <p className="error-text">Empleado requerido</p>}
             </div>
 
