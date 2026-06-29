@@ -877,8 +877,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         ("LEFTPADDING", (0, 0), (-1, -1), 5),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
-    elements.append(st)
-    elements.append(Spacer(1, 8))
+    elements.append(KeepTogether([st, Spacer(1, 8)]))
 
     # UF reference
     uf_val = breakdown.get("uf_value", 0)
