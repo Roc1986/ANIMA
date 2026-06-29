@@ -119,7 +119,9 @@ export default function Finiquito() {
   const [afcCoverage, setAfcCoverage] = useState<'none' | 'partial' | 'full' | ''>('')
   const [empSearch, setEmpSearch] = useState('')
   const [empDropdownOpen, setEmpDropdownOpen] = useState(false)
+  const [empHighlightIndex, setEmpHighlightIndex] = useState(-1)
   const empComboRef = useRef<HTMLDivElement>(null)
+  const empListRef = useRef<HTMLUListElement>(null)
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm()
 
@@ -332,42 +334,70 @@ export default function Finiquito() {
                   placeholder="Buscar por nombre o RUT..."
                   value={empSearch}
                   autoComplete="off"
-                  onChange={e => { setEmpSearch(e.target.value); setEmpDropdownOpen(true) }}
-                  onFocus={() => setEmpDropdownOpen(true)}
+                  onChange={e => { setEmpSearch(e.target.value); setEmpDropdownOpen(true); setEmpHighlightIndex(-1) }}
+                  onFocus={() => { setEmpDropdownOpen(true) }}
                   onBlur={() => setTimeout(() => setEmpDropdownOpen(false), 150)}
+                  onKeyDown={e => {
+                    const filtered = employees.filter(emp => {
+                      const q = empSearch.toLowerCase()
+                      return !q || `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(q) || (emp.rut || '').toLowerCase().includes(q)
+                    })
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault()
+                      setEmpDropdownOpen(true)
+                      setEmpHighlightIndex(i => Math.min(i + 1, filtered.length - 1))
+                      // scroll highlighted item into view
+                      setTimeout(() => {
+                        const el = empListRef.current?.children[Math.min(empHighlightIndex + 1, filtered.length - 1)] as HTMLElement
+                        el?.scrollIntoView({ block: 'nearest' })
+                      }, 0)
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault()
+                      setEmpHighlightIndex(i => Math.max(i - 1, 0))
+                    } else if ((e.key === 'Enter' || e.key === 'Tab') && empDropdownOpen && filtered.length > 0) {
+                      const idx = empHighlightIndex >= 0 ? empHighlightIndex : 0
+                      const emp = filtered[idx]
+                      if (emp) {
+                        if (e.key === 'Enter') e.preventDefault()
+                        setValue('employee_id', emp.id)
+                        setEmpSearch(`${emp.first_name} ${emp.last_name} — ${formatRUT(emp.rut)}`)
+                        setEmpDropdownOpen(false)
+                        setEmpHighlightIndex(-1)
+                      }
+                    } else if (e.key === 'Escape') {
+                      setEmpDropdownOpen(false)
+                    }
+                  }}
                 />
-                {empDropdownOpen && (
-                  <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto text-sm">
-                    {employees
-                      .filter(emp => {
-                        const q = empSearch.toLowerCase()
-                        return !q ||
-                          `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(q) ||
-                          (emp.rut || '').toLowerCase().includes(q)
-                      })
-                      .map(emp => (
+                {empDropdownOpen && (() => {
+                  const filtered = employees.filter(emp => {
+                    const q = empSearch.toLowerCase()
+                    return !q || `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(q) || (emp.rut || '').toLowerCase().includes(q)
+                  })
+                  return (
+                    <ul ref={empListRef} className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto text-sm">
+                      {filtered.map((emp, idx) => (
                         <li
                           key={emp.id}
-                          className="px-4 py-2 cursor-pointer hover:bg-blue-50 flex justify-between items-center"
+                          className={`px-4 py-2 cursor-pointer flex justify-between items-center ${idx === empHighlightIndex ? 'bg-blue-100' : 'hover:bg-blue-50'}`}
+                          onMouseEnter={() => setEmpHighlightIndex(idx)}
                           onMouseDown={() => {
                             setValue('employee_id', emp.id)
                             setEmpSearch(`${emp.first_name} ${emp.last_name} — ${formatRUT(emp.rut)}`)
                             setEmpDropdownOpen(false)
+                            setEmpHighlightIndex(-1)
                           }}
                         >
                           <span className="font-medium">{emp.first_name} {emp.last_name}</span>
                           <span className="text-gray-400 font-mono text-xs">{formatRUT(emp.rut)} · Ingreso {formatDateCL(emp.hire_date)}</span>
                         </li>
-                      ))
-                    }
-                    {employees.filter(emp => {
-                      const q = empSearch.toLowerCase()
-                      return !q || `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(q) || (emp.rut || '').toLowerCase().includes(q)
-                    }).length === 0 && (
-                      <li className="px-4 py-2 text-gray-400">Sin resultados</li>
-                    )}
-                  </ul>
-                )}
+                      ))}
+                      {filtered.length === 0 && (
+                        <li className="px-4 py-2 text-gray-400">Sin resultados</li>
+                      )}
+                    </ul>
+                  )
+                })()}
               </div>
               {errors.employee_id && <p className="error-text">Empleado requerido</p>}
             </div>
