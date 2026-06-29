@@ -659,8 +659,9 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
             data["indemnizacion_aviso_previo"]
         )
     if data.get("vacaciones_proporcionales", 0) > 0:
-        vac_detail = (f"{breakdown.get('total_vacation_days', 0):.2f} días × {_fmt_clp(breakdown.get('daily_salary', 0))}/día "
-                      f"({breakdown.get('vacation_earned_days', 0):.2f} ganados + {breakdown.get('pending_vacation_days', 0):.2f} pendientes)")
+        hab = breakdown.get('total_vacation_habiles', breakdown.get('pending_vacation_days', 0))
+        cor = breakdown.get('total_vacation_days', 0)
+        vac_detail = (f"{hab:.2f} días hábiles → {cor:.2f} días corridos × {_fmt_clp(breakdown.get('daily_salary', 0))}/día")
         add_concept("Vacaciones proporcionales (Art. 73)", vac_detail, data["vacaciones_proporcionales"])
     if data.get("remuneraciones_pendientes", 0) > 0:
         add_concept(
@@ -685,6 +686,13 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
             "Sobre remuneraciones pendientes imponibles",
             Paragraph(_fmt_clp(-data["descuentos_previsionales"]),
                       ParagraphStyle("DR", fontSize=8, alignment=TA_RIGHT, textColor=colors.red))
+        ])
+    if data.get("afc_deduction", 0) > 0:
+        settlement_rows.append([
+            "(-) Descuento AFC empleador (Art. 13 Ley N° 19.728)",
+            f"Aporte acumulado del empleador (1,6%) en cuenta individual AFC — monto: {_fmt_clp(data['afc_deduction'])}",
+            Paragraph(_fmt_clp(-data["afc_deduction"]),
+                      ParagraphStyle("DR2", fontSize=8, alignment=TA_RIGHT, textColor=colors.red))
         ])
     # Total neto
     settlement_rows.append([
