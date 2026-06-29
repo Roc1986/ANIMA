@@ -241,6 +241,8 @@ export const accountingApi = {
     api.post(`/api/accounting/journal/provision/${runId}`),
   generatePagoCotizaciones: (runId: number) =>
     api.post(`/api/accounting/journal/pago-cotizaciones/${runId}`),
+  createManualEntry: (data: unknown) => api.post('/api/accounting/journal/manual', data),
+  deleteJournalEntry: (id: number) => api.delete(`/api/accounting/journal/${id}`),
 }
 
 export const ufValuesApi = {

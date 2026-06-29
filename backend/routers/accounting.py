@@ -5,7 +5,7 @@ from typing import List
 from database import get_db
 from models.accounting import AccountingAccount, JournalEntry, JournalEntryLine, get_default_accounts, EntryType
 from models.payroll import PayrollRun, PayrollEntry, PayrollStatus
-from schemas.accounting import AccountingAccountOut, AccountingAccountUpdate, JournalEntryOut
+from schemas.accounting import AccountingAccountOut, AccountingAccountUpdate, JournalEntryOut, ManualJournalEntryIn
 from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 
@@ -260,3 +260,87 @@ def get_journal_entry(
     if not entry:
         raise HTTPException(status_code=404, detail="Asiento no encontrado")
     return entry
+
+
+@router.post("/journal/manual", response_model=JournalEntryOut, status_code=201)
+def create_manual_journal_entry(
+    data: ManualJournalEntryIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create a manual journal entry (apertura or movimientos_historicos)."""
+    company_id = _get_company_id(current_user)
+
+    allowed = {EntryType.apertura.value, EntryType.movimientos_historicos.value}
+    if data.entry_type not in allowed:
+        raise HTTPException(status_code=400, detail="Tipo de asiento inválido. Use 'apertura' o 'movimientos_historicos'")
+
+    if not data.lines:
+        raise HTTPException(status_code=400, detail="El asiento debe tener al menos una línea")
+
+    total_debe = sum(l.debe for l in data.lines)
+    total_haber = sum(l.haber for l in data.lines)
+    if abs(total_debe - total_haber) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El asiento no cuadra: Debe ${total_debe:,.0f} ≠ Haber ${total_haber:,.0f}"
+        )
+
+    accounts_count = db.query(AccountingAccount).filter(
+        AccountingAccount.company_id == company_id,
+        AccountingAccount.is_active == True,
+    ).count()
+    if accounts_count == 0:
+        _seed_accounts(db, company_id)
+
+    journal = JournalEntry(
+        company_id=company_id,
+        payroll_run_id=None,
+        entry_type=data.entry_type,
+        period_year=data.period_year,
+        period_month=data.period_month,
+        description=data.description or f"Asiento {data.entry_type} {data.period_month:02d}/{data.period_year}",
+        created_by=current_user.id,
+    )
+    db.add(journal)
+    db.flush()
+
+    for line in data.lines:
+        account = db.query(AccountingAccount).filter(
+            AccountingAccount.id == line.account_id,
+            AccountingAccount.company_id == company_id,
+        ).first()
+        if not account:
+            raise HTTPException(status_code=404, detail=f"Cuenta ID {line.account_id} no encontrada")
+        db.add(JournalEntryLine(
+            journal_entry_id=journal.id,
+            account_id=line.account_id,
+            glosa=line.glosa,
+            debe=line.debe,
+            haber=line.haber,
+        ))
+
+    db.commit()
+    db.refresh(journal)
+    return journal
+
+
+@router.delete("/journal/{entry_id}", status_code=204)
+def delete_journal_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Delete a manual journal entry (only apertura and movimientos_historicos)."""
+    company_id = _get_company_id(current_user)
+    entry = db.query(JournalEntry).filter(
+        JournalEntry.id == entry_id,
+        JournalEntry.company_id == company_id,
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Asiento no encontrado")
+    if entry.entry_type not in (EntryType.apertura.value, EntryType.movimientos_historicos.value):
+        raise HTTPException(status_code=400, detail="Solo se pueden eliminar asientos manuales")
+    db.query(JournalEntryLine).filter(JournalEntryLine.journal_entry_id == entry_id).delete()
+    db.delete(entry)
+    db.commit()

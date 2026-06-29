@@ -41,6 +41,21 @@ class JournalEntryLineOut(BaseModel):
         from_attributes = True
 
 
+class ManualJournalLineIn(BaseModel):
+    account_id: int
+    glosa: Optional[str] = None
+    debe: float = 0
+    haber: float = 0
+
+
+class ManualJournalEntryIn(BaseModel):
+    entry_type: str  # "apertura" or "movimientos_historicos"
+    period_year: int
+    period_month: int
+    description: Optional[str] = None
+    lines: List[ManualJournalLineIn]
+
+
 class JournalEntryOut(BaseModel):
     id: int
     company_id: int

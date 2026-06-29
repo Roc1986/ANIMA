@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { accountingApi, payrollApi } from '../api/client'
+import { accountingApi, payrollApi, formatCLP } from '../api/client'
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 
 interface Account {
   id: number
@@ -54,10 +55,26 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
 const ENTRY_TYPE_LABELS: Record<string, string> = {
   provision: 'Provisión',
   pago_cotizaciones: 'Pago Cotizaciones',
+  apertura: 'Apertura Anual',
+  movimientos_historicos: 'Movimientos Históricos',
+}
+
+const ENTRY_TYPE_COLORS: Record<string, string> = {
+  provision: 'bg-blue-100 text-blue-700',
+  pago_cotizaciones: 'bg-indigo-100 text-indigo-700',
+  apertura: 'bg-emerald-100 text-emerald-700',
+  movimientos_historicos: 'bg-amber-100 text-amber-700',
+}
+
+interface ManualLine {
+  account_id: string
+  glosa: string
+  debe: string
+  haber: string
 }
 
 export default function Accounting() {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'journal'>('accounts')
+  const [activeTab, setActiveTab] = useState<'accounts' | 'journal' | 'manual'>('accounts')
   const [accounts, setAccounts] = useState<Account[]>([])
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([])
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
@@ -69,6 +86,20 @@ export default function Accounting() {
   const [error, setError] = useState<string | null>(null)
   const [selectedRunId, setSelectedRunId] = useState<string>('')
   const [generating, setGenerating] = useState<string | null>(null)
+
+  // Manual entry form state
+  const currentYear = new Date().getFullYear()
+  const [manualType, setManualType] = useState<'apertura' | 'movimientos_historicos'>('apertura')
+  const [manualYear, setManualYear] = useState(currentYear)
+  const [manualMonth, setManualMonth] = useState(1)
+  const [manualDesc, setManualDesc] = useState('')
+  const [manualLines, setManualLines] = useState<ManualLine[]>([
+    { account_id: '', glosa: '', debe: '', haber: '' },
+    { account_id: '', glosa: '', debe: '', haber: '' },
+  ])
+  const [savingManual, setSavingManual] = useState(false)
+  const [manualEntries, setManualEntries] = useState<JournalEntry[]>([])
+  const [expandedManual, setExpandedManual] = useState<number | null>(null)
 
   const loadAccounts = async () => {
     try {
@@ -103,12 +134,81 @@ export default function Accounting() {
     }
   }
 
+  const loadManualEntries = async () => {
+    try {
+      const res = await accountingApi.listJournal()
+      setManualEntries(res.data.filter((e: JournalEntry) =>
+        e.entry_type === 'apertura' || e.entry_type === 'movimientos_historicos'
+      ))
+    } catch { /* ignore */ }
+  }
+
+  const deleteManualEntry = async (id: number) => {
+    if (!confirm('¿Eliminar este asiento manual?')) return
+    try {
+      await accountingApi.deleteJournalEntry(id)
+      await loadManualEntries()
+      if (expandedManual === id) setExpandedManual(null)
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Error al eliminar asiento')
+    }
+  }
+
+  const addManualLine = () =>
+    setManualLines(l => [...l, { account_id: '', glosa: '', debe: '', haber: '' }])
+
+  const removeManualLine = (i: number) =>
+    setManualLines(l => l.filter((_, idx) => idx !== i))
+
+  const updateManualLine = (i: number, field: keyof ManualLine, value: string) =>
+    setManualLines(l => l.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
+
+  const totalDebe = manualLines.reduce((s, l) => s + (parseFloat(l.debe) || 0), 0)
+  const totalHaber = manualLines.reduce((s, l) => s + (parseFloat(l.haber) || 0), 0)
+  const diff = Math.abs(totalDebe - totalHaber)
+
+  const submitManualEntry = async () => {
+    if (diff > 1) return
+    setSavingManual(true)
+    setError(null)
+    try {
+      const lines = manualLines
+        .filter(l => l.account_id)
+        .map(l => ({
+          account_id: Number(l.account_id),
+          glosa: l.glosa || null,
+          debe: parseFloat(l.debe) || 0,
+          haber: parseFloat(l.haber) || 0,
+        }))
+      await accountingApi.createManualEntry({
+        entry_type: manualType,
+        period_year: manualYear,
+        period_month: manualMonth,
+        description: manualDesc || undefined,
+        lines,
+      })
+      await loadManualEntries()
+      setManualLines([
+        { account_id: '', glosa: '', debe: '', haber: '' },
+        { account_id: '', glosa: '', debe: '', haber: '' },
+      ])
+      setManualDesc('')
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Error al guardar asiento')
+    } finally {
+      setSavingManual(false)
+    }
+  }
+
   useEffect(() => {
     if (activeTab === 'accounts') {
       loadAccounts()
-    } else {
+    } else if (activeTab === 'journal') {
       loadJournal()
       loadPayrollRuns()
+    } else {
+      loadAccounts()
+      loadManualEntries()
     }
     setError(null)
     setSelectedEntry(null)
@@ -204,6 +304,16 @@ export default function Accounting() {
         >
           Asientos Contables
         </button>
+        <button
+          onClick={() => setActiveTab('manual')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'manual'
+              ? 'border-emerald-600 text-emerald-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Asientos Manuales
+        </button>
       </div>
 
       {error && (
@@ -298,6 +408,211 @@ export default function Accounting() {
         </div>
       )}
 
+      {/* Asientos Manuales Tab */}
+      {activeTab === 'manual' && (
+        <div className="space-y-6">
+          {/* Form */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="font-semibold text-gray-700 mb-4">Nuevo Asiento Manual</h2>
+
+            {/* Type + Period */}
+            <div className="flex flex-wrap gap-4 mb-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de asiento</label>
+                <div className="flex gap-2">
+                  {(['apertura', 'movimientos_historicos'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setManualType(t)}
+                      className={`px-3 py-1.5 text-sm rounded border transition-colors ${
+                        manualType === t
+                          ? t === 'apertura' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-amber-500 text-white border-amber-500'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {ENTRY_TYPE_LABELS[t]}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  {manualType === 'apertura'
+                    ? 'Saldos al 01/01 — arrastra cuentas de balance del cierre anterior'
+                    : 'Acumulado remuneraciones ene–mes anterior al go-live del sistema'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Año</label>
+                <input type="number" value={manualYear} onChange={e => setManualYear(Number(e.target.value))}
+                  className="border border-gray-300 rounded px-2 py-1.5 text-sm w-24" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Mes</label>
+                <select value={manualMonth} onChange={e => setManualMonth(Number(e.target.value))}
+                  className="border border-gray-300 rounded px-2 py-1.5 text-sm">
+                  {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                </select>
+              </div>
+              <div className="flex-1 min-w-48">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Descripción</label>
+                <input type="text" value={manualDesc} onChange={e => setManualDesc(e.target.value)}
+                  placeholder={`Ej: Apertura contable ${manualYear}`}
+                  className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full" />
+              </div>
+            </div>
+
+            {/* Lines table */}
+            <div className="overflow-x-auto mb-3">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border border-gray-200">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600 w-64">Cuenta</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Glosa</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-600 w-36">Debe (CLP)</th>
+                    <th className="px-3 py-2 text-right font-medium text-gray-600 w-36">Haber (CLP)</th>
+                    <th className="px-3 py-2 w-8"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 border border-gray-200 border-t-0">
+                  {manualLines.map((line, i) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="px-2 py-1.5">
+                        <select
+                          value={line.account_id}
+                          onChange={e => updateManualLine(i, 'account_id', e.target.value)}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+                        >
+                          <option value="">Seleccionar...</option>
+                          {accounts.map(a => (
+                            <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input type="text" value={line.glosa} onChange={e => updateManualLine(i, 'glosa', e.target.value)}
+                          placeholder="Descripción línea"
+                          className="border border-gray-300 rounded px-2 py-1 text-sm w-full" />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input type="number" value={line.debe} onChange={e => updateManualLine(i, 'debe', e.target.value)}
+                          min="0" placeholder="0"
+                          className="border border-gray-300 rounded px-2 py-1 text-sm w-full text-right" />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <input type="number" value={line.haber} onChange={e => updateManualLine(i, 'haber', e.target.value)}
+                          min="0" placeholder="0"
+                          className="border border-gray-300 rounded px-2 py-1 text-sm w-full text-right" />
+                      </td>
+                      <td className="px-2 py-1.5 text-center">
+                        {manualLines.length > 2 && (
+                          <button onClick={() => removeManualLine(i)} className="text-red-400 hover:text-red-600">
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="border border-gray-200 border-t-2">
+                  <tr className={`font-semibold ${diff > 1 ? 'bg-red-50' : 'bg-green-50'}`}>
+                    <td colSpan={2} className="px-3 py-2 text-gray-700 text-sm">
+                      {diff > 1
+                        ? <span className="text-red-600">⚠ Diferencia: {formatCLP(diff)} — el asiento no cuadra</span>
+                        : <span className="text-green-600">✓ Asiento cuadrado</span>}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-900">{formatCLP(totalDebe)}</td>
+                    <td className="px-3 py-2 text-right text-gray-900">{formatCLP(totalHaber)}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button onClick={addManualLine}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-600">
+                <PlusIcon className="w-4 h-4" /> Agregar línea
+              </button>
+              <button
+                onClick={submitManualEntry}
+                disabled={savingManual || diff > 1 || manualLines.filter(l => l.account_id).length < 2}
+                className="px-4 py-1.5 bg-emerald-600 text-white text-sm rounded hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingManual ? 'Guardando...' : 'Guardar Asiento'}
+              </button>
+            </div>
+          </div>
+
+          {/* Existing manual entries */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-semibold text-gray-700 text-sm">Asientos manuales registrados ({manualEntries.length})</h3>
+            </div>
+            {manualEntries.length === 0 ? (
+              <p className="p-4 text-sm text-gray-400">No hay asientos manuales registrados.</p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {manualEntries.map(entry => (
+                  <div key={entry.id}>
+                    <div
+                      className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                      onClick={() => setExpandedManual(expandedManual === entry.id ? null : entry.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${ENTRY_TYPE_COLORS[entry.entry_type] || 'bg-gray-100 text-gray-700'}`}>
+                          {ENTRY_TYPE_LABELS[entry.entry_type]}
+                        </span>
+                        <span className="text-sm text-gray-700">{entry.description}</span>
+                        <span className="text-xs text-gray-400">{MONTHS[entry.period_month - 1]} {entry.period_year}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">{new Date(entry.created_at).toLocaleDateString('es-CL')}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); deleteManualEntry(entry.id) }}
+                          className="p-1 text-red-400 hover:text-red-600"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    {expandedManual === entry.id && (
+                      <div className="px-4 pb-3 bg-gray-50">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-gray-500">
+                              <th className="text-left py-1 font-medium">Cuenta</th>
+                              <th className="text-left py-1 font-medium">Glosa</th>
+                              <th className="text-right py-1 font-medium">Debe</th>
+                              <th className="text-right py-1 font-medium">Haber</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {entry.lines.map(line => (
+                              <tr key={line.id}>
+                                <td className="py-1 font-mono text-gray-600">{line.account?.code} — {line.account?.name}</td>
+                                <td className="py-1 text-gray-500">{line.glosa}</td>
+                                <td className="py-1 text-right">{Number(line.debe) > 0 ? formatCLP(Number(line.debe)) : ''}</td>
+                                <td className="py-1 text-right">{Number(line.haber) > 0 ? formatCLP(Number(line.haber)) : ''}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="border-t border-gray-300 font-semibold">
+                            <tr>
+                              <td colSpan={2} className="py-1 text-gray-600">Total</td>
+                              <td className="py-1 text-right">{formatCLP(entry.lines.reduce((s, l) => s + Number(l.debe), 0))}</td>
+                              <td className="py-1 text-right">{formatCLP(entry.lines.reduce((s, l) => s + Number(l.haber), 0))}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Asientos Contables Tab */}
       {activeTab === 'journal' && (
         <div className="space-y-6">
@@ -360,9 +675,7 @@ export default function Accounting() {
                         className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${selectedEntry?.id === entry.id ? 'bg-blue-50 border-l-2 border-blue-500' : ''}`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                            entry.entry_type === 'provision' ? 'bg-blue-100 text-blue-700' : 'bg-indigo-100 text-indigo-700'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${ENTRY_TYPE_COLORS[entry.entry_type] || 'bg-gray-100 text-gray-700'}`}>
                             {ENTRY_TYPE_LABELS[entry.entry_type] || entry.entry_type}
                           </span>
                           <span className="text-xs text-gray-400">

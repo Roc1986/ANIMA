@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, Numeric, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Numeric, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -16,6 +16,8 @@ class AccountType(str, enum.Enum):
 class EntryType(str, enum.Enum):
     provision = "provision"
     pago_cotizaciones = "pago_cotizaciones"
+    apertura = "apertura"
+    movimientos_historicos = "movimientos_historicos"
 
 
 class AccountingAccount(Base):
@@ -39,7 +41,7 @@ class JournalEntry(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
     payroll_run_id = Column(Integer, ForeignKey("payroll_runs.id"), nullable=True)
-    entry_type = Column(Enum(EntryType), nullable=False)
+    entry_type = Column(String(50), nullable=False)
     period_year = Column(Integer, nullable=False)
     period_month = Column(Integer, nullable=False)
     description = Column(String(500))
@@ -78,4 +80,5 @@ def get_default_accounts():
         {"code": "2-01-007", "name": "SIS por Pagar", "account_type": "pasivo"},
         {"code": "5-01-001", "name": "Gasto Remuneraciones", "account_type": "gasto"},
         {"code": "5-01-002", "name": "Gasto Previsión Empleador", "account_type": "gasto"},
+        {"code": "3-01-001", "name": "Saldos Iniciales / Apertura", "account_type": "patrimonio"},
     ]
