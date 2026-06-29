@@ -679,8 +679,9 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
             pass
     emp_address = getattr(employee, 'address', None) or "Chile"
 
-    # Gender-aware pronouns
-    _gender = str(getattr(employee, 'gender', '') or '').lower()
+    # Gender-aware pronouns — use .value to handle Enum members safely across Python versions
+    _gender_raw = getattr(employee, 'gender', None)
+    _gender = ((_gender_raw.value if hasattr(_gender_raw, 'value') else str(_gender_raw)) or '').lower()
     if _gender == 'female':
         _el = "la"; _El = "La"; _don = "doña"; _Don = "Doña"
         _trabajador = "trabajadora"; _Trabajador = "Trabajadora"
@@ -756,7 +757,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         ["Fecha de Término:", term_str_short],
         ["Causal de Término:", cause],
         ["Años de servicio:", f"{data.get('years_of_service', 0):.2f} años ({data.get('months_of_service', 0)} meses)"],
-        ["Última remuneración:", _fmt_clp(data.get("last_salary", 0))],
+        ["Última rem. imponible:", _fmt_clp(data.get("last_salary", 0))],
     ]
     emp_table = Table(emp_data, colWidths=[5*cm, 11*cm])
     emp_table.setStyle(TableStyle([

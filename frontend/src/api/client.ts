@@ -189,6 +189,8 @@ export const finiquitoApi = {
   confirm: (data: unknown) => api.post('/api/finiquito/confirm', data),
   afcEstimate: (employeeId: number, terminationDate?: string) =>
     api.get(`/api/finiquito/afc-estimate/${employeeId}`, { params: terminationDate ? { termination_date: terminationDate } : {} }),
+  lastImponible: (employeeId: number) =>
+    api.get(`/api/finiquito/last-imponible/${employeeId}`),
 }
 
 // --- Company ---

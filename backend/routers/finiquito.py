@@ -93,6 +93,27 @@ def _get_uf_for_date(db: Session, ref_date: date) -> float:
     return float(param.value) if param else 40820.0
 
 
+@router.get("/last-imponible/{employee_id}")
+def get_last_imponible(
+    employee_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns the remuneracion_imponible from the most recent payroll entry for an employee."""
+    entry = (
+        db.query(PayrollEntry)
+        .join(PayrollRun, PayrollEntry.payroll_run_id == PayrollRun.id)
+        .filter(PayrollEntry.employee_id == employee_id)
+        .order_by(PayrollRun.year.desc(), PayrollRun.month.desc())
+        .first()
+    )
+    if entry and entry.remuneracion_imponible:
+        return {"remuneracion_imponible": float(entry.remuneracion_imponible), "found": True}
+    # fallback: base salary from employee record
+    emp = db.query(Employee).filter(Employee.id == employee_id).first()
+    return {"remuneracion_imponible": float(emp.base_salary) if emp else 0, "found": False}
+
+
 @router.get("/afc-estimate/{employee_id}")
 def get_afc_estimate(
     employee_id: int,

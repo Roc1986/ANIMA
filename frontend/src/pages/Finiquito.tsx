@@ -139,7 +139,12 @@ export default function Finiquito() {
     const emp = employees.find((e) => e.id === Number(watchedEmployee))
     if (!emp) return
     setSelectedEmp(emp)
-    setValue('last_salary', Math.round(emp.base_salary))
+    // Auto-fill from last payroll imponible; fallback to base_salary
+    finiquitoApi.lastImponible(emp.id).then(res => {
+      setValue('last_salary', Math.round(res.data.remuneracion_imponible))
+    }).catch(() => {
+      setValue('last_salary', Math.round(emp.base_salary))
+    })
 
     // Auto-fill vacation balance
     vacationsApi.getBalance(emp.id).then(res => {
@@ -392,7 +397,7 @@ export default function Finiquito() {
             </div>
 
             <div>
-              <label className="label-field">Última remuneración mensual (CLP) *</label>
+              <label className="label-field">Última remuneración imponible (CLP) *</label>
               <input
                 type="number"
                 step="1"
