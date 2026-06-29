@@ -104,7 +104,7 @@ def get_last_imponible(
         db.query(PayrollEntry)
         .join(PayrollRun, PayrollEntry.payroll_run_id == PayrollRun.id)
         .filter(PayrollEntry.employee_id == employee_id)
-        .order_by(PayrollRun.year.desc(), PayrollRun.month.desc())
+        .order_by(PayrollRun.period_year.desc(), PayrollRun.period_month.desc())
         .first()
     )
     if entry:
