@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { PlusIcon, ClockIcon, CalendarDaysIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import DateInput from '../components/DateInput'
+import { SearchableSelect, RHFSearchableSelect } from '../components/SearchableSelect'
 
 interface AttendanceRecord {
   id: number
@@ -75,7 +76,7 @@ export default function Attendance() {
   const [bulkHours, setBulkHours] = useState('8')
   const [bulkLoading, setBulkLoading] = useState(false)
 
-  const { register, handleSubmit, reset } = useForm()
+  const { register, handleSubmit, reset, control } = useForm()
 
   const fetchRecords = async () => {
     setLoading(true)
@@ -183,12 +184,14 @@ export default function Attendance() {
         <div className="flex gap-4">
           <div className="flex-1">
             <label className="label text-xs">Empleado</label>
-            <select className="input" value={filterEmp} onChange={e => setFilterEmp(e.target.value)}>
-              <option value="">Todos</option>
-              {employees.map(e => (
-                <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>
-              ))}
-            </select>
+            <SearchableSelect
+              value={filterEmp}
+              onChange={v => setFilterEmp(String(v))}
+              options={[
+                { value: '', label: 'Todos' },
+                ...employees.map(e => ({ value: e.id, label: `${e.first_name} ${e.last_name}` })),
+              ]}
+            />
           </div>
           <div>
             <label className="label text-xs">Fecha</label>
@@ -258,12 +261,14 @@ export default function Attendance() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="label">Empleado *</label>
-                <select className="input" value={bulkEmp} onChange={e => setBulkEmp(e.target.value)}>
-                  <option value="">Seleccionar...</option>
-                  {employees.map(e => (
-                    <option key={e.id} value={e.id}>{e.first_name} {e.last_name} ({e.rut})</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  value={bulkEmp}
+                  onChange={v => setBulkEmp(String(v))}
+                  options={[
+                    { value: '', label: 'Seleccionar...' },
+                    ...employees.map(e => ({ value: e.id, label: `${e.first_name} ${e.last_name} (${e.rut})` })),
+                  ]}
+                />
               </div>
 
               <div className="flex gap-2">
@@ -315,12 +320,16 @@ export default function Attendance() {
             <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
               <div>
                 <label className="label">Empleado *</label>
-                <select className="input" {...register('employee_id', { required: true, valueAsNumber: true })}>
-                  <option value="">Seleccionar...</option>
-                  {employees.map(e => (
-                    <option key={e.id} value={e.id}>{e.first_name} {e.last_name} ({e.rut})</option>
-                  ))}
-                </select>
+                <RHFSearchableSelect
+                  name="employee_id"
+                  control={control}
+                  rules={{ required: true }}
+                  asNumber={true}
+                  options={[
+                    { value: '', label: 'Seleccionar...' },
+                    ...employees.map(e => ({ value: e.id, label: `${e.first_name} ${e.last_name} (${e.rut})` })),
+                  ]}
+                />
               </div>
               <div>
                 <label className="label">Fecha *</label>
@@ -328,11 +337,11 @@ export default function Attendance() {
               </div>
               <div>
                 <label className="label">Tipo de Registro</label>
-                <select className="input" {...register('attendance_type')}>
-                  {Object.entries(ATTENDANCE_TYPES).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
+                <RHFSearchableSelect
+                  name="attendance_type"
+                  control={control}
+                  options={Object.entries(ATTENDANCE_TYPES).map(([k, v]) => ({ value: k, label: v as string }))}
+                />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>

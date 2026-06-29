@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { payrollApi, reportsApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
 import toast from 'react-hot-toast'
 import { DocumentArrowDownIcon, ChartBarIcon } from '@heroicons/react/24/outline'
+import { SearchableSelect } from '../components/SearchableSelect'
 
 interface PayrollRun {
   id: number
@@ -46,18 +47,14 @@ export default function Reports() {
       {/* Run selector */}
       <div className="card mb-6">
         <h2 className="font-semibold text-gray-800 mb-3">Seleccionar Nómina</h2>
-        <select
-          className="input max-w-xs"
+        <SearchableSelect
           value={selectedRun}
-          onChange={e => setSelectedRun(e.target.value)}
-        >
-          <option value="">Seleccionar período...</option>
-          {runs.map(r => (
-            <option key={r.id} value={r.id}>
-              {MONTHS[r.period_month - 1]} {r.period_year} — {r.status}
-            </option>
-          ))}
-        </select>
+          onChange={v => setSelectedRun(String(v))}
+          options={[
+            { value: '', label: 'Seleccionar período...' },
+            ...runs.map(r => ({ value: r.id, label: `${MONTHS[r.period_month - 1]} ${r.period_year} — ${r.status}` })),
+          ]}
+        />
       </div>
 
       {/* Reports per run */}
@@ -111,11 +108,15 @@ export default function Reports() {
         <div className="flex items-end gap-4">
           <div>
             <label className="label">Año Tributario</label>
-            <select className="input" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
-              {availableYears.length > 0 ? availableYears.map(y => (
-                <option key={y} value={y}>{y}</option>
-              )) : <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>}
-            </select>
+            <SearchableSelect
+              value={selectedYear}
+              onChange={v => setSelectedYear(String(v))}
+              options={
+                availableYears.length > 0
+                  ? availableYears.map(y => ({ value: y, label: String(y) }))
+                  : [{ value: new Date().getFullYear(), label: String(new Date().getFullYear()) }]
+              }
+            />
           </div>
           <button
             disabled={loading}

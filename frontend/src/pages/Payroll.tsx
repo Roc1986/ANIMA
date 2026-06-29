@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { payrollApi, employeesApi, reportsApi, aiLegalApi, ufValuesApi, immValuesApi, utmValuesApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import {
   PlusIcon, CalculatorIcon, CheckIcon, DocumentArrowDownIcon,
   ChevronDownIcon, ChevronRightIcon, ArrowsRightLeftIcon
 } from '@heroicons/react/24/outline'
 import DateInput from '../components/DateInput'
+import { SearchableSelect, RHFSearchableSelect } from '../components/SearchableSelect'
 
 interface PayrollRun {
   id: number
@@ -85,12 +86,14 @@ export default function Payroll() {
     register: registerAdd,
     handleSubmit: handleSubmitAdd,
     reset: resetAdd,
+    control: controlAdd,
   } = useForm({ defaultValues: { employee_id: '', dias_trabajados: 30, horas_extra_habiles: 0, horas_extra_domingo: 0, bono_colacion: 0, bono_movilizacion: 0, bono_otros: 0, asignacion_familiar: 0, adelanto: 0, descuento_otros: 0 } })
 
   const {
     register: registerReverse,
     handleSubmit: handleSubmitReverse,
     reset: resetReverse,
+    control: controlReverse,
   } = useForm({
     defaultValues: {
       liquido_deseado: 600000,
@@ -105,7 +108,7 @@ export default function Payroll() {
   const [createPeriodMonth, setCreatePeriodMonth] = useState(new Date().getMonth() + 1)
   const [periodValuesLoading, setPeriodValuesLoading] = useState(false)
 
-  const { register, handleSubmit, reset, setValue } = useForm({
+  const { register, handleSubmit, reset, setValue, control } = useForm({
     defaultValues: {
       period_year: new Date().getFullYear(),
       period_month: new Date().getMonth() + 1,
@@ -414,18 +417,18 @@ export default function Payroll() {
         <div className="card mb-4 py-3">
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Filtrar por empresa:</label>
-            <select
-              className="input max-w-xs"
+            <SearchableSelect
               value={filterCompanyId}
-              onChange={e => {
-                const val = e.target.value ? Number(e.target.value) : ''
+              onChange={v => {
+                const val = v !== '' ? Number(v) : ''
                 setFilterCompanyId(val)
                 fetchRuns(val)
               }}
-            >
-              <option value="">Todas las empresas</option>
-              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+              options={[
+                { value: '', label: 'Todas las empresas' },
+                ...companies.map(c => ({ value: c.id, label: c.name })),
+              ]}
+            />
           </div>
         </div>
       )}
@@ -741,12 +744,15 @@ export default function Payroll() {
             <form onSubmit={handleSubmitAdd(onAddEmployee)} className="p-6 space-y-4">
               <div>
                 <label className="label">Empleado</label>
-                <select className="input" {...registerAdd('employee_id', { required: true })}>
-                  <option value="">Seleccionar empleado...</option>
-                  {employees.map(e => (
-                    <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>
-                  ))}
-                </select>
+                <RHFSearchableSelect
+                  name="employee_id"
+                  control={controlAdd}
+                  rules={{ required: true }}
+                  options={[
+                    { value: '', label: 'Seleccionar empleado...' },
+                    ...employees.map(e => ({ value: e.id, label: `${e.first_name} ${e.last_name}` })),
+                  ]}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -807,29 +813,41 @@ export default function Payroll() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label">AFP</label>
-                  <select className="input" {...registerReverse('afp')}>
-                    <option value="Habitat">Habitat</option>
-                    <option value="Provida">Provida</option>
-                    <option value="Capital">Capital</option>
-                    <option value="Cuprum">Cuprum</option>
-                    <option value="Planvital">Planvital</option>
-                    <option value="Model">Model</option>
-                    <option value="Uno">Uno</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="afp"
+                    control={controlReverse}
+                    options={[
+                      { value: 'Habitat', label: 'Habitat' },
+                      { value: 'Provida', label: 'Provida' },
+                      { value: 'Capital', label: 'Capital' },
+                      { value: 'Cuprum', label: 'Cuprum' },
+                      { value: 'Planvital', label: 'Planvital' },
+                      { value: 'Model', label: 'Model' },
+                      { value: 'Uno', label: 'Uno' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="label">Sistema de Salud</label>
-                  <select className="input" {...registerReverse('health_system')}>
-                    <option value="FONASA">FONASA</option>
-                    <option value="ISAPRE">ISAPRE</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="health_system"
+                    control={controlReverse}
+                    options={[
+                      { value: 'FONASA', label: 'FONASA' },
+                      { value: 'ISAPRE', label: 'ISAPRE' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="label">Tipo de Contrato</label>
-                  <select className="input" {...registerReverse('contract_type')}>
-                    <option value="indefinido">Indefinido</option>
-                    <option value="plazo_fijo">Plazo Fijo</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="contract_type"
+                    control={controlReverse}
+                    options={[
+                      { value: 'indefinido', label: 'Indefinido' },
+                      { value: 'plazo_fijo', label: 'Plazo Fijo' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="label">Monto ISAPRE (CLP)</label>
@@ -938,12 +956,20 @@ export default function Payroll() {
                 </div>
                 <div>
                   <label className="label">Mes</label>
-                  <select className="input"
-                    {...register('period_month', { valueAsNumber: true })}
-                    onChange={e => setCreatePeriodMonth(Number(e.target.value))}
-                  >
-                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                  </select>
+                  <Controller
+                    name="period_month"
+                    control={control}
+                    render={({ field }) => (
+                      <SearchableSelect
+                        options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                        value={field.value}
+                        onChange={v => {
+                          field.onChange(Number(v))
+                          setCreatePeriodMonth(Number(v))
+                        }}
+                      />
+                    )}
+                  />
                 </div>
               </div>
               {periodValuesLoading ? (

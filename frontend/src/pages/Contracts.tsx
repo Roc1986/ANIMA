@@ -11,6 +11,7 @@ import {
 import { contractsApi, employeesApi, downloadBlob } from '../api/client'
 import DateInput from '../components/DateInput'
 import { useAuth } from '../contexts/AuthContext'
+import { SearchableSelect, RHFSearchableSelect } from '../components/SearchableSelect'
 
 interface Contract {
   id: number
@@ -90,7 +91,7 @@ export default function Contracts() {
   const [filterType, setFilterType] = useState<string>('')
   const [expiringCount, setExpiringCount] = useState(0)
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm()
+  const { register, handleSubmit, reset, watch, control, formState: { errors } } = useForm()
   const watchType = watch('contract_type')
 
   const fetchContracts = async () => {
@@ -209,29 +210,27 @@ export default function Contracts() {
 
       {/* Filters */}
       <div className="mb-4 flex gap-3 items-center flex-wrap">
-        <select
-          className="input-field w-64"
+        <SearchableSelect
+          className="w-64"
           value={filterEmployee ?? ''}
-          onChange={(e) => setFilterEmployee(e.target.value ? Number(e.target.value) : undefined)}
-        >
-          <option value="">Todos los empleados</option>
-          {employees.map((emp) => (
-            <option key={emp.id} value={emp.id}>
-              {emp.first_name} {emp.last_name} — {emp.rut}
-            </option>
-          ))}
-        </select>
-        <select
-          className="input-field w-48"
+          onChange={v => setFilterEmployee(v !== '' ? Number(v) : undefined)}
+          options={[
+            { value: '', label: 'Todos los empleados' },
+            ...employees.map(emp => ({ value: emp.id, label: `${emp.first_name} ${emp.last_name} — ${emp.rut}` })),
+          ]}
+        />
+        <SearchableSelect
+          className="w-48"
           value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-        >
-          <option value="">Todos los tipos</option>
-          <option value="indefinido">Indefinido</option>
-          <option value="plazo_fijo">Plazo Fijo</option>
-          <option value="obra_faena">Obra o Faena</option>
-          <option value="part_time">Part-Time</option>
-        </select>
+          onChange={v => setFilterType(String(v))}
+          options={[
+            { value: '', label: 'Todos los tipos' },
+            { value: 'indefinido', label: 'Indefinido' },
+            { value: 'plazo_fijo', label: 'Plazo Fijo' },
+            { value: 'obra_faena', label: 'Obra o Faena' },
+            { value: 'part_time', label: 'Part-Time' },
+          ]}
+        />
       </div>
 
       {/* Contracts table */}
@@ -321,26 +320,32 @@ export default function Contracts() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="label-field">Empleado *</label>
-                  <select className="input-field" {...register('employee_id', { required: true })}>
-                    <option value="">Seleccionar empleado...</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.first_name} {emp.last_name} — {emp.rut}
-                      </option>
-                    ))}
-                  </select>
+                  <RHFSearchableSelect
+                    name="employee_id"
+                    control={control}
+                    rules={{ required: true }}
+                    options={[
+                      { value: '', label: 'Seleccionar empleado...' },
+                      ...employees.map(emp => ({ value: emp.id, label: `${emp.first_name} ${emp.last_name} — ${emp.rut}` })),
+                    ]}
+                  />
                   {errors.employee_id && <p className="error-text">Empleado requerido</p>}
                 </div>
 
                 <div>
                   <label className="label-field">Tipo de Contrato *</label>
-                  <select className="input-field" {...register('contract_type', { required: true })}>
-                    <option value="">Seleccionar tipo...</option>
-                    <option value="indefinido">Indefinido</option>
-                    <option value="plazo_fijo">Plazo Fijo</option>
-                    <option value="obra_faena">Obra o Faena</option>
-                    <option value="part_time">Part-Time</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="contract_type"
+                    control={control}
+                    rules={{ required: true }}
+                    options={[
+                      { value: '', label: 'Seleccionar tipo...' },
+                      { value: 'indefinido', label: 'Indefinido' },
+                      { value: 'plazo_fijo', label: 'Plazo Fijo' },
+                      { value: 'obra_faena', label: 'Obra o Faena' },
+                      { value: 'part_time', label: 'Part-Time' },
+                    ]}
+                  />
                   {errors.contract_type && <p className="error-text">Tipo requerido</p>}
                 </div>
 
@@ -375,19 +380,28 @@ export default function Contracts() {
 
                 <div>
                   <label className="label-field">Jornada (horas semanales)</label>
-                  <select className="input-field" {...register('weekly_hours')}>
-                    <option value="40">40 horas (jornada completa)</option>
-                    <option value="30">30 horas</option>
-                    <option value="20">20 horas</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="weekly_hours"
+                    control={control}
+                    options={[
+                      { value: '40', label: '40 horas (jornada completa)' },
+                      { value: '30', label: '30 horas' },
+                      { value: '20', label: '20 horas' },
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <label className="label-field">Tipo de Gratificación</label>
-                  <select className="input-field" {...register('gratificacion_type')}>
-                    <option value="legal">Legal (Art. 50 CT)</option>
-                    <option value="garantizada">Garantizada</option>
-                  </select>
+                  <RHFSearchableSelect
+                    name="gratificacion_type"
+                    control={control}
+                    options={[
+                      { value: 'legal', label: 'Legal (anual, Art. 47)' },
+                      { value: 'garantizada', label: 'Garantizada (anual, Art. 50)' },
+                      { value: 'mensual', label: 'Incluida en sueldo mensual' },
+                    ]}
+                  />
                 </div>
 
                 <div className="col-span-2">

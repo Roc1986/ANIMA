@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { accountingApi, payrollApi, formatCLP } from '../api/client'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { SearchableSelect } from '../components/SearchableSelect'
 
 interface Account {
   id: number
@@ -447,10 +448,11 @@ export default function Accounting() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Mes</label>
-                <select value={manualMonth} onChange={e => setManualMonth(Number(e.target.value))}
-                  className="border border-gray-300 rounded px-2 py-1.5 text-sm">
-                  {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                </select>
+                <SearchableSelect
+                  value={manualMonth}
+                  onChange={v => setManualMonth(Number(v))}
+                  options={MONTHS.map((m, i) => ({ value: i + 1, label: m }))}
+                />
               </div>
               <div className="flex-1 min-w-48">
                 <label className="block text-xs font-medium text-gray-600 mb-1">Descripción</label>
@@ -476,16 +478,14 @@ export default function Accounting() {
                   {manualLines.map((line, i) => (
                     <tr key={i} className="hover:bg-gray-50">
                       <td className="px-2 py-1.5">
-                        <select
+                        <SearchableSelect
                           value={line.account_id}
-                          onChange={e => updateManualLine(i, 'account_id', e.target.value)}
-                          className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
-                        >
-                          <option value="">Seleccionar...</option>
-                          {accounts.map(a => (
-                            <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
-                          ))}
-                        </select>
+                          onChange={v => updateManualLine(i, 'account_id', String(v))}
+                          options={[
+                            { value: '', label: 'Seleccionar...' },
+                            ...accounts.map(a => ({ value: a.id, label: `${a.code} — ${a.name}` })),
+                          ]}
+                        />
                       </td>
                       <td className="px-2 py-1.5">
                         <input type="text" value={line.glosa} onChange={e => updateManualLine(i, 'glosa', e.target.value)}
@@ -624,18 +624,14 @@ export default function Accounting() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Nómina aprobada
                 </label>
-                <select
+                <SearchableSelect
                   value={selectedRunId}
-                  onChange={(e) => setSelectedRunId(e.target.value)}
-                  className="border border-gray-300 rounded px-3 py-1.5 text-sm w-56"
-                >
-                  <option value="">Seleccionar nómina...</option>
-                  {payrollRuns.map((run) => (
-                    <option key={run.id} value={run.id}>
-                      {MONTHS[run.period_month - 1]} {run.period_year}
-                    </option>
-                  ))}
-                </select>
+                  onChange={v => setSelectedRunId(String(v))}
+                  options={[
+                    { value: '', label: 'Seleccionar nómina...' },
+                    ...payrollRuns.map(run => ({ value: run.id, label: `${MONTHS[run.period_month - 1]} ${run.period_year}` })),
+                  ]}
+                />
               </div>
               <button
                 onClick={generateProvision}
