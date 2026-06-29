@@ -41,7 +41,7 @@ def _money_format(ws, cell):
     cell.number_format = '#,##0'
 
 
-def generate_previred_excel(run, entries, employees: Dict) -> str:
+def generate_previred_excel(run, entries, employees: Dict, company=None) -> str:
     """
     Generate Previred-compatible Excel file.
     Format based on Previred manual de carga masiva.
@@ -56,7 +56,9 @@ def generate_previred_excel(run, entries, employees: Dict) -> str:
 
     # Period info
     ws.merge_cells("A1:R1")
-    ws["A1"] = f"ARCHIVO PREVIRED - {settings.COMPANY_NAME} - RUT {settings.COMPANY_RUT} - Período {run.period_month:02d}/{run.period_year}"
+    co_name = (company.name if company and company.name else settings.COMPANY_NAME)
+    co_rut = (company.rut if company and company.rut else settings.COMPANY_RUT)
+    ws["A1"] = f"ARCHIVO PREVIRED - {co_name} - RUT {co_rut} - Período {run.period_month:02d}/{run.period_year}"
     ws["A1"].font = Font(bold=True, size=11, color=BLUE)
     ws["A1"].alignment = Alignment(horizontal="center")
 
@@ -150,8 +152,8 @@ def generate_previred_excel(run, entries, employees: Dict) -> str:
         ("UF", float(run.uf_value)),
         ("UTM", float(run.utm_value)),
         ("IMM", float(run.imm_value)),
-        ("Empresa", settings.COMPANY_NAME),
-        ("RUT Empresa", settings.COMPANY_RUT),
+        ("Empresa", co_name),
+        ("RUT Empresa", co_rut),
         ("Generado", datetime.now().strftime("%d/%m/%Y %H:%M")),
     ]
     for i, (label, value) in enumerate(refs, 3):
@@ -370,7 +372,7 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
     return filepath
 
 
-def generate_dj1887_excel(year: int, entries: list, employees: Dict) -> str:
+def generate_dj1887_excel(year: int, entries: list, employees: Dict, company=None) -> str:
     """
     Generate Declaración Jurada Anual F1887 (SII).
     Resumen anual de rentas e impuestos retenidos por empleador.
@@ -389,7 +391,9 @@ def generate_dj1887_excel(year: int, entries: list, employees: Dict) -> str:
     ws["A1"].alignment = Alignment(horizontal="center")
 
     ws.merge_cells("A2:L2")
-    ws["A2"] = f"{settings.COMPANY_NAME} — RUT: {settings.COMPANY_RUT}"
+    dj_co_name = (company.name if company and company.name else settings.COMPANY_NAME)
+    dj_co_rut = (company.rut if company and company.rut else settings.COMPANY_RUT)
+    ws["A2"] = f"{dj_co_name} — RUT: {dj_co_rut}"
     ws["A2"].alignment = Alignment(horizontal="center")
 
     headers = [
@@ -477,8 +481,8 @@ def generate_dj1887_excel(year: int, entries: list, employees: Dict) -> str:
         ("El archivo final debe ser importado al portal del SII (www.sii.cl).", ""),
         ("Año Tributario:", year + 1),
         ("Rentas devengadas en:", year),
-        ("Empresa:", settings.COMPANY_NAME),
-        ("RUT Empresa:", settings.COMPANY_RUT),
+        ("Empresa:", dj_co_name),
+        ("RUT Empresa:", dj_co_rut),
         ("Generado:", datetime.now().strftime("%d/%m/%Y %H:%M")),
         ("", ""),
         ("IMPORTANTE: Verificar los valores antes de declarar al SII.", ""),

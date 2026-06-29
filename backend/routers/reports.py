@@ -47,8 +47,9 @@ def previred_excel(
 
     entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id == run_id).all()
     employees = {e.id: e for e in db.query(Employee).all()}
+    company = db.query(Company).filter(Company.id == run.company_id).first() if run.company_id else db.query(Company).first()
 
-    excel_path = generate_previred_excel(run=run, entries=entries, employees=employees)
+    excel_path = generate_previred_excel(run=run, entries=entries, employees=employees, company=company)
     return FileResponse(excel_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         filename=f"previred_{run.period_year}_{run.period_month:02d}.xlsx")
 
@@ -88,7 +89,8 @@ def dj1887_excel(
     entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id.in_(run_ids)).all()
     employees = {e.id: e for e in db.query(Employee).all()}
 
-    excel_path = generate_dj1887_excel(year=year, entries=entries, employees=employees)
+    company = db.query(Company).first()
+    excel_path = generate_dj1887_excel(year=year, entries=entries, employees=employees, company=company)
     return FileResponse(excel_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         filename=f"DJ1887_{year}.xlsx")
 
