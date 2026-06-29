@@ -679,14 +679,39 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     elements.append(Paragraph(intro, body_style))
     elements.append(Spacer(1, 10))
 
-    # Work details
+    clause_title_style = ParagraphStyle("CT", fontSize=9, fontName="Helvetica-Bold", spaceBefore=8, spaceAfter=3)
+
+    # --- PRIMERO ---
+    cause = data.get("termination_cause", "")
+    hire_str = _fmt_date_cl(data.get("hire_date", ""))
+    term_str_short = _fmt_date_cl(data.get("termination_date", ""))
+    emp_name = data.get("employee_name", "")
+    emp_rut = _fmt_rut(data.get("employee_rut", ""))
+    if "159" in cause:
+        cause_label = f"{cause} del Código del Trabajo"
+    elif "160" in cause:
+        cause_label = f"{cause} del Código del Trabajo"
+    elif "161" in cause:
+        cause_label = f"{cause} del Código del Trabajo"
+    else:
+        cause_label = cause
+
+    elements.append(Paragraph("PRIMERO:", clause_title_style))
+    elements.append(Paragraph(
+        f"El(la) trabajador(a) prestó servicios al empleador desde el {hire_str} hasta el {term_str_short}, "
+        f"fecha esta última en que su contrato de trabajo ha terminado por <b>{cause_label}</b>.",
+        body_style
+    ))
+    elements.append(Spacer(1, 4))
+
+    # Data summary table
     emp_data = [
-        ["Trabajador(a):", data.get("employee_name", "")],
-        ["RUT:", _fmt_rut(data.get("employee_rut", ""))],
+        ["Trabajador(a):", emp_name],
+        ["RUT:", emp_rut],
         ["Cargo:", data.get("employee_position", "")],
-        ["Fecha de Ingreso:", _fmt_date_cl(data.get("hire_date", ""))],
-        ["Fecha de Término:", _fmt_date_cl(data.get("termination_date", ""))],
-        ["Causal de Término:", data.get("termination_cause", "")],
+        ["Fecha de Ingreso:", hire_str],
+        ["Fecha de Término:", term_str_short],
+        ["Causal de Término:", cause],
         ["Años de servicio:", f"{data.get('years_of_service', 0):.2f} años ({data.get('months_of_service', 0)} meses)"],
         ["Última remuneración:", _fmt_clp(data.get("last_salary", 0))],
     ]
@@ -701,31 +726,18 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
     ]))
     elements.append(emp_table)
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 6))
 
-    # Legal reference for causal
-    cause = data.get("termination_cause", "")
-    if "159" in cause:
-        cause_text = (
-            "El contrato de trabajo termina por la causal establecida en el <b>Artículo 159 del Código del Trabajo</b> "
-            "(mutuo acuerdo / vencimiento del plazo / conclusión del trabajo o servicio / caso fortuito o fuerza mayor)."
-        )
-    elif "160" in cause:
-        cause_text = (
-            "El contrato de trabajo termina por la causal establecida en el <b>Artículo 160 del Código del Trabajo</b>, "
-            "imputable al trabajador, no dando lugar al pago de indemnización por años de servicio."
-        )
-    elif "161" in cause:
-        cause_text = (
-            "El contrato de trabajo termina por la causal de necesidades de la empresa establecida en el "
-            "<b>Artículo 161 del Código del Trabajo</b>, dando lugar al pago de indemnización por años de servicio "
-            "conforme al Artículo 163 del mismo cuerpo legal."
-        )
-    else:
-        cause_text = f"El contrato de trabajo termina por la causal: {cause}."
-
-    elements.append(Paragraph(cause_text, body_style))
-    elements.append(Spacer(1, 10))
+    # --- SEGUNDO ---
+    elements.append(Paragraph("SEGUNDO:", clause_title_style))
+    elements.append(Paragraph(
+        f"Don(a) <b>{emp_name}</b> declara recibir en este acto, a su entera satisfacción, de parte de "
+        f"<b>{company_name}</b>, las sumas que se detallan en la siguiente liquidación de haberes. "
+        f"Don(a) <b>{emp_name}</b> declara haber analizado y estudiado detenidamente dicha liquidación, "
+        f"encontrándola en todas sus partes correcta, sin tener observación alguna que formularle.",
+        body_style
+    ))
+    elements.append(Spacer(1, 6))
 
     # Settlement table
     elements.append(Paragraph("<b>LIQUIDACIÓN DE HABERES</b>",
@@ -833,15 +845,69 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         ))
     elements.append(Spacer(1, 10))
 
-    # Declaration
-    declaration = (
-        "El trabajador declara recibir a su entera satisfacción las sumas indicadas, y otorga el más amplio "
-        "y completo finiquito a la empresa, sin reserva ni condición alguna, renunciando expresamente a "
-        "cualquier acción, derecho o reclamación de carácter laboral, previsional o de cualquier otro tipo "
-        "que pudiera corresponderle con ocasión del presente contrato de trabajo y su término, "
-        "conforme al <b>Artículo 177 del Código del Trabajo</b>."
-    )
-    elements.append(Paragraph(declaration, body_style))
+    # --- TERCERO ---
+    elements.append(Paragraph("TERCERO:", clause_title_style))
+    elements.append(Paragraph(
+        f"En consecuencia, el empleador paga a don(a) <b>{emp_name}</b>, en dinero efectivo o transferencia bancaria, "
+        f"la suma de <b>{_fmt_clp(data.get('total_neto', 0))}</b>, que el(la) trabajador(a) declara recibir en este acto "
+        f"a su entera satisfacción. Las partes dejan constancia que la referida suma cubre el total de haberes "
+        f"especificados en la liquidación señalada en la cláusula SEGUNDO del presente finiquito.",
+        body_style
+    ))
+    elements.append(Spacer(1, 4))
+
+    # --- CUARTO ---
+    elements.append(Paragraph("CUARTO:", clause_title_style))
+    elements.append(Paragraph(
+        f"Don(a) <b>{emp_name}</b> deja constancia que durante el tiempo que prestó servicios a "
+        f"<b>{company_name}</b>, recibió oportunamente el total de las remuneraciones, beneficios y demás "
+        f"prestaciones convenidas de acuerdo a su contrato de trabajo, clase de trabajo ejecutado y disposiciones "
+        f"legales pertinentes, y que en tal virtud el empleador nada le adeuda por tales conceptos, ni por horas "
+        f"extraordinarias, asignación familiar, feriado, indemnización por años de servicios, imposiciones "
+        f"previsionales, ni por ningún otro concepto, ya sea legal o contractual, derivado de la prestación de "
+        f"sus servicios, de su contrato de trabajo o de la terminación del mismo.",
+        body_style
+    ))
+    elements.append(Spacer(1, 4))
+
+    # --- QUINTO ---
+    elements.append(Paragraph("QUINTO:", clause_title_style))
+    elements.append(Paragraph(
+        f"En virtud de lo anteriormente expuesto, don(a) <b>{emp_name}</b> manifiesta expresamente que "
+        f"<b>{company_name}</b> nada le adeuda en relación con los servicios prestados, con el contrato de trabajo "
+        f"o con motivo de la terminación del mismo, por lo que libre y espontáneamente, y con el pleno y cabal "
+        f"conocimiento de sus derechos, otorga a su empleador el más amplio, completo, total y definitivo "
+        f"finiquito por los servicios prestados o la terminación de ellos, ya diga relación con remuneraciones, "
+        f"cotizaciones previsionales, de seguridad social o de salud, subsidios, beneficios contractuales "
+        f"adicionales a las remuneraciones, indemnizaciones, compensaciones, o con cualquiera causa o concepto, "
+        f"conforme al <b>Artículo 177 del Código del Trabajo</b>.",
+        body_style
+    ))
+    elements.append(Spacer(1, 4))
+
+    # --- SEXTO ---
+    elements.append(Paragraph("SEXTO:", clause_title_style))
+    elements.append(Paragraph(
+        f"Asimismo, declara el(la) trabajador(a) que, en todo caso y a todo evento, renuncia expresamente a "
+        f"cualquier derecho, acción o reclamo que eventualmente tuviere o pudiere corresponderle en contra del "
+        f"empleador, en relación directa o indirecta con su contrato de trabajo, con los servicios prestados, "
+        f"con la terminación del referido contrato o dichos servicios, ya correspondan esos derechos o acciones "
+        f"a remuneraciones, cotizaciones previsionales, de seguridad social o de salud, subsidios, beneficios "
+        f"contractuales adicionales a las remuneraciones, indemnizaciones, compensaciones, o con cualquier otra "
+        f"causa o concepto.",
+        body_style
+    ))
+    elements.append(Spacer(1, 10))
+
+    # Closing
+    elements.append(Paragraph(
+        f"Para constancia, las partes firman el presente finiquito en <b>tres ejemplares</b> del mismo tenor y "
+        f"fecha, quedando uno en poder de cada una de ellas, y en cumplimiento de la legislación vigente, "
+        f"don(a) <b>{emp_name}</b> lo lee, firma y lo ratifica ante Notario Público o Inspector del Trabajo.",
+        body_style
+    ))
+    elements.append(Spacer(1, 6))
+
     doc.build(elements, onFirstPage=_draw_footer, onLaterPages=_draw_footer)
     return filepath
 
