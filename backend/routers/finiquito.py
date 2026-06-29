@@ -120,7 +120,17 @@ def get_last_imponible(
         stored = float(entry.remuneracion_imponible or 0)
         imponible = max(reconstructed, stored)
         if imponible > 0:
-            return {"remuneracion_imponible": round(imponible), "found": True}
+            return {
+                "remuneracion_imponible": round(imponible),
+                "found": True,
+                "debug": {
+                    "stored_imponible": stored,
+                    "reconstructed": reconstructed,
+                    "base_salary": float(entry.base_salary or 0),
+                    "gratificacion": float(entry.gratificacion or 0),
+                    "entry_id": entry.id,
+                }
+            }
     # fallback: base salary from employee record
     emp = db.query(Employee).filter(Employee.id == employee_id).first()
     return {"remuneracion_imponible": float(emp.base_salary) if emp else 0, "found": False}
