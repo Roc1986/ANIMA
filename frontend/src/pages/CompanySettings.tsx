@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
+
+function formatRUT(raw: string): string {
+  const clean = raw.replace(/[^0-9kK]/g, '').toUpperCase()
+  if (clean.length < 2) return clean
+  const body = clean.slice(0, -1)
+  const dv = clean.slice(-1)
+  const bodyFormatted = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `${bodyFormatted}-${dv}`
+}
 import toast from 'react-hot-toast'
 import { BuildingOfficeIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { api } from '../api/client'
@@ -179,9 +188,10 @@ export default function CompanySettings() {
               <label className="label-field">RUT empresa</label>
               <input
                 type="text"
-                className="input-field"
+                className="input-field font-mono"
                 placeholder="Ej: 76.123.456-7"
                 {...register('rut')}
+                onBlur={e => { const v = formatRUT(e.target.value); e.target.value = v; setValue('rut', v) }}
               />
             </div>
 
@@ -242,9 +252,10 @@ export default function CompanySettings() {
                   <label className="label-field">RUT del representante legal</label>
                   <input
                     type="text"
-                    className="input-field"
+                    className="input-field font-mono"
                     placeholder="Ej: 12.345.678-9"
                     {...register('legal_rep_rut')}
+                    onBlur={e => { const v = formatRUT(e.target.value); e.target.value = v; setValue('legal_rep_rut', v) }}
                   />
                 </div>
               </div>
