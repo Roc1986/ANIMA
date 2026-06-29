@@ -108,11 +108,21 @@ def get_last_imponible(
         .first()
     )
     if entry:
-        # Always reconstruct from stored components (base + gratificacion + overtime + bono_otros)
-        # to avoid cases where remuneracion_imponible was stored incorrectly as just base_salary
+        base = float(entry.base_salary or 0)
+        stored_gratif = float(entry.gratificacion or 0)
+
+        # If gratificacion was not stored, recompute using legal 25% formula capped at IMM/12.
+        # This mirrors the payroll calculator logic so the imponible matches the liquidación PDF.
+        if stored_gratif == 0 and base > 0:
+            imm = _get_imm_for_date(db, date.today())
+            gratif_legal_max = imm / 12.0
+            computed_gratif = min(base * 0.25, gratif_legal_max)
+        else:
+            computed_gratif = stored_gratif
+
         reconstructed = (
-            float(entry.base_salary or 0)
-            + float(entry.gratificacion or 0)
+            base
+            + computed_gratif
             + float(entry.overtime_weekday or 0)
             + float(entry.overtime_sunday or 0)
             + float(entry.bono_otros or 0)
@@ -126,8 +136,9 @@ def get_last_imponible(
                 "debug": {
                     "stored_imponible": stored,
                     "reconstructed": reconstructed,
-                    "base_salary": float(entry.base_salary or 0),
-                    "gratificacion": float(entry.gratificacion or 0),
+                    "base_salary": base,
+                    "stored_gratif": stored_gratif,
+                    "computed_gratif": round(computed_gratif, 0),
                     "entry_id": entry.id,
                 }
             }
