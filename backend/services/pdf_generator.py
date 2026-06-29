@@ -666,15 +666,33 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         except Exception:
             pass
 
+    # Worker personal data from employee object
+    emp_nationality = getattr(employee, 'nationality', None) or "Chilena"
+    emp_birth_date = getattr(employee, 'birth_date', None)
+    emp_birth_str = ""
+    if emp_birth_date:
+        try:
+            bd = emp_birth_date if hasattr(emp_birth_date, 'day') else datetime.strptime(str(emp_birth_date), "%Y-%m-%d")
+            emp_birth_str = f"{bd.day} de {MONTH_NAMES[bd.month]} de {bd.year}"
+        except Exception:
+            pass
+    emp_address = getattr(employee, 'address', None) or "Chile"
+
     if legal_rep_name:
         rep_clause = f"representada legalmente por don/doña <b>{legal_rep_name}</b>, Cédula de Identidad N° {_fmt_rut(legal_rep_rut)}"
     else:
         rep_clause = "representada legalmente por su representante legal"
+
+    worker_detail = f"de nacionalidad <b>{emp_nationality}</b>"
+    if emp_birth_str:
+        worker_detail += f", nacido(a) el <b>{emp_birth_str}</b>"
+
     intro = (
         f"En {city}, a {term_date_str}, entre <b>{company_name}</b>, RUT {_fmt_rut(company_rut)}, "
         f'domiciliada en {company_address} (en adelante "la Empresa"), {rep_clause}, '
         f"y el(la) trabajador(a) <b>{data.get('employee_name', '')}</b>, RUT <b>{_fmt_rut(data.get('employee_rut', ''))}</b>, "
-        f'domiciliado(a) en Chile (en adelante "el(la) Trabajador(a)"), se ha convenido el siguiente finiquito:'
+        f"{worker_detail}, domiciliado(a) en {emp_address} "
+        f'(en adelante "el(la) Trabajador(a)"), se ha convenido el siguiente finiquito:'
     )
     elements.append(Paragraph(intro, body_style))
     elements.append(Spacer(1, 10))
@@ -856,8 +874,20 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     ))
     elements.append(Spacer(1, 4))
 
-    # --- CUARTO ---
-    elements.append(Paragraph("CUARTO:", clause_title_style))
+    # --- CUARTO: Reserva de Derechos (Art. 177 CT inciso 3°) ---
+    elements.append(Paragraph("CUARTO: Reserva de Derechos", clause_title_style))
+    elements.append(Paragraph(
+        f"De conformidad con lo dispuesto en el inciso 3° del Artículo 177 del Código del Trabajo, "
+        f"el(la) trabajador(a) don(a) <b>{emp_name}</b> deja constancia de que acepta el presente finiquito "
+        f"<b>sin reserva de derechos</b>, declarando que no existen conceptos pendientes ni en disputa "
+        f"que deban ser excluidos del presente instrumento. En consecuencia, el finiquito produce plenos "
+        f"efectos respecto de la totalidad de los conceptos derivados de la relación laboral.",
+        body_style
+    ))
+    elements.append(Spacer(1, 4))
+
+    # --- QUINTO (ex CUARTO): No hay deudas ---
+    elements.append(Paragraph("QUINTO:", clause_title_style))
     elements.append(Paragraph(
         f"Don(a) <b>{emp_name}</b> deja constancia que durante el tiempo que prestó servicios a "
         f"<b>{company_name}</b>, recibió oportunamente el total de las remuneraciones, beneficios y demás "
@@ -870,8 +900,8 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     ))
     elements.append(Spacer(1, 4))
 
-    # --- QUINTO ---
-    elements.append(Paragraph("QUINTO:", clause_title_style))
+    # --- SEXTO ---
+    elements.append(Paragraph("SEXTO:", clause_title_style))
     elements.append(Paragraph(
         f"En virtud de lo anteriormente expuesto, don(a) <b>{emp_name}</b> manifiesta expresamente que "
         f"<b>{company_name}</b> nada le adeuda en relación con los servicios prestados, con el contrato de trabajo "
@@ -880,13 +910,14 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         f"finiquito por los servicios prestados o la terminación de ellos, ya diga relación con remuneraciones, "
         f"cotizaciones previsionales, de seguridad social o de salud, subsidios, beneficios contractuales "
         f"adicionales a las remuneraciones, indemnizaciones, compensaciones, o con cualquiera causa o concepto, "
-        f"conforme al <b>Artículo 177 del Código del Trabajo</b>.",
+        f"sin perjuicio de lo señalado en la cláusula cuarta del presente instrumento, conforme al "
+        f"<b>Artículo 177 del Código del Trabajo</b>.",
         body_style
     ))
     elements.append(Spacer(1, 4))
 
-    # --- SEXTO ---
-    elements.append(Paragraph("SEXTO:", clause_title_style))
+    # --- SÉPTIMO ---
+    elements.append(Paragraph("SÉPTIMO:", clause_title_style))
     elements.append(Paragraph(
         f"Asimismo, declara el(la) trabajador(a) que, en todo caso y a todo evento, renuncia expresamente a "
         f"cualquier derecho, acción o reclamo que eventualmente tuviere o pudiere corresponderle en contra del "
@@ -905,6 +936,15 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         f"fecha, quedando uno en poder de cada una de ellas, y en cumplimiento de la legislación vigente, "
         f"don(a) <b>{emp_name}</b> lo lee, firma y lo ratifica ante Notario Público o Inspector del Trabajo.",
         body_style
+    ))
+    elements.append(Spacer(1, 4))
+
+    # Note on commissions (DT standard footnote)
+    elements.append(Paragraph(
+        "<i>Nota: Las comisiones devengadas por el(la) trabajador(a) en el período en que se da término al "
+        "contrato de trabajo y que por razones técnicas no fue posible liquidar y pagar en el período en que "
+        "se originaron, deberán ser liquidadas y pagadas al período siguiente (Dictamen N° 4814/44 de 31.10.2012 DT).</i>",
+        ParagraphStyle("Note2", fontSize=7, textColor=DARK_GRAY, leading=10)
     ))
     elements.append(Spacer(1, 6))
 
