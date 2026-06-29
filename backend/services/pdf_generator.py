@@ -341,6 +341,22 @@ def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
     return filepath
 
 
+def _company_fields(company):
+    """Extract company display fields without rendering anything."""
+    primary_color = BLUE
+    if company and company.primary_color:
+        try:
+            primary_color = colors.HexColor(company.primary_color)
+        except Exception:
+            pass
+    name = (company.name if company and company.name else settings.COMPANY_NAME)
+    rut = (company.rut if company and company.rut else settings.COMPANY_RUT)
+    address = (company.address if company and company.address else settings.COMPANY_ADDRESS)
+    phone = (company.phone if company and company.phone else settings.COMPANY_PHONE)
+    city = (company.city if company and company.city else "Santiago")
+    return primary_color, name, rut, address, phone, city
+
+
 def _company_header_elements(company, elements, styles):
     """Render company logo + info header block into elements list."""
     primary_color = BLUE
@@ -625,7 +641,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
 
     elements = []
     primary_color, company_name, company_rut, company_address, company_phone, company_city = \
-        _company_header_elements(company, elements, getSampleStyleSheet())
+        _company_fields(company)
 
     title_style = ParagraphStyle("FT", fontSize=15, fontName="Helvetica-Bold",
                                   textColor=primary_color, alignment=TA_CENTER, spaceAfter=4)
@@ -634,7 +650,8 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         "Artículo 177 del Código del Trabajo",
         ParagraphStyle("Sub", fontSize=9, textColor=DARK_GRAY, alignment=TA_CENTER)
     ))
-    elements.append(Spacer(1, 12))
+    elements.append(HRFlowable(width="100%", thickness=2, color=primary_color, spaceAfter=8))
+    elements.append(Spacer(1, 4))
 
     # Party info
     body_style = ParagraphStyle("Body", fontSize=9, leading=14, alignment=TA_JUSTIFY)
