@@ -653,11 +653,10 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         "Artículo 177 del Código del Trabajo",
         ParagraphStyle("Sub", fontSize=9, textColor=DARK_GRAY, alignment=TA_CENTER)
     ))
-    elements.append(HRFlowable(width="100%", thickness=2, color=primary_color, spaceAfter=8))
-    elements.append(Spacer(1, 4))
+    elements.append(HRFlowable(width="100%", thickness=2, color=primary_color, spaceAfter=4))
 
     # Party info
-    body_style = ParagraphStyle("Body", fontSize=9, leading=14, alignment=TA_JUSTIFY)
+    body_style = ParagraphStyle("Body", fontSize=9, leading=12, alignment=TA_JUSTIFY)
     city = company_city if (company_city and len(company_city.strip()) > 3 and not company_city.strip().isdigit()) else "Santiago"
     term_date_str = data.get("termination_date", "")
     if term_date_str:
@@ -721,9 +720,9 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         f'(en adelante "{_El} {_Trabajador}"), se ha convenido el siguiente finiquito:'
     )
     elements.append(Paragraph(intro, body_style))
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 5))
 
-    clause_title_style = ParagraphStyle("CT", fontSize=9, fontName="Helvetica-Bold", spaceBefore=8, spaceAfter=3)
+    clause_title_style = ParagraphStyle("CT", fontSize=9, fontName="Helvetica-Bold", spaceBefore=5, spaceAfter=2)
 
     # --- PRIMERO ---
     cause = data.get("termination_cause", "")
@@ -770,7 +769,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
     ]))
     elements.append(emp_table)
-    elements.append(Spacer(1, 6))
+    elements.append(Spacer(1, 4))
 
     # --- SEGUNDO ---
     elements.append(Paragraph("SEGUNDO:", clause_title_style))
@@ -781,12 +780,12 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         f"encontrándola en todas sus partes correcta, sin tener observación alguna que formularle.",
         body_style
     ))
-    elements.append(Spacer(1, 6))
+    elements.append(Spacer(1, 4))
 
     # Settlement table
     elements.append(Paragraph("<b>LIQUIDACIÓN DE HABERES</b>",
                                ParagraphStyle("LH", fontSize=10, fontName="Helvetica-Bold", textColor=primary_color)))
-    elements.append(Spacer(1, 6))
+    elements.append(Spacer(1, 4))
 
     breakdown = data.get("breakdown", {})
     settlement_rows = [
