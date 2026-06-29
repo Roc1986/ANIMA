@@ -189,12 +189,10 @@ def calculate_finiquito(
         indemnizacion_aviso_previo = capped_salary
 
     # Vacaciones proporcionales
-    # pending_vacation_days is in días hábiles (Mon-Fri).
-    # DT requires converting to días corridos (× 7/5) for payment.
-    # This includes the weekends that fall within the vacation period.
-    months_worked_current_year = months % 12
-    vacation_earned_habiles = months_worked_current_year * 1.25
-    vacation_days_habiles_total = vacation_earned_habiles + data.pending_vacation_days
+    # pending_vacation_days is the total balance in días hábiles as reported by
+    # the vacations module (already includes all accrued days). Convert to días
+    # corridos (× 7/5) per DT standard to include weekends in the payment.
+    vacation_days_habiles_total = data.pending_vacation_days
     vacation_days_corridos = vacation_days_habiles_total * (7 / 5)
     vacaciones_proporcionales = vacation_days_corridos * daily_salary
 
@@ -246,7 +244,6 @@ def calculate_finiquito(
             "uf_cap": uf_cap,
             "capped_salary": capped_salary,
             "complete_years": complete_years_legal,
-            "vacation_earned_habiles": round(vacation_earned_habiles, 2),
             "pending_vacation_days": data.pending_vacation_days,
             "total_vacation_habiles": round(vacation_days_habiles_total, 2),
             "total_vacation_days": round(vacation_days_corridos, 2),
