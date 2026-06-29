@@ -143,8 +143,12 @@ export default function Finiquito() {
     setSelectedEmp(emp)
     // Auto-fill from last payroll imponible; fallback to base_salary
     finiquitoApi.lastImponible(emp.id).then(res => {
-      setValue('last_salary', Math.round(res.data.remuneracion_imponible))
-    }).catch(() => {
+      const imponible = Math.round(res.data.remuneracion_imponible)
+      setValue('last_salary', imponible)
+      toast.success(`Imponible cargado: $${imponible.toLocaleString('es-CL')} (debug)`, { duration: 6000 })
+    }).catch((err) => {
+      const msg = err?.response?.data?.detail || err?.message || 'sin detalle'
+      toast.error(`Error last-imponible: ${msg}`, { duration: 8000 })
       setValue('last_salary', Math.round(emp.base_salary))
     })
 
