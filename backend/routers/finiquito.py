@@ -272,15 +272,25 @@ def generate_finiquito_pdf_endpoint(
     company = db.query(Company).filter(Company.id == emp.company_id).first() if emp.company_id else db.query(Company).first()
     filepath = generate_finiquito_pdf(data.calculation, emp, company)
 
-    # Auto-save to employee dossier
-    doc = Document(
-        employee_id=emp.id,
-        document_type=DocumentType.finiquito,
-        title=f"Finiquito {emp.full_name}",
-        file_path=filepath,
-        generated_by=current_user.id,
-    )
-    db.add(doc)
+    # Upsert finiquito document in dossier (replace existing to avoid duplicates)
+    term_date = data.calculation.get("termination_date", "")
+    title = f"Finiquito {emp.full_name} — {term_date}"
+    existing = db.query(Document).filter(
+        Document.employee_id == emp.id,
+        Document.document_type == DocumentType.finiquito,
+    ).first()
+    if existing:
+        existing.file_path = filepath
+        existing.title = title
+        existing.generated_by = current_user.id
+    else:
+        db.add(Document(
+            employee_id=emp.id,
+            document_type=DocumentType.finiquito,
+            title=title,
+            file_path=filepath,
+            generated_by=current_user.id,
+        ))
     db.commit()
 
     return FileResponse(filepath, media_type="application/pdf", filename=f"finiquito_{emp.rut}.pdf")
