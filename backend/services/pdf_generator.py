@@ -538,13 +538,89 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     filename = f"finiquito_{employee.rut}_{uuid.uuid4().hex[:8]}.pdf"
     filepath = os.path.join(UPLOAD_DIR, filename)
 
+    # Resolve company fields up front (needed by footer callback)
+    _company = company
+    _primary_color = colors.HexColor(_company.primary_color) if (_company and _company.primary_color) else BLUE
+    _company_name = (_company.name if _company else None) or "Empresa"
+    _company_rut = (_company.rut if _company else None) or ""
+    _employee_name = data.get("employee_name", "")
+    _employee_rut = _fmt_rut(data.get("employee_rut", ""))
+
+    # Footer height: 5.5 cm (signature lines + ratification note + ANIMA line)
+    FOOTER_H = 5.5 * cm
+
+    def _draw_footer(canv, doc):
+        """Draw signature block + ratification note as a fixed page footer."""
+        page_w, _ = A4
+        left = 2 * cm
+        right = page_w - 2 * cm
+        usable_w = right - left
+        col_w = usable_w / 4
+
+        y_base = 1.5 * cm  # bottom of footer area
+
+        # Thin separator line
+        canv.saveState()
+        canv.setStrokeColor(colors.lightgrey)
+        canv.setLineWidth(0.5)
+        canv.line(left, y_base + FOOTER_H - 0.3 * cm, right, y_base + FOOTER_H - 0.3 * cm)
+
+        # Four signature columns
+        labels = ["Empleador", "Trabajador(a)", "Testigo", "Delegado Sindical\n(si aplica)"]
+        names  = [_company_name, _employee_name, "", ""]
+        ruts   = [f"RUT: {_company_rut}", f"RUT: {_employee_rut}", "RUT:", ""]
+
+        canv.setFont("Helvetica", 7)
+        for i, (lbl, nm, rut) in enumerate(zip(labels, names, ruts)):
+            x_center = left + col_w * i + col_w / 2
+            y_line   = y_base + 3.5 * cm
+            y_label  = y_base + 3.0 * cm
+            y_name   = y_base + 2.5 * cm
+            y_rut    = y_base + 2.1 * cm
+
+            # Signature line
+            canv.setStrokeColor(colors.black)
+            canv.setLineWidth(0.5)
+            canv.line(x_center - col_w * 0.4, y_line, x_center + col_w * 0.4, y_line)
+
+            # Bold label
+            canv.setFont("Helvetica-Bold", 7)
+            # Handle multi-line label (Delegado Sindical)
+            for j, part in enumerate(lbl.split("\n")):
+                canv.drawCentredString(x_center, y_label - j * 9, part)
+
+            canv.setFont("Helvetica", 6.5)
+            canv.setFillColor(DARK_GRAY)
+            if nm:
+                canv.drawCentredString(x_center, y_name, nm)
+            if rut:
+                canv.drawCentredString(x_center, y_rut, rut)
+            canv.setFillColor(colors.black)
+
+        # Ratification note
+        y_note = y_base + 1.5 * cm
+        canv.setFont("Helvetica-BoldOblique", 6.5)
+        canv.setFillColor(DARK_GRAY)
+        note = "Este finiquito debe ser ratificado ante Notario Público o Inspector del Trabajo para tener plena validez."
+        canv.drawCentredString(page_w / 2, y_note, note)
+
+        # ANIMA HR line
+        canv.setFont("Helvetica", 5.5)
+        gen_line = (
+            f"Generado por ANIMA HR | {datetime.now().strftime('%d/%m/%Y %H:%M')} | "
+            f"Documento sujeto a ratificación conforme Art. 177 Código del Trabajo"
+        )
+        canv.drawCentredString(page_w / 2, y_base + 0.8 * cm, gen_line)
+        canv.setFillColor(colors.black)
+        canv.restoreState()
+
     doc = SimpleDocTemplate(
         filepath,
         pagesize=A4,
         leftMargin=2*cm,
         rightMargin=2*cm,
         topMargin=2*cm,
-        bottomMargin=2*cm,
+        bottomMargin=FOOTER_H + 1.5*cm,  # reserve space for footer
     )
 
     elements = []
@@ -743,39 +819,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         "conforme al <b>Artículo 177 del Código del Trabajo</b>."
     )
     elements.append(Paragraph(declaration, body_style))
-    elements.append(Spacer(1, 24))
-
-    # Signatures — 4 signature lines
-    sig_data = [
-        ["_______________________", "_______________________", "_______________________", "_______________________"],
-        ["Empleador", "Trabajador(a)", "Testigo", "Delegado Sindical (si aplica)"],
-        [company_name, data.get("employee_name", ""), "", ""],
-        [f"RUT: {company_rut}", f"RUT: {_fmt_rut(data.get('employee_rut', ''))}", "RUT:", ""],
-    ]
-    sig_table = Table(sig_data, colWidths=[4*cm, 4*cm, 4*cm, 4.5*cm])
-    sig_table.setStyle(TableStyle([
-        ("FONTSIZE", (0, 0), (-1, -1), 7),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
-        ("TEXTCOLOR", (0, 2), (-1, -1), DARK_GRAY),
-    ]))
-    elements.append(sig_table)
-    elements.append(Spacer(1, 10))
-
-    elements.append(Paragraph(
-        "Este finiquito debe ser ratificado ante Notario Público o Inspector del Trabajo para tener plena validez.",
-        ParagraphStyle("Note", fontSize=7, textColor=DARK_GRAY, alignment=TA_CENTER, fontName="Helvetica-BoldOblique")
-    ))
-    elements.append(Spacer(1, 6))
-    elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
-    elements.append(Paragraph(
-        f"Generado por ANIMA HR | {datetime.now().strftime('%d/%m/%Y %H:%M')} | "
-        f"Documento sujeto a ratificación conforme Art. 177 Código del Trabajo",
-        ParagraphStyle("Footer", fontSize=6, textColor=DARK_GRAY, alignment=TA_CENTER)
-    ))
-
-    doc.build(elements)
+    doc.build(elements, onFirstPage=_draw_footer, onLaterPages=_draw_footer)
     return filepath
 
 
