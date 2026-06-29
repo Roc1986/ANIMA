@@ -563,6 +563,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     _company_rut = (_company.rut if _company else None) or ""
     _employee_name = data.get("employee_name", "")
     _employee_rut = _fmt_rut(data.get("employee_rut", ""))
+    _worker_label = ["Trabajador(a)"]  # mutable so footer closure picks up the gendered label
 
     # Footer height: 5.5 cm (signature lines + ratification note + ANIMA line)
     FOOTER_H = 5.5 * cm
@@ -584,7 +585,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
         canv.line(left, y_base + FOOTER_H - 0.3 * cm, right, y_base + FOOTER_H - 0.3 * cm)
 
         # Four signature columns
-        labels = ["Empleador", "Trabajador(a)", "Testigo", "Delegado Sindical\n(si aplica)"]
+        labels = ["Empleador", _worker_label[0], "Testigo", "Delegado Sindical\n(si aplica)"]
         names  = [_company_name, _employee_name, "", ""]
         ruts   = [f"RUT: {_company_rut}", f"RUT: {_employee_rut}", "RUT:", ""]
 
@@ -678,6 +679,30 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
             pass
     emp_address = getattr(employee, 'address', None) or "Chile"
 
+    # Gender-aware pronouns
+    _gender = str(getattr(employee, 'gender', '') or '').lower()
+    if _gender == 'female':
+        _el = "la"; _El = "La"; _don = "doña"; _Don = "Doña"
+        _trabajador = "trabajadora"; _Trabajador = "Trabajadora"
+        _domiciliado = "domiciliada"; _nacido = "nacida"
+        _prestó = "prestó"; _recibió = "recibió"; _declara = "declara"
+        _articulo = "la"
+    elif _gender == 'male':
+        _el = "el"; _El = "El"; _don = "don"; _Don = "Don"
+        _trabajador = "trabajador"; _Trabajador = "Trabajador"
+        _domiciliado = "domiciliado"; _nacido = "nacido"
+        _prestó = "prestó"; _recibió = "recibió"; _declara = "declara"
+        _articulo = "el"
+    else:
+        _el = "el(la)"; _El = "El(la)"; _don = "don(a)"; _Don = "Don(a)"
+        _trabajador = "trabajador(a)"; _Trabajador = "Trabajador(a)"
+        _domiciliado = "domiciliado(a)"; _nacido = "nacido(a)"
+        _prestó = "prestó"; _recibió = "recibió"; _declara = "declara"
+        _articulo = "el(la)"
+
+    # Update the footer worker label now that gender is known
+    _worker_label[0] = _Trabajador
+
     if legal_rep_name:
         rep_clause = f"representada legalmente por don/doña <b>{legal_rep_name}</b>, Cédula de Identidad N° {_fmt_rut(legal_rep_rut)}"
     else:
@@ -685,14 +710,14 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
 
     worker_detail = f"de nacionalidad <b>{emp_nationality}</b>"
     if emp_birth_str:
-        worker_detail += f", nacido(a) el <b>{emp_birth_str}</b>"
+        worker_detail += f", {_nacido}(a) el <b>{emp_birth_str}</b>"
 
     intro = (
         f"En {city}, a {term_date_str}, entre <b>{company_name}</b>, RUT {_fmt_rut(company_rut)}, "
         f'domiciliada en {company_address} (en adelante "la Empresa"), {rep_clause}, '
-        f"y el(la) trabajador(a) <b>{data.get('employee_name', '')}</b>, RUT <b>{_fmt_rut(data.get('employee_rut', ''))}</b>, "
-        f"{worker_detail}, domiciliado(a) en {emp_address} "
-        f'(en adelante "el(la) Trabajador(a)"), se ha convenido el siguiente finiquito:'
+        f"y {_el} {_trabajador} <b>{data.get('employee_name', '')}</b>, RUT <b>{_fmt_rut(data.get('employee_rut', ''))}</b>, "
+        f"{worker_detail}, {_domiciliado} en {emp_address} "
+        f'(en adelante "{_El} {_Trabajador}"), se ha convenido el siguiente finiquito:'
     )
     elements.append(Paragraph(intro, body_style))
     elements.append(Spacer(1, 10))
@@ -716,7 +741,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
 
     elements.append(Paragraph("PRIMERO:", clause_title_style))
     elements.append(Paragraph(
-        f"El(la) trabajador(a) prestó servicios al empleador desde el {hire_str} hasta el {term_str_short}, "
+        f"{_El} {_trabajador} prestó servicios al empleador desde el {hire_str} hasta el {term_str_short}, "
         f"fecha esta última en que su contrato de trabajo ha terminado por <b>{cause_label}</b>.",
         body_style
     ))
@@ -724,7 +749,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
 
     # Data summary table
     emp_data = [
-        ["Trabajador(a):", emp_name],
+        [f"{_Trabajador}:", emp_name],
         ["RUT:", emp_rut],
         ["Cargo:", data.get("employee_position", "")],
         ["Fecha de Ingreso:", hire_str],
@@ -749,9 +774,9 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     # --- SEGUNDO ---
     elements.append(Paragraph("SEGUNDO:", clause_title_style))
     elements.append(Paragraph(
-        f"Don(a) <b>{emp_name}</b> declara recibir en este acto, a su entera satisfacción, de parte de "
+        f"{_Don} <b>{emp_name}</b> declara recibir en este acto, a su entera satisfacción, de parte de "
         f"<b>{company_name}</b>, las sumas que se detallan en la siguiente liquidación de haberes. "
-        f"Don(a) <b>{emp_name}</b> declara haber analizado y estudiado detenidamente dicha liquidación, "
+        f"{_Don} <b>{emp_name}</b> declara haber analizado y estudiado detenidamente dicha liquidación, "
         f"encontrándola en todas sus partes correcta, sin tener observación alguna que formularle.",
         body_style
     ))
@@ -866,8 +891,8 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     # --- TERCERO ---
     elements.append(Paragraph("TERCERO:", clause_title_style))
     elements.append(Paragraph(
-        f"En consecuencia, el empleador paga a don(a) <b>{emp_name}</b>, en dinero efectivo o transferencia bancaria, "
-        f"la suma de <b>{_fmt_clp(data.get('total_neto', 0))}</b>, que el(la) trabajador(a) declara recibir en este acto "
+        f"En consecuencia, el empleador paga a {_don} <b>{emp_name}</b>, en dinero efectivo o transferencia bancaria, "
+        f"la suma de <b>{_fmt_clp(data.get('total_neto', 0))}</b>, que {_el} {_trabajador} declara recibir en este acto "
         f"a su entera satisfacción. Las partes dejan constancia que la referida suma cubre el total de haberes "
         f"especificados en la liquidación señalada en la cláusula SEGUNDO del presente finiquito.",
         body_style
@@ -878,7 +903,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     elements.append(Paragraph("CUARTO: Reserva de Derechos", clause_title_style))
     elements.append(Paragraph(
         f"De conformidad con lo dispuesto en el inciso 3° del Artículo 177 del Código del Trabajo, "
-        f"el(la) trabajador(a) don(a) <b>{emp_name}</b> deja constancia de que acepta el presente finiquito "
+        f"{_el} {_trabajador} {_don} <b>{emp_name}</b> deja constancia de que acepta el presente finiquito "
         f"<b>sin reserva de derechos</b>, declarando que no existen conceptos pendientes ni en disputa "
         f"que deban ser excluidos del presente instrumento. En consecuencia, el finiquito produce plenos "
         f"efectos respecto de la totalidad de los conceptos derivados de la relación laboral.",
@@ -886,10 +911,10 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     ))
     elements.append(Spacer(1, 4))
 
-    # --- QUINTO (ex CUARTO): No hay deudas ---
+    # --- QUINTO: No hay deudas ---
     elements.append(Paragraph("QUINTO:", clause_title_style))
     elements.append(Paragraph(
-        f"Don(a) <b>{emp_name}</b> deja constancia que durante el tiempo que prestó servicios a "
+        f"{_Don} <b>{emp_name}</b> deja constancia que durante el tiempo que prestó servicios a "
         f"<b>{company_name}</b>, recibió oportunamente el total de las remuneraciones, beneficios y demás "
         f"prestaciones convenidas de acuerdo a su contrato de trabajo, clase de trabajo ejecutado y disposiciones "
         f"legales pertinentes, y que en tal virtud el empleador nada le adeuda por tales conceptos, ni por horas "
@@ -903,7 +928,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     # --- SEXTO ---
     elements.append(Paragraph("SEXTO:", clause_title_style))
     elements.append(Paragraph(
-        f"En virtud de lo anteriormente expuesto, don(a) <b>{emp_name}</b> manifiesta expresamente que "
+        f"En virtud de lo anteriormente expuesto, {_don} <b>{emp_name}</b> manifiesta expresamente que "
         f"<b>{company_name}</b> nada le adeuda en relación con los servicios prestados, con el contrato de trabajo "
         f"o con motivo de la terminación del mismo, por lo que libre y espontáneamente, y con el pleno y cabal "
         f"conocimiento de sus derechos, otorga a su empleador el más amplio, completo, total y definitivo "
@@ -919,7 +944,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     # --- SÉPTIMO ---
     elements.append(Paragraph("SÉPTIMO:", clause_title_style))
     elements.append(Paragraph(
-        f"Asimismo, declara el(la) trabajador(a) que, en todo caso y a todo evento, renuncia expresamente a "
+        f"Asimismo, declara {_el} {_trabajador} que, en todo caso y a todo evento, renuncia expresamente a "
         f"cualquier derecho, acción o reclamo que eventualmente tuviere o pudiere corresponderle en contra del "
         f"empleador, en relación directa o indirecta con su contrato de trabajo, con los servicios prestados, "
         f"con la terminación del referido contrato o dichos servicios, ya correspondan esos derechos o acciones "
@@ -934,7 +959,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
     elements.append(Paragraph(
         f"Para constancia, las partes firman el presente finiquito en <b>tres ejemplares</b> del mismo tenor y "
         f"fecha, quedando uno en poder de cada una de ellas, y en cumplimiento de la legislación vigente, "
-        f"don(a) <b>{emp_name}</b> lo lee, firma y lo ratifica ante Notario Público o Inspector del Trabajo.",
+        f"{_don} <b>{emp_name}</b> lo lee, firma y lo ratifica ante Notario Público o Inspector del Trabajo.",
         body_style
     ))
     elements.append(Spacer(1, 4))

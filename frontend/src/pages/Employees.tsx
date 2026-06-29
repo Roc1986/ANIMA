@@ -336,6 +336,27 @@ export default function Employees() {
                   </>
                 )}
                 <div>
+                  <label className="label">Género</label>
+                  <select className="input" {...register('gender')}>
+                    <option value="">Sin especificar</option>
+                    <option value="female">Femenino (ella / la trabajadora)</option>
+                    <option value="male">Masculino (él / el trabajador)</option>
+                    <option value="other">Otro / No binario</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Fecha de Nacimiento</label>
+                  <DateInput className="input" {...register('birth_date')} />
+                </div>
+                <div>
+                  <label className="label">Nacionalidad</label>
+                  <input className="input" placeholder="Chilena" {...register('nationality')} />
+                </div>
+                <div className="col-span-2">
+                  <label className="label">Dirección</label>
+                  <input className="input" placeholder="Av. Ejemplo 123, Santiago" {...register('address')} />
+                </div>
+                <div>
                   <label className="label">Banco</label>
                   <input className="input" placeholder="BancoEstado, Santander..." {...register('bank_name')} />
                 </div>

@@ -56,6 +56,7 @@ interface Employee {
   city?: string
   birth_date?: string
   nationality: string
+  gender?: string
   afp: string
   health_system: string
   isapre_name?: string
@@ -379,6 +380,22 @@ export default function EmployeeDetail() {
                 )}
               </div>
             ))}
+          </div>
+          {/* Gender — separate because it needs a select */}
+          <div className="mt-4">
+            <label className="label">Género</label>
+            {editing ? (
+              <select className="input w-64" defaultValue={employee.gender || ''} {...register('gender')}>
+                <option value="">Sin especificar</option>
+                <option value="female">Femenino (ella / la trabajadora)</option>
+                <option value="male">Masculino (él / el trabajador)</option>
+                <option value="other">Otro / No binario</option>
+              </select>
+            ) : (
+              <p className="text-sm text-gray-800 py-2">
+                {employee.gender === 'female' ? 'Femenino' : employee.gender === 'male' ? 'Masculino' : employee.gender === 'other' ? 'Otro / No binario' : '—'}
+              </p>
+            )}
           </div>
         </div>
 
