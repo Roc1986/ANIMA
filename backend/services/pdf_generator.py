@@ -562,7 +562,7 @@ def generate_finiquito_pdf(data: dict, employee, company) -> str:
 
     # Party info
     body_style = ParagraphStyle("Body", fontSize=9, leading=14, alignment=TA_JUSTIFY)
-    city = company_city or "Santiago"
+    city = company_city if (company_city and len(company_city.strip()) > 3 and not company_city.strip().isdigit()) else "Santiago"
     term_date_str = data.get("termination_date", "")
     if term_date_str:
         try:
