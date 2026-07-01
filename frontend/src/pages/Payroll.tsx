@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { payrollApi, employeesApi, reportsApi, aiLegalApi, ufValuesApi, immValuesApi, utmValuesApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
+import { payrollApi, employeesApi, aiLegalApi, ufValuesApi, immValuesApi, utmValuesApi, formatCLP, MONTHS, downloadBlob } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useForm, Controller } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -347,33 +347,6 @@ export default function Payroll() {
     }
   }
 
-  const downloadLibroPdf = async (runId: number, year: number, month: number) => {
-    try {
-      const res = await reportsApi.libroPdf(runId)
-      downloadBlob(res.data, `libro_remuneraciones_${year}_${month.toString().padStart(2, '0')}.pdf`)
-    } catch {
-      toast.error('Error al generar PDF')
-    }
-  }
-
-  const downloadPrevired = async (runId: number, year: number, month: number) => {
-    try {
-      const res = await reportsApi.previredExcel(runId)
-      downloadBlob(res.data, `previred_${year}_${month.toString().padStart(2, '0')}.xlsx`)
-    } catch {
-      toast.error('Error al generar Excel Previred')
-    }
-  }
-
-  const downloadPreviredTxt = async (runId: number, year: number, month: number) => {
-    try {
-      const res = await reportsApi.previredTxt(runId)
-      downloadBlob(res.data, `previred_${year}_${month.toString().padStart(2, '0')}.txt`)
-    } catch {
-      toast.error('Error al generar archivo Previred')
-    }
-  }
-
   const downloadLiquidacion = async (runId: number, entryId: number, empId: number) => {
     try {
       const res = await payrollApi.getLiquidacionPdf(runId, entryId)
@@ -527,15 +500,6 @@ export default function Payroll() {
                   )}
                   {run.status !== 'draft' && (
                     <>
-                      <button onClick={() => downloadLibroPdf(run.id, run.period_year, run.period_month)} className="btn-secondary text-xs px-2 py-1.5">
-                        <DocumentArrowDownIcon className="w-3.5 h-3.5" /> PDF Libro
-                      </button>
-                      <button onClick={() => downloadPrevired(run.id, run.period_year, run.period_month)} className="btn-secondary text-xs px-2 py-1.5">
-                        <DocumentArrowDownIcon className="w-3.5 h-3.5" /> Previred XLS
-                      </button>
-                      <button onClick={() => downloadPreviredTxt(run.id, run.period_year, run.period_month)} className="btn-secondary text-xs px-2 py-1.5">
-                        <DocumentArrowDownIcon className="w-3.5 h-3.5" /> Previred TXT
-                      </button>
                       <button
                         onClick={async () => {
                           try {
