@@ -16,7 +16,7 @@ from auth.jwt_handler import get_current_user, require_admin
 from models.user import User
 from models.company import Company
 from models.document import Document, DocumentType
-from services.payroll_calculator import ChileanPayrollCalculator
+from services.payroll_calculator import ChileanPayrollCalculator, _LEY21735_SCHEDULE, get_ley21735_rates
 from services.pdf_generator import generate_liquidacion_pdf
 from fastapi.responses import FileResponse
 from dependencies import filter_by_company
@@ -70,6 +70,26 @@ def _get_legal_params(db: Session) -> dict:
         LegalParameter.company_id == None,
     ).all()
     return {p.key: float(p.value) for p in params}
+
+
+@router.get("/ley21735/upcoming-changes")
+def get_upcoming_rate_changes(current_user: User = Depends(get_current_user)):
+    """Returns Ley 21.735 rate changes within the next 60 days."""
+    from datetime import date
+    today = date.today()
+    alerts = []
+    for start_y, start_m, cap, fapp in _LEY21735_SCHEDULE:
+        change_date = date(start_y, start_m, 1)
+        days_until = (change_date - today).days
+        if 0 <= days_until <= 60:
+            alerts.append({
+                "date": str(change_date),
+                "days_until": days_until,
+                "cap_pct": cap * 100,
+                "fapp_pct": fapp * 100,
+                "total_pct": (cap + fapp) * 100,
+            })
+    return alerts
 
 
 @router.get("/iusc-table")
@@ -202,6 +222,8 @@ def calculate_payroll(
         utm_value=historical_utm,
         imm_value=historical_imm,
         legal_params=legal_params,
+        period_year=run.period_year,
+        period_month=run.period_month,
     )
 
     employees = db.query(Employee).filter(
@@ -305,6 +327,8 @@ def add_or_update_entry(
         utm_value=float(run.utm_value),
         imm_value=float(run.imm_value),
         legal_params=legal_params,
+        period_year=run.period_year,
+        period_month=run.period_month,
     )
 
     try:

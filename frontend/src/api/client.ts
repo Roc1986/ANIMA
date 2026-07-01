@@ -94,6 +94,7 @@ export const payrollApi = {
     api.get('/api/payroll/iusc-table', { params: { utm_value: utmValue } }),
   updateParams: (id: number, data: { imm_value?: number; uf_value?: number; utm_value?: number }) =>
     api.patch(`/api/payroll/${id}/params`, data),
+  ley21735UpcomingChanges: () => api.get('/api/payroll/ley21735/upcoming-changes'),
 }
 
 // --- Attendance ---

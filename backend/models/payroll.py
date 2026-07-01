@@ -81,6 +81,9 @@ class PayrollEntry(Base):
     # Aportes empleador
     aporte_cesantia_empleador = Column(Numeric(12, 2), default=0)
     aporte_sis = Column(Numeric(12, 2), default=0)
+    aporte_empleador_afp_reforma = Column(Numeric(12, 2), default=0)  # 0.1% cap. individual Ley 21.735
+    aporte_seguro_social = Column(Numeric(12, 2), default=0)           # FAPP Exp. Vida y SIS Ley 21.735
+    aporte_mutual_isl = Column(Numeric(12, 2), default=0)              # Seguro Ley 16.744 (0.93%)
     total_costo_empleador = Column(Numeric(12, 2), default=0)
 
     # Líquido

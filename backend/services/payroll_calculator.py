@@ -19,6 +19,32 @@ import math
 from typing import Optional, List
 
 
+# Ley 21.735 Art. 4° transitorio — rates change every August
+_LEY21735_SCHEDULE = [
+    # (start_year, start_month, cap_pct, fapp_pct)
+    (2025, 8,  0.001, 0.009),
+    (2026, 8,  0.001, 0.025),
+    (2027, 8,  0.0025, 0.025),
+    (2028, 8,  0.010, 0.025),
+    (2029, 8,  0.017, 0.025),
+    (2030, 8,  0.024, 0.025),
+    (2031, 8,  0.031, 0.025),
+    (2032, 8,  0.038, 0.025),
+    (2033, 8,  0.045, 0.025),
+]
+TASA_MUTUAL_ISL = 0.0093  # fixed rate (Ley 16.744)
+
+def get_ley21735_rates(year: int, month: int) -> tuple:
+    """Returns (cap_pct, fapp_pct) applicable for the given period. (0, 0) before Aug 2025."""
+    cap, fapp = 0.0, 0.0
+    for start_y, start_m, c, f in _LEY21735_SCHEDULE:
+        if (year, month) >= (start_y, start_m):
+            cap, fapp = c, f
+        else:
+            break
+    return cap, fapp
+
+
 # AFP rates map (key = AFP enum value)
 AFP_RATES = {
     "Habitat": 0.1127,
@@ -66,6 +92,8 @@ class ChileanPayrollCalculator:
         utm_value: float,
         imm_value: float,
         legal_params: Optional[dict] = None,
+        period_year: int = 2025,
+        period_month: int = 8,
     ):
         self.uf_value = uf_value          # UF value in CLP for the month
         self.utm_value = utm_value        # UTM value in CLP for the month
@@ -91,6 +119,9 @@ class ChileanPayrollCalculator:
         self.tope_imponible_afp_clp = self.tope_afp_uf * self.uf_value
         self.tope_imponible_salud_clp = self.tope_salud_uf * self.uf_value
         self.tope_imponible_afc_clp = self.tope_afc_uf * self.uf_value
+
+        # Ley 21.735 rates for this period
+        self.ley21735_cap, self.ley21735_fapp = get_ley21735_rates(period_year, period_month)
 
     def _get_afp_rate(self, afp_name: str, legal_params: dict = None) -> float:
         """Get AFP rate from legal params or fallback to hardcoded."""
@@ -323,7 +354,12 @@ class ChileanPayrollCalculator:
 
         aporte_sis = base_afp * self.sis_empleador
 
-        total_costo_empleador = total_haberes + aporte_cesantia_empleador + aporte_sis
+        aporte_empleador_afp_reforma = base_afp * self.ley21735_cap
+        aporte_seguro_social = base_afp * self.ley21735_fapp
+        aporte_mutual_isl = total_imponible_bruto * TASA_MUTUAL_ISL  # no cap for Mutual
+
+        total_costo_empleador = (total_haberes + aporte_cesantia_empleador + aporte_sis
+                                 + aporte_empleador_afp_reforma + aporte_seguro_social + aporte_mutual_isl)
 
         # --- Pensión alimenticia (Ley 21.484) ---
         pension_alimenticia_clp = 0.0
@@ -420,6 +456,11 @@ class ChileanPayrollCalculator:
             "utm_value": self.utm_value,
             "imm_value": self.imm_value,
             "previred_movement_code": previred_movement_code,
+            "aporte_empleador_afp_reforma": self._round_clp(aporte_empleador_afp_reforma),
+            "aporte_seguro_social": self._round_clp(aporte_seguro_social),
+            "aporte_mutual_isl": self._round_clp(aporte_mutual_isl),
+            "ley21735_cap_pct": self.ley21735_cap * 100,
+            "ley21735_fapp_pct": self.ley21735_fapp * 100,
             "warnings": warnings,
         }
 
@@ -450,6 +491,9 @@ class ChileanPayrollCalculator:
             "adelanto": self._round_clp(adelanto),
             "aporte_cesantia_empleador": self._round_clp(aporte_cesantia_empleador),
             "aporte_sis": self._round_clp(aporte_sis),
+            "aporte_empleador_afp_reforma": self._round_clp(aporte_empleador_afp_reforma),
+            "aporte_seguro_social": self._round_clp(aporte_seguro_social),
+            "aporte_mutual_isl": self._round_clp(aporte_mutual_isl),
             "total_costo_empleador": self._round_clp(total_costo_empleador),
             "liquido_pagar": self._round_clp(liquido_pagar),
             "dias_trabajados": dias_trabajados,

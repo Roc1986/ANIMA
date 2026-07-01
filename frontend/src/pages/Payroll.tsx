@@ -63,8 +63,11 @@ interface ReverseCalcResult {
   diferencia: number
 }
 
+interface Ley21735Alert { date: string; days_until: number; cap_pct: number; fapp_pct: number; total_pct: number }
+
 export default function Payroll() {
   const { isHR, isAdmin, isSuperAdmin } = useAuth()
+  const [ley21735Alerts, setLey21735Alerts] = useState<Ley21735Alert[]>([])
   const [runs, setRuns] = useState<PayrollRun[]>([])
   const [loading, setLoading] = useState(true)
   const [filterCompanyId, setFilterCompanyId] = useState<number | ''>('')
@@ -134,6 +137,7 @@ export default function Payroll() {
 
   useEffect(() => {
     fetchRuns()
+    payrollApi.ley21735UpcomingChanges().then(r => setLey21735Alerts(r.data)).catch(() => {})
     employeesApi.list({ is_active: true }).then(r => setEmployees(r.data)).catch(() => {})
     if (isSuperAdmin()) {
       import('../api/client').then(({ api }) =>
@@ -411,6 +415,20 @@ export default function Payroll() {
           )}
         </div>
       </div>
+
+      {/* Ley 21.735 rate change alert */}
+      {ley21735Alerts.map(alert => (
+        <div key={alert.date} className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 flex items-start gap-3">
+          <span className="text-amber-500 text-xl mt-0.5">⚠️</span>
+          <div className="text-sm text-amber-800">
+            <span className="font-semibold">Cambio de tasas Ley 21.735 el 1 {alert.date.slice(0, 7).replace('-', '/')}</span>
+            {' '}({alert.days_until === 0 ? 'hoy' : `en ${alert.days_until} días`}){': '}
+            Capitalización AFP empleador {alert.cap_pct}%, FAPP Expectativas Vida y SIS {alert.fapp_pct}%
+            {' '}(total empleador {alert.total_pct}%).
+            Las liquidaciones del período indicado aplicarán las nuevas tasas automáticamente.
+          </div>
+        </div>
+      ))}
 
       {/* Company filter — super admin only */}
       {isSuperAdmin() && companies.length > 0 && (
