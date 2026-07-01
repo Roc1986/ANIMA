@@ -106,14 +106,18 @@ def generate_provision(
     if not entries:
         raise HTTPException(status_code=400, detail="La nómina no tiene entradas")
 
-    total_bruto = sum(float(e.remuneracion_imponible or 0) for e in entries)
+    total_bruto = sum(float(e.total_haberes or 0) for e in entries)
     total_afp = sum(float(e.descuento_afp or 0) for e in entries)
     total_salud = sum(float(e.descuento_salud or 0) for e in entries)
     total_iusc = sum(float(e.impuesto_unico or 0) for e in entries)
     total_cesantia_trabajador = sum(float(e.descuento_cesantia or 0) for e in entries)
     total_cesantia_empleador = sum(float(e.aporte_cesantia_empleador or 0) for e in entries)
     total_sis = sum(float(e.aporte_sis or 0) for e in entries)
-    costo_empleador = total_cesantia_empleador + total_sis
+    total_mutual_isl = sum(float(e.aporte_mutual_isl or 0) for e in entries)
+    total_seguro_social = sum(float(e.aporte_seguro_social or 0) for e in entries)
+    total_reforma_afp = sum(float(e.aporte_empleador_afp_reforma or 0) for e in entries)
+    total_otros_desc = sum(float((e.descuento_otros or 0) + (e.adelanto or 0) + (e.pension_alimenticia or 0) + (e.descuento_voluntario or 0) + (e.descuento_vivienda or 0) + (e.descuento_ccaf or 0)) for e in entries)
+    costo_empleador = total_cesantia_empleador + total_sis + total_mutual_isl + total_seguro_social + total_reforma_afp
     liquido = sum(float(e.liquido_pagar or 0) for e in entries)
 
     # Ensure accounts exist
@@ -146,7 +150,15 @@ def generate_provision(
         (_get_account_by_code(db, company_id, "2-01-005"), "Cesantía Trabajador por Pagar", 0, total_cesantia_trabajador),
         (_get_account_by_code(db, company_id, "2-01-006"), "Cesantía Empleador por Pagar", 0, total_cesantia_empleador),
         (_get_account_by_code(db, company_id, "2-01-007"), "SIS por Pagar", 0, total_sis),
+        (_get_account_by_code(db, company_id, "2-01-008"), "Mutual ISL por Pagar", 0, total_mutual_isl),
+        (_get_account_by_code(db, company_id, "2-01-009"), "Seguro Social Ley 21.735 por Pagar", 0, total_seguro_social),
+        (_get_account_by_code(db, company_id, "2-01-010"), "Reforma AFP Empleador por Pagar", 0, total_reforma_afp),
     ]
+
+    if total_otros_desc > 0:
+        lines_data.append(
+            (_get_account_by_code(db, company_id, "2-01-011"), "Otros Descuentos por Pagar", 0, total_otros_desc)
+        )
 
     for account, glosa, debe, haber in lines_data:
         line = JournalEntryLine(
