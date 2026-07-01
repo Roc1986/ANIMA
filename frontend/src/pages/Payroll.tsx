@@ -549,6 +549,27 @@ export default function Payroll() {
                       >
                         <DocumentArrowDownIcon className="w-3.5 h-3.5" /> Descargar Todas
                       </button>
+                      <button
+                        onClick={async () => {
+                          if (!window.confirm(`¿Enviar liquidaciones por email a todos los empleados de esta nómina?\n\nCada PDF estará protegido con contraseña: los últimos 4 dígitos del RUT del empleado (antes del dígito verificador).`)) return
+                          const toastId = toast.loading('Enviando liquidaciones...')
+                          try {
+                            const res = await payrollApi.sendAllLiquidacionesEmails(run.id)
+                            const d = res.data
+                            toast.dismiss(toastId)
+                            const msg = `Enviadas: ${d.sent}${d.skipped > 0 ? ` · Sin email: ${d.skipped}` : ''}${d.errors > 0 ? ` · Errores: ${d.errors}` : ''}`
+                            if (d.errors > 0) toast.error(msg)
+                            else toast.success(msg)
+                          } catch (e: unknown) {
+                            toast.dismiss(toastId)
+                            const err = e as { response?: { data?: { detail?: string } } }
+                            toast.error(err?.response?.data?.detail || 'Error al enviar emails')
+                          }
+                        }}
+                        className="btn-secondary text-xs px-2 py-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                      >
+                        <EnvelopeIcon className="w-3.5 h-3.5" /> Enviar Todas
+                      </button>
                     </>
                   )}
                 </div>

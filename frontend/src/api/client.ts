@@ -87,6 +87,8 @@ export const payrollApi = {
     api.get(`/api/payroll/${runId}/liquidaciones/zip`, { responseType: 'blob' }),
   sendLiquidacionEmail: (runId: number, entryId: number) =>
     api.post(`/api/payroll/${runId}/entry/${entryId}/send-email`),
+  sendAllLiquidacionesEmails: (runId: number) =>
+    api.post(`/api/payroll/${runId}/send-all-emails`),
   reverseCalculate: (data: {
     liquido_deseado: number
     afp: string

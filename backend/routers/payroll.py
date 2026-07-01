@@ -671,16 +671,77 @@ def send_liquidacion_email_endpoint(
     company = db.query(Company).filter(Company.id == run.company_id).first() if run.company_id else db.query(Company).first()
 
     try:
+        from services.email_service import rut_password
         pdf_path = generate_liquidacion_pdf(entry=entry, employee=emp, payroll_run=run, company=company)
         employee_name = f"{emp.first_name} {emp.last_name}"
+        pwd = rut_password(emp.rut) if emp.rut else None
         send_liquidacion_email(
             to_email=emp.email,
             employee_name=employee_name,
             period_month=run.period_month,
             period_year=run.period_year,
             pdf_path=pdf_path,
+            pdf_password=pwd,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al enviar email: {str(e)}")
 
     return {"message": f"Liquidación enviada a {emp.email}"}
+
+
+@router.post("/{run_id}/send-all-emails")
+def send_all_liquidaciones_emails(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Send liquidación PDF to every employee with email in this payroll run."""
+    from services.email_service import send_liquidacion_email, rut_password
+
+    q = db.query(PayrollRun).filter(PayrollRun.id == run_id)
+    q = filter_by_company(q, PayrollRun, current_user)
+    run = q.first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Nómina no encontrada")
+
+    entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id == run_id).all()
+    if not entries:
+        raise HTTPException(status_code=404, detail="No hay entradas en esta nómina")
+
+    employee_ids = [e.employee_id for e in entries]
+    employees = {emp.id: emp for emp in db.query(Employee).filter(Employee.id.in_(employee_ids)).all()}
+    company = db.query(Company).filter(Company.id == run.company_id).first() if run.company_id else db.query(Company).first()
+
+    sent = []
+    skipped = []
+    errors = []
+
+    for entry in entries:
+        emp = employees.get(entry.employee_id)
+        if not emp:
+            skipped.append({"entry_id": entry.id, "reason": "empleado no encontrado"})
+            continue
+        if not emp.email:
+            skipped.append({"employee": f"{emp.first_name} {emp.last_name}", "reason": "sin email"})
+            continue
+        try:
+            pdf_path = generate_liquidacion_pdf(entry=entry, employee=emp, payroll_run=run, company=company)
+            pwd = rut_password(emp.rut) if emp.rut else None
+            send_liquidacion_email(
+                to_email=emp.email,
+                employee_name=f"{emp.first_name} {emp.last_name}",
+                period_month=run.period_month,
+                period_year=run.period_year,
+                pdf_path=pdf_path,
+                pdf_password=pwd,
+            )
+            sent.append({"employee": f"{emp.first_name} {emp.last_name}", "email": emp.email})
+        except Exception as e:
+            errors.append({"employee": f"{emp.first_name} {emp.last_name}", "error": str(e)})
+
+    return {
+        "sent": len(sent),
+        "skipped": len(skipped),
+        "errors": len(errors),
+        "details": {"sent": sent, "skipped": skipped, "errors": errors},
+    }
