@@ -74,6 +74,7 @@ const hrNavGroups: NavGroup[] = [
       { to: '/calendar', label: 'Calendario', icon: CalendarDaysIcon },
       { to: '/legal', label: 'IA Legal', icon: ScaleIcon },
       { to: '/company-settings', label: 'Empresa', icon: BuildingOfficeIcon },
+      { to: '/plan-de-cuentas', label: 'Plan de Cuentas', icon: ClipboardDocumentListIcon },
     ],
   },
 ]

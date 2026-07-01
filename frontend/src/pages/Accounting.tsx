@@ -75,14 +75,11 @@ interface ManualLine {
 }
 
 export default function Accounting() {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'journal' | 'manual'>('accounts')
+  const [activeTab, setActiveTab] = useState<'journal' | 'manual'>('journal')
   const [accounts, setAccounts] = useState<Account[]>([])
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([])
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
   const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>([])
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [editCode, setEditCode] = useState('')
-  const [editName, setEditName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedRunId, setSelectedRunId] = useState<string>('')
@@ -202,9 +199,7 @@ export default function Accounting() {
   }
 
   useEffect(() => {
-    if (activeTab === 'accounts') {
-      loadAccounts()
-    } else if (activeTab === 'journal') {
+    if (activeTab === 'journal') {
       loadJournal()
       loadPayrollRuns()
     } else {
@@ -214,28 +209,6 @@ export default function Accounting() {
     setError(null)
     setSelectedEntry(null)
   }, [activeTab])
-
-  const startEdit = (account: Account) => {
-    setEditingId(account.id)
-    setEditCode(account.code)
-    setEditName(account.name)
-  }
-
-  const cancelEdit = () => {
-    setEditingId(null)
-    setEditCode('')
-    setEditName('')
-  }
-
-  const saveEdit = async (id: number) => {
-    try {
-      await accountingApi.updateAccount(id, { code: editCode, name: editName })
-      setEditingId(null)
-      await loadAccounts()
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Error al guardar cuenta')
-    }
-  }
 
   const loadEntryDetail = async (entry: JournalEntry) => {
     try {
@@ -286,16 +259,6 @@ export default function Accounting() {
       {/* Tabs */}
       <div className="flex border-b border-gray-200 mb-6">
         <button
-          onClick={() => setActiveTab('accounts')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'accounts'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Plan de Cuentas
-        </button>
-        <button
           onClick={() => setActiveTab('journal')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'journal'
@@ -320,92 +283,6 @@ export default function Accounting() {
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {error}
-        </div>
-      )}
-
-      {/* Plan de Cuentas Tab */}
-      {activeTab === 'accounts' && (
-        <div>
-          {loading ? (
-            <p className="text-gray-500">Cargando cuentas...</p>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Código</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Nombre</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Tipo</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {accounts.map((account) => (
-                    <tr key={account.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        {editingId === account.id ? (
-                          <input
-                            value={editCode}
-                            onChange={(e) => setEditCode(e.target.value)}
-                            className="border border-gray-300 rounded px-2 py-1 text-sm w-28"
-                          />
-                        ) : (
-                          <span className="font-mono text-gray-800">{account.code}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {editingId === account.id ? (
-                          <input
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="border border-gray-300 rounded px-2 py-1 text-sm w-64"
-                          />
-                        ) : (
-                          <span className="text-gray-800">{account.name}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          account.account_type === 'activo' ? 'bg-blue-100 text-blue-700' :
-                          account.account_type === 'pasivo' ? 'bg-yellow-100 text-yellow-700' :
-                          account.account_type === 'gasto' ? 'bg-red-100 text-red-700' :
-                          account.account_type === 'ingreso' ? 'bg-green-100 text-green-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {ACCOUNT_TYPE_LABELS[account.account_type] || account.account_type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {editingId === account.id ? (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => saveEdit(account.id)}
-                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                            >
-                              Guardar
-                            </button>
-                            <button
-                              onClick={cancelEdit}
-                              className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => startEdit(account)}
-                            className="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded hover:bg-gray-200"
-                          >
-                            Editar
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       )}
 
