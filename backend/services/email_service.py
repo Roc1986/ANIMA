@@ -31,3 +31,34 @@ Saludos,
         server.starttls()
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
         server.sendmail(settings.SMTP_USER, to_email, msg.as_string())
+
+
+def send_deadline_reminder(to: str, event_name: str, event_date, days_left: int, company_name: str) -> None:
+    """Send a deadline reminder email to an admin."""
+    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        return
+    msg = MIMEMultipart()
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["To"] = to
+    msg["Subject"] = f"Recordatorio: {event_name} en {days_left} días — {company_name}"
+
+    body = f"""Estimado/a administrador/a de {company_name},
+
+Le recordamos que se acerca el siguiente vencimiento:
+
+  {event_name}
+  Fecha: {event_date.strftime('%d/%m/%Y')}
+  Días restantes: {days_left}
+
+Por favor tome las acciones necesarias a tiempo.
+
+Saludos,
+{settings.SMTP_FROM_NAME}
+"""
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.sendmail(settings.SMTP_USER, to, msg.as_string())
