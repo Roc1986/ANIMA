@@ -590,3 +590,97 @@ def get_liquidacion_pdf(
         db.commit()
 
     return FileResponse(pdf_path, media_type="application/pdf", filename=os.path.basename(pdf_path))
+
+
+@router.get("/{run_id}/liquidaciones/zip")
+def download_all_liquidaciones_zip(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Generate a ZIP file with all liquidaciones PDF for a payroll run."""
+    import zipfile, io
+    from fastapi.responses import StreamingResponse
+
+    q = db.query(PayrollRun).filter(PayrollRun.id == run_id)
+    q = filter_by_company(q, PayrollRun, current_user)
+    run = q.first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Nómina no encontrada")
+
+    entries = db.query(PayrollEntry).filter(PayrollEntry.payroll_run_id == run_id).all()
+    if not entries:
+        raise HTTPException(status_code=404, detail="No hay entradas en esta nómina")
+
+    employee_ids = [e.employee_id for e in entries]
+    employees = {emp.id: emp for emp in db.query(Employee).filter(Employee.id.in_(employee_ids)).all()}
+    company = db.query(Company).filter(Company.id == run.company_id).first() if run.company_id else db.query(Company).first()
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for entry in entries:
+            emp = employees.get(entry.employee_id)
+            if not emp:
+                continue
+            try:
+                pdf_path = generate_liquidacion_pdf(entry=entry, employee=emp, payroll_run=run, company=company)
+                rut_clean = (emp.rut or str(emp.id)).replace('.', '').replace('-', '')
+                filename = f"liquidacion_{rut_clean}_{run.period_year}{run.period_month:02d}.pdf"
+                zf.write(pdf_path, filename)
+            except Exception:
+                continue
+
+    zip_buffer.seek(0)
+    zip_name = f"liquidaciones_{run.period_year}{run.period_month:02d}.zip"
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={zip_name}"},
+    )
+
+
+@router.post("/{run_id}/entry/{entry_id}/send-email")
+def send_liquidacion_email_endpoint(
+    run_id: int,
+    entry_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Send liquidación PDF to employee's email."""
+    from services.email_service import send_liquidacion_email
+
+    q = db.query(PayrollRun).filter(PayrollRun.id == run_id)
+    q = filter_by_company(q, PayrollRun, current_user)
+    run = q.first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Nómina no encontrada")
+
+    entry = db.query(PayrollEntry).filter(
+        PayrollEntry.id == entry_id,
+        PayrollEntry.payroll_run_id == run_id,
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entrada no encontrada")
+
+    emp = db.query(Employee).filter(Employee.id == entry.employee_id).first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    if not emp.email:
+        raise HTTPException(status_code=400, detail="El empleado no tiene email registrado")
+
+    company = db.query(Company).filter(Company.id == run.company_id).first() if run.company_id else db.query(Company).first()
+
+    try:
+        pdf_path = generate_liquidacion_pdf(entry=entry, employee=emp, payroll_run=run, company=company)
+        employee_name = f"{emp.first_name} {emp.last_name}"
+        send_liquidacion_email(
+            to_email=emp.email,
+            employee_name=employee_name,
+            period_month=run.period_month,
+            period_year=run.period_year,
+            pdf_path=pdf_path,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al enviar email: {str(e)}")
+
+    return {"message": f"Liquidación enviada a {emp.email}"}

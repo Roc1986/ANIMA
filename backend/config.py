@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     COMPANY_ADDRESS: str = "Santiago, Chile"
     COMPANY_PHONE: str = "+56 2 2000 0000"
 
+    # Email (SMTP)
+    SMTP_HOST: str = "smtp.zoho.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_NAME: str = "ANIMA HR"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

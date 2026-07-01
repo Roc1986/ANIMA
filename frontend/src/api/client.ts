@@ -83,6 +83,10 @@ export const payrollApi = {
   reopen: (id: number) => api.post(`/api/payroll/${id}/reopen`),
   getLiquidacionPdf: (runId: number, entryId: number) =>
     api.get(`/api/payroll/${runId}/entry/${entryId}/pdf`, { responseType: 'blob' }),
+  downloadAllLiquidacionesZip: (runId: number) =>
+    api.get(`/api/payroll/${runId}/liquidaciones/zip`, { responseType: 'blob' }),
+  sendLiquidacionEmail: (runId: number, entryId: number) =>
+    api.post(`/api/payroll/${runId}/entry/${entryId}/send-email`),
   reverseCalculate: (data: {
     liquido_deseado: number
     afp: string

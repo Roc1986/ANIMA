@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import {
   PlusIcon, CalculatorIcon, CheckIcon, DocumentArrowDownIcon,
-  ChevronDownIcon, ChevronRightIcon, ArrowsRightLeftIcon
+  ChevronDownIcon, ChevronRightIcon, ArrowsRightLeftIcon, EnvelopeIcon
 } from '@heroicons/react/24/outline'
 import DateInput from '../components/DateInput'
 import { SearchableSelect, RHFSearchableSelect } from '../components/SearchableSelect'
@@ -536,6 +536,19 @@ export default function Payroll() {
                       <button onClick={() => downloadPreviredTxt(run.id, run.period_year, run.period_month)} className="btn-secondary text-xs px-2 py-1.5">
                         <DocumentArrowDownIcon className="w-3.5 h-3.5" /> Previred TXT
                       </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await payrollApi.downloadAllLiquidacionesZip(run.id)
+                            downloadBlob(res.data, `liquidaciones_${run.period_year}${String(run.period_month).padStart(2, '0')}.zip`)
+                          } catch {
+                            toast.error('Error al generar ZIP')
+                          }
+                        }}
+                        className="btn-secondary text-xs px-2 py-1.5"
+                      >
+                        <DocumentArrowDownIcon className="w-3.5 h-3.5" /> Descargar Todas
+                      </button>
                     </>
                   )}
                 </div>
@@ -608,6 +621,21 @@ export default function Payroll() {
                                   title="Descargar liquidación"
                                 >
                                   <DocumentArrowDownIcon className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await payrollApi.sendLiquidacionEmail(run.id, entry.id)
+                                      toast.success('Liquidación enviada por email')
+                                    } catch (e: unknown) {
+                                      const err = e as { response?: { data?: { detail?: string } } }
+                                      toast.error(err?.response?.data?.detail || 'Error al enviar email')
+                                    }
+                                  }}
+                                  className="text-gray-500 hover:text-gray-700"
+                                  title="Enviar por email"
+                                >
+                                  <EnvelopeIcon className="w-4 h-4" />
                                 </button>
                               </div>
                             </td>
