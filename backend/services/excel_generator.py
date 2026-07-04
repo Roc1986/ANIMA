@@ -258,6 +258,8 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
 
         hs_raw = str(emp.health_system or "").split(".")[-1].upper()
         is_fonasa = (hs_raw == "FONASA")
+        # Para Isapre, el nombre específico está en emp.isapre_name (ej: "Consalud", "Banmedica")
+        isapre_name_key = str(emp.isapre_name or "").strip().lower()
 
         renta_imp     = int(float(entry.remuneracion_imponible or 0))
         cot_afp_base  = int(float(entry.descuento_afp or 0))
@@ -268,6 +270,7 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         cot_salud     = int(float(entry.descuento_salud or 0))
         cot_cesantia  = int(float(entry.descuento_cesantia or 0))
         afc_emp       = int(float(entry.aporte_cesantia_empleador or 0))
+        mutual_isl    = int(float(getattr(entry, 'aporte_mutual_isl', 0) or 0))
         dias          = int(entry.dias_trabajados or 30)
 
         f = [""] * 105
@@ -338,15 +341,18 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         f[67] = "0"              # 68 Código Ex-Caja Desahucio
         f[68] = "0"              # 69 Tasa Cotización Desahucio
         f[69] = "0"              # 70 Cotización FONASA IPS (no aplica AFP — la cotización va en campo 80)
-        f[70] = "0"              # 71 Cotización ISL
+        f[70] = str(mutual_isl)  # 71 Cotización ISL (Mutual ISL empleador)
         f[71] = "0"              # 72 Bonificación Ley 15.386
         f[72] = "0"              # 73 Descuento cargas IPS
         f[73] = "0"              # 74 Bonos Gobierno
 
         # ── Bloque 7: Salud (campos 75-82) ────────────────────────────────────
-        # Código institución: usar Tabla N°16 Previred (07=FONASA, 02=Consalud, etc.)
-        health_key = str(emp.health_system or "").split(".")[-1].lower().replace("_", " ")
-        inst_code = ISAPRE_CODES.get(health_key, "07" if is_fonasa else "00")
+        # Código institución según Tabla N°16 Previred (07=FONASA, 02=Consalud, etc.)
+        # Para Isapre, buscar por nombre específico (emp.isapre_name); para FONASA usar "07"
+        if is_fonasa:
+            inst_code = "07"
+        else:
+            inst_code = ISAPRE_CODES.get(isapre_name_key, "00")
         f[74] = inst_code        # 75 Código institución salud (Tabla N°16 Previred)
         f[75] = ""               # 76 N° FUN (solo Isapre)
         f[76] = str(renta_imp)   # 77 Renta Imponible Salud
