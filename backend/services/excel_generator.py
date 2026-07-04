@@ -270,7 +270,10 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         cot_salud     = int(float(entry.descuento_salud or 0))
         cot_cesantia  = int(float(entry.descuento_cesantia or 0))
         afc_emp       = int(float(entry.aporte_cesantia_empleador or 0))
-        dias          = int(entry.dias_trabajados or 30)
+        # Días = 0 → mes completo (Previred usa 0 para mes sin ausencias).
+        # Días > 0 activa validación ISL obligatoria en Previred.
+        dias_raw = int(entry.dias_trabajados or 0)
+        dias = 0 if dias_raw >= 30 else dias_raw
 
         f = [""] * 105
 
@@ -376,15 +379,13 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         f[94] = ""               # 95 Código Sucursal
 
         # ── Bloque 9: Mutualidad (campos 96-99) ───────────────────────────────
-        # Código 00 = empresa paga directo a ISL (Tabla N°19 Previred)
-        mutual_isl = int(float(entry.aporte_mutual_isl or 0))
-        if mutual_isl > 0:
-            f[95] = "00"              # 96 Código Mutualidad: 00=ISL directo
-            f[96] = str(renta_imp)    # 97 Renta Imponible Mutualidad
-            f[97] = "0"              # 98 Cotización trabajador (0, es aporte empleador)
-            f[98] = str(mutual_isl)  # 99 Cotización adicional / aporte empleador
-        else:
-            f[95] = "0"; f[96] = "0"; f[97] = "0"; f[98] = "0"
+        # Código 00 = empresa paga ISL directo fuera de Previred.
+        # Para código 00 Previred no requiere ni renta ni cotización (todos 0).
+        # El pago de ISL se realiza directamente a SUSESO/ISL.
+        f[95] = "0"   # 96 Código Mutualidad: 0 = sin mutual (ISL directo)
+        f[96] = "0"   # 97 Renta Imponible Mutual (0 para código 00)
+        f[97] = "0"   # 98 Cotización Accidente Trabajo Mutual (0 para código 00)
+        f[98] = "0"   # 99 Sucursal pago Mutual
 
         # ── Bloque 10: Seguro Cesantía (campos 100-102) ───────────────────────
         f[99]  = str(renta_imp)       # 100 Renta Imponible SC
