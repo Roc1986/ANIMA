@@ -333,41 +333,39 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         # FONASA cotización goes in campo 80 (sección Salud), not campo 70.
         f[61] = "0"              # 62 Código Ex-Caja Régimen
         f[62] = "0"              # 63 Tasa Cotización Ex-Caja
-        f[63] = "0"              # 64 Renta Imponible IPS (0 para AFP)
+        # Campo 64 (f[63]): Renta Imponible — requerida cuando campo 70 (FONASA) > 0
+        f[63] = str(renta_imp) if is_fonasa else "0"
         f[64] = "0"              # 65 Cotización Obligatoria IPS
         f[65] = "0"              # 66 Renta Imponible Desahucio
         f[66] = "0"              # 67 Cotización Desahucio
         f[67] = "0"              # 68 Código Ex-Caja Desahucio
         f[68] = "0"              # 69 Tasa Cotización Desahucio
-        f[69] = "0"              # 70 Cotización FONASA IPS (no aplica AFP — la cotización va en campo 80)
-        f[70] = "0"              # 71 Cotización ISL ex-INP (0 para AFP — no se informa en TXT)
+        # Campo 70 (f[69]): Cotización FONASA (solo para trabajadores FONASA)
+        f[69] = str(cot_salud) if is_fonasa else "0"
+        f[70] = "0"              # 71 Cotización ISL ex-INP (0 para AFP)
         f[71] = "0"              # 72 Bonificación Ley 15.386
         f[72] = "0"              # 73 Descuento cargas IPS
         f[73] = "0"              # 74 Bonos Gobierno
 
         # ── Bloque 7: Salud (campos 75-82) ────────────────────────────────────
-        # Código institución según Tabla N°16 Previred (07=FONASA, 02=Consalud, etc.)
+        # FONASA: código 07, cotización en campo 70, campo 80 = 0
+        # Isapre: código específico (Tabla N°16), cotización en campo 80
         if is_fonasa:
             inst_code = "07"
+            cot_isapre_campo80 = "0"
         else:
-            # Buscar por isapre_name; probar también variantes sin espacios y sin tildes
             inst_code = (
                 ISAPRE_CODES.get(isapre_name_key)
                 or ISAPRE_CODES.get(isapre_name_key.replace(" ", ""))
-                or ISAPRE_CODES.get(isapre_name_key.replace("é", "e").replace("á","a").replace("ó","o"))
-                or "00"
+                or "02"  # Consalud por defecto si no se encuentra nombre
             )
-        import logging as _log
-        _log.getLogger("previred").warning(
-            "SALUD emp=%s hs=%s isapre_name=%s key=%s inst_code=%s",
-            emp.rut, emp.health_system, emp.isapre_name, isapre_name_key, inst_code
-        )
+            cot_isapre_campo80 = str(cot_salud)
         f[74] = inst_code        # 75 Código institución salud (Tabla N°16 Previred)
         f[75] = ""               # 76 N° FUN (solo Isapre)
         f[76] = str(renta_imp)   # 77 Renta Imponible Salud
         f[77] = "0"              # 78 Moneda Plan Isapre
         f[78] = "0"              # 79 Cotización Pactada Isapre
-        f[79] = str(cot_salud)   # 80 Cotización Obligatoria Salud (campo único para FONASA e Isapre)
+        f[79] = cot_isapre_campo80  # 80 Cotización Obligatoria Isapre (0 para FONASA)
         f[80] = "0"              # 81 Cotización Adicional Voluntaria
         f[81] = "0"              # 82 GES
 
