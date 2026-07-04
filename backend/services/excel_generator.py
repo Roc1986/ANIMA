@@ -225,7 +225,7 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
     filename = f"previred_{run.period_year}_{run.period_month:02d}_{uuid.uuid4().hex[:8]}.txt"
     filepath = os.path.join(UPLOAD_DIR, filename)
 
-    periodo = f"{run.period_month}{run.period_year}"  # maaaa — sin cero inicial (Previred rechaza 062026)
+    periodo = f"{run.period_month:02d}{run.period_year}"  # mmaaaa
 
     lines = []
     for entry in entries:
@@ -260,7 +260,7 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         afc_emp       = int(float(entry.aporte_cesantia_empleador or 0))
         dias          = int(entry.dias_trabajados or 30)
 
-        f = [""] * 103
+        f = [""] * 105
 
         # ── Bloque 1: Datos del Trabajador (campos 1-25) ───────────────────────
         f[0]  = rut_num          # 1  RUT trabajador (sin DV)
@@ -270,14 +270,14 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         f[4]  = emp.first_name or ""         # 5  Nombres
         f[5]  = "M"              # 6  Sexo (M/F) — M por defecto; adaptar si se almacena
         f[6]  = "0"              # 7  Nacionalidad (0=Chileno)
-        f[7]  = "1"              # 8  Tipo Pago (1=Remuneraciones mes)
+        f[7]  = "01"             # 8  Tipo Pago (01=Remuneraciones mes)
         f[8]  = periodo          # 9  Período Desde (mmaaaa)
         f[9]  = periodo          # 10 Período Hasta (mmaaaa)
         f[10] = "AFP"            # 11 Régimen Previsional
         f[11] = "0"              # 12 Tipo Trabajador (0=Activo no pensionado)
         f[12] = str(dias)        # 13 Días Trabajados
-        f[13] = "0"              # 14 Tipo de Línea (0=Principal)
-        f[14] = "0"              # 15 Código Movimiento Personal (0=Sin movimiento)
+        f[13] = "00"             # 14 Tipo de Línea (00=Principal)
+        f[14] = "00"             # 15 Código Movimiento Personal (00=Sin movimiento)
         f[15] = ""               # 16 Fecha Desde movimiento
         f[16] = ""               # 17 Fecha Hasta movimiento
         f[17] = "D"              # 18 Tramo Asig. Familiar (D=Sin Derecho)
@@ -321,7 +321,7 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         # FONASA cotización goes in campo 80 (sección Salud), not campo 70.
         f[61] = "0"              # 62 Código Ex-Caja Régimen
         f[62] = "0"              # 63 Tasa Cotización Ex-Caja
-        f[63] = str(renta_imp)   # 64 Renta Imponible (Previred requiere valor aquí incluso en AFP)
+        f[63] = "0"              # 64 Renta Imponible IPS (0 para AFP)
         f[64] = "0"              # 65 Cotización Obligatoria IPS
         f[65] = "0"              # 66 Renta Imponible Desahucio
         f[66] = "0"              # 67 Cotización Desahucio
@@ -361,8 +361,8 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         f[100] = str(cot_cesantia)    # 101 Aporte Trabajador SC
         f[101] = str(afc_emp)         # 102 Aporte Empleador SC
 
-        # ── Bloque 11: Subsidio (campo 103) ───────────────────────────────────
-        f[102] = "0"
+        # ── Bloque 11-12: Subsidio / Centro costos (103-105) ──────────────────
+        f[102] = "0"; f[103] = ""; f[104] = ""
 
         lines.append(";".join(f))
 
