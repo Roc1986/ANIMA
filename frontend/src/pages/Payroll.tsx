@@ -81,6 +81,7 @@ export default function Payroll() {
   const [processing, setProcessing] = useState(false)
   const [showAddEmployee, setShowAddEmployee] = useState<number | null>(null) // run_id
   const [employees, setEmployees] = useState<{ id: number; first_name: string; last_name: string }[]>([])
+  const [sendingEmailId, setSendingEmailId] = useState<number | null>(null)
   const [editingEntry, setEditingEntry] = useState<{ runId: number; entry: PayrollEntry } | null>(null)
   const [editEntryData, setEditEntryData] = useState<Record<string, number | string>>({})
   const [editLoading, setEditLoading] = useState(false)
@@ -587,7 +588,7 @@ export default function Payroll() {
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50">
-                          <th className="table-header text-xs">Emp. ID</th>
+                          <th className="table-header text-xs">Empleado</th>
                           <th className="table-header text-xs">Días</th>
                           <th className="table-header text-xs">Sueldo Base</th>
                           <th className="table-header text-xs">Gratif.</th>
@@ -603,7 +604,9 @@ export default function Payroll() {
                       <tbody>
                         {runDetail.entries.map(entry => (
                           <tr key={entry.id} className="border-b border-gray-50 hover:bg-gray-50">
-                            <td className="table-cell text-xs">#{entry.employee_id}</td>
+                            <td className="table-cell text-xs font-medium">
+                              {(() => { const e = employees.find(x => x.id === entry.employee_id); return e ? `${e.first_name} ${e.last_name}` : `#${entry.employee_id}` })()}
+                            </td>
                             <td className="table-cell text-xs">{entry.dias_trabajados}</td>
                             <td className="table-cell text-xs">{formatCLP(entry.base_salary)}</td>
                             <td className="table-cell text-xs">{formatCLP(entry.gratificacion)}</td>
@@ -633,15 +636,22 @@ export default function Payroll() {
                                 </button>
                                 <button
                                   onClick={async () => {
+                                    if (sendingEmailId === entry.id) return
+                                    setSendingEmailId(entry.id)
+                                    const empName = (() => { const e = employees.find(x => x.id === entry.employee_id); return e ? `${e.first_name} ${e.last_name}` : `#${entry.employee_id}` })()
+                                    const toastId = toast.loading(`Enviando a ${empName}...`)
                                     try {
-                                      await payrollApi.sendLiquidacionEmail(run.id, entry.id)
-                                      toast.success('Liquidación enviada por email')
+                                      const res = await payrollApi.sendLiquidacionEmail(run.id, entry.id)
+                                      toast.success(res.data?.message || `Liquidación enviada a ${empName}`, { id: toastId })
                                     } catch (e: unknown) {
                                       const err = e as { response?: { data?: { detail?: string } } }
-                                      toast.error(err?.response?.data?.detail || 'Error al enviar email')
+                                      toast.error(err?.response?.data?.detail || 'Error al enviar email', { id: toastId })
+                                    } finally {
+                                      setSendingEmailId(null)
                                     }
                                   }}
-                                  className="text-gray-500 hover:text-gray-700"
+                                  disabled={sendingEmailId === entry.id}
+                                  className={`${sendingEmailId === entry.id ? 'opacity-40 cursor-not-allowed' : 'hover:text-emerald-700'} text-gray-500`}
                                   title="Enviar por email"
                                 >
                                   <EnvelopeIcon className="w-4 h-4" />

@@ -48,6 +48,10 @@ def send_liquidacion_email(
     pdf_password: str | None = None,
 ) -> None:
     """Send liquidación PDF to employee via email."""
+    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        raise ValueError(
+            "SMTP no configurado. Configure SMTP_USER y SMTP_PASSWORD en las variables de entorno del servidor."
+        )
     msg = MIMEMultipart()
     msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
     msg["To"] = to_email
