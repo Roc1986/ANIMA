@@ -377,7 +377,15 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         f[94] = ""               # 95 Código Sucursal
 
         # ── Bloque 9: Mutualidad (campos 96-99) ───────────────────────────────
-        f[95] = "0"; f[96] = "0"; f[97] = "0"; f[98] = "0"
+        # Código 00 = empresa paga directo a ISL (Tabla N°19 Previred)
+        mutual_isl = int(float(entry.aporte_mutual_isl or 0))
+        if mutual_isl > 0:
+            f[95] = "00"              # 96 Código Mutualidad: 00=ISL directo
+            f[96] = str(renta_imp)    # 97 Renta Imponible Mutualidad
+            f[97] = "0"              # 98 Cotización trabajador (0, es aporte empleador)
+            f[98] = str(mutual_isl)  # 99 Cotización adicional / aporte empleador
+        else:
+            f[95] = "0"; f[96] = "0"; f[97] = "0"; f[98] = "0"
 
         # ── Bloque 10: Seguro Cesantía (campos 100-102) ───────────────────────
         f[99]  = str(renta_imp)       # 100 Renta Imponible SC
