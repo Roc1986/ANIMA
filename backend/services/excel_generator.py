@@ -347,11 +347,21 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
 
         # ── Bloque 7: Salud (campos 75-82) ────────────────────────────────────
         # Código institución según Tabla N°16 Previred (07=FONASA, 02=Consalud, etc.)
-        # Para Isapre, buscar por nombre específico (emp.isapre_name); para FONASA usar "07"
         if is_fonasa:
             inst_code = "07"
         else:
-            inst_code = ISAPRE_CODES.get(isapre_name_key, "00")
+            # Buscar por isapre_name; probar también variantes sin espacios y sin tildes
+            inst_code = (
+                ISAPRE_CODES.get(isapre_name_key)
+                or ISAPRE_CODES.get(isapre_name_key.replace(" ", ""))
+                or ISAPRE_CODES.get(isapre_name_key.replace("é", "e").replace("á","a").replace("ó","o"))
+                or "00"
+            )
+        import logging as _log
+        _log.getLogger("previred").warning(
+            "SALUD emp=%s hs=%s isapre_name=%s key=%s inst_code=%s",
+            emp.rut, emp.health_system, emp.isapre_name, isapre_name_key, inst_code
+        )
         f[74] = inst_code        # 75 Código institución salud (Tabla N°16 Previred)
         f[75] = ""               # 76 N° FUN (solo Isapre)
         f[76] = str(renta_imp)   # 77 Renta Imponible Salud
