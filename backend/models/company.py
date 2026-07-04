@@ -23,6 +23,11 @@ class Company(Base):
     owner_phone = Column(String(30))
     legal_rep_name = Column(String(150))   # Nombre representante legal
     legal_rep_rut = Column(String(20))     # RUT representante legal
+    smtp_host = Column(String(255))
+    smtp_port = Column(Integer, default=587)
+    smtp_user = Column(String(255))
+    smtp_password = Column(String(255))
+    smtp_from_name = Column(String(150))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

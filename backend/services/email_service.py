@@ -46,14 +46,29 @@ def send_liquidacion_email(
     period_year: int,
     pdf_path: str,
     pdf_password: str | None = None,
+    smtp_host: str | None = None,
+    smtp_port: int | None = None,
+    smtp_user: str | None = None,
+    smtp_password: str | None = None,
+    smtp_from_name: str | None = None,
 ) -> None:
-    """Send liquidación PDF to employee via email."""
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+    """Send liquidación PDF to employee via email.
+
+    Uses company-specific SMTP credentials when provided, falls back to global settings.
+    """
+    host = smtp_host or settings.SMTP_HOST
+    port = smtp_port or settings.SMTP_PORT
+    user = smtp_user or settings.SMTP_USER
+    password = smtp_password or settings.SMTP_PASSWORD
+    from_name = smtp_from_name or settings.SMTP_FROM_NAME
+
+    if not user or not password:
         raise ValueError(
-            "SMTP no configurado. Configure SMTP_USER y SMTP_PASSWORD en las variables de entorno del servidor."
+            "SMTP no configurado. Configure el correo de envío en Configuración de Empresa."
         )
+
     msg = MIMEMultipart()
-    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["From"] = f"{from_name} <{user}>"
     msg["To"] = to_email
     msg["Subject"] = f"Liquidación de Sueldo {period_month:02d}/{period_year}"
 
@@ -68,7 +83,7 @@ def send_liquidacion_email(
 Adjunto encontrará su liquidación de sueldo correspondiente al período {period_month:02d}/{period_year}.
 {password_line}
 Saludos,
-{settings.SMTP_FROM_NAME}
+{from_name}
 """
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
@@ -88,11 +103,11 @@ Saludos,
         except Exception:
             pass
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+    with smtplib.SMTP(host, port) as server:
         server.ehlo()
         server.starttls()
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_USER, to_email, msg.as_string())
+        server.login(user, password)
+        server.sendmail(user, to_email, msg.as_string())
 
 
 def send_deadline_reminder(to: str, event_name: str, event_date, days_left: int, company_name: str) -> None:

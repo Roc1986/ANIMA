@@ -682,6 +682,11 @@ def send_liquidacion_email_endpoint(
             period_year=run.period_year,
             pdf_path=pdf_path,
             pdf_password=pwd,
+            smtp_host=company.smtp_host if company else None,
+            smtp_port=company.smtp_port if company else None,
+            smtp_user=company.smtp_user if company else None,
+            smtp_password=company.smtp_password if company else None,
+            smtp_from_name=company.smtp_from_name if company else None,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al enviar email: {str(e)}")
@@ -734,6 +739,11 @@ def send_all_liquidaciones_emails(
                 period_year=run.period_year,
                 pdf_path=pdf_path,
                 pdf_password=pwd,
+                smtp_host=company.smtp_host if company else None,
+                smtp_port=company.smtp_port if company else None,
+                smtp_user=company.smtp_user if company else None,
+                smtp_password=company.smtp_password if company else None,
+                smtp_from_name=company.smtp_from_name if company else None,
             )
             sent.append({"employee": f"{emp.first_name} {emp.last_name}", "email": emp.email})
         except Exception as e:

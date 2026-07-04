@@ -25,6 +25,11 @@ interface CompanyData {
   primary_color: string
   legal_rep_name?: string
   legal_rep_rut?: string
+  smtp_host?: string
+  smtp_port?: number
+  smtp_user?: string
+  smtp_password?: string
+  smtp_from_name?: string
 }
 
 const PRESET_COLORS = [
@@ -295,6 +300,61 @@ export default function CompanySettings() {
                 className="mt-3 h-3 rounded-full"
                 style={{ backgroundColor: selectedColor }}
               />
+            </div>
+          </div>
+
+          {/* SMTP configuration */}
+          <div className="md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Correo de envío (liquidaciones)</p>
+            <p className="text-xs text-gray-400 mb-3">
+              Configura el correo con el que se enviarán las liquidaciones a los empleados. Ejemplo: Gmail, Zoho, Outlook.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="label-field">Correo remitente (usuario SMTP)</label>
+                <input
+                  type="email"
+                  className="input-field"
+                  placeholder="Ej: rrhh@miempresa.cl"
+                  {...register('smtp_user')}
+                />
+              </div>
+              <div>
+                <label className="label-field">Contraseña SMTP</label>
+                <input
+                  type="password"
+                  className="input-field"
+                  placeholder="Contraseña o App Password"
+                  {...register('smtp_password')}
+                />
+              </div>
+              <div>
+                <label className="label-field">Servidor SMTP</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Ej: smtp.zoho.com / smtp.gmail.com"
+                  {...register('smtp_host')}
+                />
+              </div>
+              <div>
+                <label className="label-field">Puerto SMTP</label>
+                <input
+                  type="number"
+                  className="input-field"
+                  placeholder="587"
+                  {...register('smtp_port', { valueAsNumber: true })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="label-field">Nombre del remitente</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Ej: RRHH Ópticas Andina"
+                  {...register('smtp_from_name')}
+                />
+              </div>
             </div>
           </div>
 

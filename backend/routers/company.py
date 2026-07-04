@@ -28,6 +28,11 @@ class CompanyUpdate(BaseModel):
     primary_color: Optional[str] = None
     legal_rep_name: Optional[str] = None
     legal_rep_rut: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from_name: Optional[str] = None
 
 
 def _get_company(db: Session, current_user: User) -> Company:
