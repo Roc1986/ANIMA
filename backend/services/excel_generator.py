@@ -329,43 +329,38 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         f[58] = "0"; f[59] = "0"; f[60] = "0"
 
         # ── Bloque 6: IPS / ISL / FONASA (campos 62-74) ───────────────────────
-        # AFP workers: campo 64 MUST be 0. Previred rejects it for AFP regime.
-        # FONASA cotización goes in campo 80 (sección Salud), not campo 70.
+        # Todos los trabajadores aquí son AFP: Bloque 6 (IPS) va todo en 0.
+        # Campo 64 > 0 hace que Previred los trate como IPS y exija ISL ex-INP.
         f[61] = "0"              # 62 Código Ex-Caja Régimen
         f[62] = "0"              # 63 Tasa Cotización Ex-Caja
-        # Campo 64 (f[63]): Renta Imponible — requerida cuando campo 70 (FONASA) > 0
-        f[63] = str(renta_imp) if is_fonasa else "0"
+        f[63] = "0"              # 64 Renta Imponible IPS (0 para AFP)
         f[64] = "0"              # 65 Cotización Obligatoria IPS
         f[65] = "0"              # 66 Renta Imponible Desahucio
         f[66] = "0"              # 67 Cotización Desahucio
         f[67] = "0"              # 68 Código Ex-Caja Desahucio
         f[68] = "0"              # 69 Tasa Cotización Desahucio
-        # Campo 70 (f[69]): Cotización FONASA (solo para trabajadores FONASA)
-        f[69] = str(cot_salud) if is_fonasa else "0"
+        f[69] = "0"              # 70 Cotización FONASA ex-INP (0 para AFP)
         f[70] = "0"              # 71 Cotización ISL ex-INP (0 para AFP)
         f[71] = "0"              # 72 Bonificación Ley 15.386
         f[72] = "0"              # 73 Descuento cargas IPS
         f[73] = "0"              # 74 Bonos Gobierno
 
         # ── Bloque 7: Salud (campos 75-82) ────────────────────────────────────
-        # FONASA: código 07, cotización en campo 70, campo 80 = 0
-        # Isapre: código específico (Tabla N°16), cotización en campo 80
+        # FONASA: código 07, cotización en campo 80. Isapre: código Tabla N°16.
         if is_fonasa:
             inst_code = "07"
-            cot_isapre_campo80 = "0"
         else:
             inst_code = (
                 ISAPRE_CODES.get(isapre_name_key)
                 or ISAPRE_CODES.get(isapre_name_key.replace(" ", ""))
                 or "02"  # Consalud por defecto si no se encuentra nombre
             )
-            cot_isapre_campo80 = str(cot_salud)
         f[74] = inst_code        # 75 Código institución salud (Tabla N°16 Previred)
         f[75] = ""               # 76 N° FUN (solo Isapre)
         f[76] = str(renta_imp)   # 77 Renta Imponible Salud
         f[77] = "0"              # 78 Moneda Plan Isapre
         f[78] = "0"              # 79 Cotización Pactada Isapre
-        f[79] = cot_isapre_campo80  # 80 Cotización Obligatoria Isapre (0 para FONASA)
+        f[79] = str(cot_salud)   # 80 Cotización Obligatoria (FONASA o Isapre)
         f[80] = "0"              # 81 Cotización Adicional Voluntaria
         f[81] = "0"              # 82 GES
 
