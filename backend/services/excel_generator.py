@@ -270,7 +270,6 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         cot_salud     = int(float(entry.descuento_salud or 0))
         cot_cesantia  = int(float(entry.descuento_cesantia or 0))
         afc_emp       = int(float(entry.aporte_cesantia_empleador or 0))
-        mutual_isl    = int(float(getattr(entry, 'aporte_mutual_isl', 0) or 0))
         dias          = int(entry.dias_trabajados or 30)
 
         f = [""] * 105
@@ -341,7 +340,7 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         f[67] = "0"              # 68 Código Ex-Caja Desahucio
         f[68] = "0"              # 69 Tasa Cotización Desahucio
         f[69] = "0"              # 70 Cotización FONASA IPS (no aplica AFP — la cotización va en campo 80)
-        f[70] = str(mutual_isl)  # 71 Cotización ISL (Mutual ISL empleador)
+        f[70] = "0"              # 71 Cotización ISL ex-INP (0 para AFP — no se informa en TXT)
         f[71] = "0"              # 72 Bonificación Ley 15.386
         f[72] = "0"              # 73 Descuento cargas IPS
         f[73] = "0"              # 74 Bonos Gobierno
