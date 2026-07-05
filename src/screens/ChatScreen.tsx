@@ -6,7 +6,9 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ScrollView,
 } from 'react-native';
@@ -28,9 +30,11 @@ const ANIMA_RESPONSES = [
 ];
 
 const SUGGESTED_TOPICS = [
-  'Amor y relaciones 💕',
-  'Mi propósito 🌟',
-  'Desafíos actuales 🌊',
+  { label: 'Amor y relaciones', emoji: '💕' },
+  { label: 'Mi propósito', emoji: '🌟' },
+  { label: 'Desafíos actuales', emoji: '🌊' },
+  { label: 'Salud y bienestar', emoji: '🌿' },
+  { label: 'Trabajo y dinero', emoji: '✨' },
 ];
 
 let messageIdCounter = 2;
@@ -39,7 +43,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Hola, soy ANIMA. ¿Sobre qué te gustaría reflexionar hoy?',
+      text: 'Hola, soy ANIMA. ¿Sobre qué te gustaría reflexionar hoy? Puedes elegir un tema o escribir libremente.',
       isUser: false,
     },
   ]);
@@ -50,6 +54,8 @@ export default function ChatScreen() {
   const sendMessage = (textOverride?: string) => {
     const text = (textOverride ?? inputText).trim();
     if (!text) return;
+
+    Keyboard.dismiss();
 
     const userMsg: Message = {
       id: String(messageIdCounter++),
@@ -68,11 +74,17 @@ export default function ChatScreen() {
         isUser: false,
       };
       setMessages(prev => [...prev, animaMsg]);
+      flatListRef.current?.scrollToEnd({ animated: true });
     }, 800);
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
     <View style={[styles.messageRow, item.isUser ? styles.userRow : styles.animaRow]}>
+      {!item.isUser && (
+        <View style={styles.animaAvatar}>
+          <Text style={styles.animaAvatarText}>A</Text>
+        </View>
+      )}
       <View style={[styles.bubble, item.isUser ? styles.userBubble : styles.animaBubble]}>
         <Text style={[styles.bubbleText, item.isUser ? styles.userText : styles.animaText]}>
           {item.text}
@@ -84,43 +96,54 @@ export default function ChatScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safe}>
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>ANIMA</Text>
           <Text style={styles.headerSubtitle}>🔒 Privado y encriptado</Text>
         </View>
 
-        {/* Suggested topics */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-        >
-          {SUGGESTED_TOPICS.map((topic, i) => (
-            <TouchableOpacity
-              key={i}
-              style={styles.chip}
-              onPress={() => sendMessage(topic)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.chipText}>{topic}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {/* Topic chips — altura fija */}
+        <View style={styles.chipsContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsRow}
+            keyboardShouldPersistTaps="handled"
+          >
+            {SUGGESTED_TOPICS.map((topic, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.chip}
+                onPress={() => sendMessage(`${topic.label} ${topic.emoji}`)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.chipEmoji}>{topic.emoji}</Text>
+                <Text style={styles.chipText}>{topic.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
         >
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={item => item.id}
-            renderItem={renderMessage}
-            contentContainerStyle={styles.messageList}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            showsVerticalScrollIndicator={false}
-          />
+          {/* Mensajes — toca aquí para bajar teclado */}
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={item => item.id}
+              renderItem={renderMessage}
+              contentContainerStyle={styles.messageList}
+              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            />
+          </TouchableWithoutFeedback>
 
+          {/* Input */}
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
@@ -129,9 +152,16 @@ export default function ChatScreen() {
               value={inputText}
               onChangeText={setInputText}
               multiline
+              maxLength={500}
+              returnKeyType="send"
+              blurOnSubmit
               onSubmitEditing={() => sendMessage()}
             />
-            <TouchableOpacity style={styles.sendButton} onPress={() => sendMessage()}>
+            <TouchableOpacity
+              style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+              onPress={() => sendMessage()}
+              activeOpacity={0.8}
+            >
               <Text style={styles.sendIcon}>➤</Text>
             </TouchableOpacity>
           </View>
@@ -145,49 +175,71 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F0A1E' },
   safe: { flex: 1 },
   flex: { flex: 1 },
+
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#2D1B69',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    letterSpacing: 4,
-  },
+  headerTitle: { fontSize: 20, color: '#FFFFFF', fontWeight: 'bold', letterSpacing: 4 },
   headerSubtitle: { fontSize: 11, color: '#6D6D8A', marginTop: 2 },
+
+  // Chips con altura fija
+  chipsContainer: {
+    height: 52,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1035',
+  },
   chipsRow: {
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
     gap: 8,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#1A1035',
     borderWidth: 1,
     borderColor: '#7C3AED',
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 6,
+    gap: 4,
   },
-  chipText: { color: '#C4B5FD', fontSize: 13, fontWeight: 'bold' },
+  chipEmoji: { fontSize: 14 },
+  chipText: { color: '#C4B5FD', fontSize: 12, fontWeight: 'bold' },
+
+  // Mensajes
   messageList: { padding: 16, paddingBottom: 8 },
-  messageRow: { marginBottom: 12 },
-  userRow: { alignItems: 'flex-end' },
-  animaRow: { alignItems: 'flex-start' },
-  bubble: { maxWidth: '80%', borderRadius: 16, padding: 12 },
+  messageRow: { marginBottom: 14, flexDirection: 'row', alignItems: 'flex-end' },
+  userRow: { justifyContent: 'flex-end' },
+  animaRow: { justifyContent: 'flex-start', gap: 8 },
+  animaAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  animaAvatarText: { color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' },
+  bubble: { maxWidth: '78%', borderRadius: 16, padding: 12 },
   userBubble: { backgroundColor: '#7C3AED' },
   animaBubble: {
     backgroundColor: '#1A1035',
     borderWidth: 1,
     borderColor: '#2D1B69',
   },
-  bubbleText: { fontSize: 14, lineHeight: 20 },
+  bubbleText: { fontSize: 14, lineHeight: 21 },
   userText: { color: '#FFFFFF' },
   animaText: { color: '#C4B5FD' },
+
+  // Input
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -212,10 +264,11 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: '#7C3AED',
     borderRadius: 20,
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  sendButtonDisabled: { backgroundColor: '#3D2B7A' },
   sendIcon: { color: '#FFFFFF', fontSize: 16 },
 });
