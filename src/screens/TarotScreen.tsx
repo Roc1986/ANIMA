@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Speech from 'expo-speech';
+// expo-speech removed — incompatible with current RN version
 import { TAROT_CARDS, TarotCard, shuffleCards } from '../constants/cards';
 
 const { width } = Dimensions.get('window');
@@ -244,36 +244,23 @@ export default function TarotScreen() {
     setSelectedCard(card);
   };
 
-  const speakText = (text: string) => {
-    if (isSpeaking) {
-      Speech.stop();
-      setIsSpeaking(false);
-      return;
-    }
-    setIsSpeaking(true);
-    Speech.speak(text, {
-      language: 'es-ES',
-      pitch: 0.95,
-      rate: 0.82,
-      onDone: () => setIsSpeaking(false),
-      onError: () => setIsSpeaking(false),
-    });
+  const speakText = (_text: string) => {
+    // Audio TTS será integrado con ElevenLabs en versión premium
+    setIsSpeaking(prev => !prev);
+    setTimeout(() => setIsSpeaking(false), 2000);
   };
 
   const closeModal = () => {
-    Speech.stop();
     setIsSpeaking(false);
     setSelectedCard(null);
   };
 
   const closeSpreadModal = () => {
-    Speech.stop();
     setIsSpeaking(false);
     setShowSpreadReading(false);
   };
 
   const reset = () => {
-    Speech.stop();
     setIsSpeaking(false);
     setSelectedSpread(null);
     setDrawnCards([]);
@@ -499,7 +486,7 @@ export default function TarotScreen() {
                       onPress={() => speakText(`${selectedCard.name}. Palabras clave: ${selectedCard.keywords.join(', ')}. ${selectedCard.reading}`)}
                     >
                       <Text style={styles.speakBtnText}>
-                        {isSpeaking ? '⏹ Detener audio' : '🔊 Escuchar lectura'}
+                        {isSpeaking ? '⏳ Próximamente...' : '🔊 Escuchar lectura'}
                       </Text>
                     </TouchableOpacity>
 
