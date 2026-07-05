@@ -1,245 +1,404 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
+  Animated,
   Modal,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Speech from 'expo-speech';
+import { TAROT_CARDS, TarotCard, shuffleCards } from '../constants/cards';
 
-const spreads = [
-  {
-    title: 'Carta del Día',
-    description: 'Una carta para guiar tu jornada',
-    badge: 'GRATIS',
-    badgeColor: '#10B981',
-    icon: '🌟',
-    type: 'daily',
-  },
-  {
-    title: 'Sí o No',
-    description: 'Respuesta directa a tu pregunta',
-    badge: 'DEMO',
-    badgeColor: '#7C3AED',
-    icon: '⚖️',
-    type: 'yesno',
-  },
-  {
-    title: 'Pasado · Presente · Futuro',
-    description: 'Comprende tu camino en el tiempo',
-    badge: 'DEMO',
-    badgeColor: '#7C3AED',
-    icon: '🔮',
-    type: 'past-present-future',
-  },
-  {
-    title: 'Cruz Celta',
-    description: 'Lectura completa de 10 cartas',
-    badge: 'DEMO',
-    badgeColor: '#F59E0B',
-    icon: '✨',
-    type: 'celtic',
-  },
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 60) / 3;
+const CARD_HEIGHT = CARD_WIDTH * 1.6;
+
+const SPREADS = [
+  { id: 'one', label: '1 Carta', count: 1, description: 'Respuesta directa del universo' },
+  { id: 'three', label: '3 Cartas', count: 3, description: 'Pasado · Presente · Futuro' },
+  { id: 'cross', label: 'Cruz Celta', count: 5, description: 'Situación · Desafío · Base · Potencial · Resultado' },
+  { id: 'horseshoe', label: 'Herradura', count: 7, description: 'Visión completa de tu camino' },
 ];
 
-const cardPool = [
-  {
-    name: 'El Loco',
-    keywords: 'Nuevos comienzos, aventura, espontaneidad',
-    reading:
-      'El Loco te invita a dar el salto de fe que has estado posponiendo. La energía de este arcano habla de libertad y potencial ilimitado. Es hora de confiar en el universo y aventurarte hacia lo desconocido con el corazón abierto.',
-  },
-  {
-    name: 'La Emperatriz',
-    keywords: 'Abundancia, fertilidad, creatividad',
-    reading:
-      'La Emperatriz trae consigo una energía de abundancia y florecimiento. Este arcano te habla de creatividad desbordante y conexión con tu naturaleza más fértil. Es un momento propicio para nutrir tus proyectos y relaciones más importantes.',
-  },
-  {
-    name: 'La Torre',
-    keywords: 'Cambio repentino, revelación, liberación',
-    reading:
-      'La Torre anuncia una transformación necesaria aunque pueda sentirse disruptiva. Lo que se derrumba ya no servía a tu crecimiento. Desde los cimientos renovados construirás algo mucho más auténtico y poderoso.',
-  },
-  {
-    name: 'La Estrella',
-    keywords: 'Esperanza, renovación, inspiración',
-    reading:
-      'La Estrella ilumina tu camino con esperanza y renovación profunda. Después de períodos oscuros, este arcano trae el recordatorio de que eres guiado y protegido. Confía en el proceso y deja que la luz interior te oriente.',
-  },
-  {
-    name: 'El Sol',
-    keywords: 'Éxito, alegría, vitalidad',
-    reading:
-      'El Sol irradia éxito, claridad y vitalidad sobre tu situación. Es uno de los arcanos más positivos del mazo, prometiendo alegría genuina y logros merecidos. Tu autenticidad es tu mayor fortaleza en este momento.',
-  },
-  {
-    name: 'La Luna',
-    keywords: 'Intuición, sueños, lo oculto',
-    reading:
-      'La Luna te invita a explorar las profundidades de tu mundo interior. Las ilusiones pueden estar nublando tu percepción, pero tu intuición sabe la verdad. Escucha esa voz suave que habla desde lo más profundo de tu ser.',
-  },
-  {
-    name: 'El Mundo',
-    keywords: 'Completitud, logro, integración',
-    reading:
-      'El Mundo celebra un ciclo completado con plenitud y gratitud. Has integrado lecciones importantes y mereces reconocer el camino recorrido. Un nuevo ciclo de posibilidades infinitas se abre ante ti.',
-  },
-  {
-    name: 'Los Enamorados',
-    keywords: 'Amor, elección, alineación',
-    reading:
-      'Los Enamorados hablan de una elección importante que se alinea con tus valores más profundos. Puede referirse a relaciones amorosas o a cualquier decisión que requiera escuchar el corazón. La autenticidad es la brújula correcta.',
-  },
-];
+const CARD_IMAGES: Record<string, any> = {
+  'el-loco': require('../../assets/cards/el-loco.png'),
+  'el-mago': require('../../assets/cards/el-mago.png'),
+  'la-sacerdotisa': require('../../assets/cards/la-sacerdotisa.png'),
+  'la-emperatriz': require('../../assets/cards/la-emperatriz.png'),
+  'el-emperador': require('../../assets/cards/el-emperador.png'),
+  'el-hierofante': require('../../assets/cards/el-hierofante.png'),
+  'los-enamorados': require('../../assets/cards/los-enamorados.png'),
+  'el-carro': require('../../assets/cards/el-carro.png'),
+  'la-fuerza': require('../../assets/cards/la-fuerza.png'),
+  'el-ermitano': require('../../assets/cards/el-ermitano.png'),
+  'la-rueda': require('../../assets/cards/la-rueda.png'),
+  'la-justicia': require('../../assets/cards/la-justicia.png'),
+  'el-colgado': require('../../assets/cards/el-colgado.png'),
+  'la-muerte': require('../../assets/cards/la-muerte.png'),
+  'la-templanza': require('../../assets/cards/la-templanza.png'),
+  'el-diablo': require('../../assets/cards/el-diablo.png'),
+  'la-torre': require('../../assets/cards/la-torre.png'),
+  'la-estrella': require('../../assets/cards/la-estrella.png'),
+  'la-luna': require('../../assets/cards/la-luna.png'),
+  'el-sol': require('../../assets/cards/el-sol.png'),
+  'el-juicio': require('../../assets/cards/el-juicio.png'),
+  'el-mundo': require('../../assets/cards/el-mundo.png'),
+  'as-de-bastos': require('../../assets/cards/as-de-bastos.png'),
+  'dos-de-bastos': require('../../assets/cards/dos-de-bastos.png'),
+  'tres-de-bastos': require('../../assets/cards/tres-de-bastos.png'),
+  'cuatro-de-bastos': require('../../assets/cards/cuatro-de-bastos.png'),
+  'cinco-de-bastos': require('../../assets/cards/cinco-de-bastos.png'),
+  'seis-de-bastos': require('../../assets/cards/seis-de-bastos.png'),
+  'siete-de-bastos': require('../../assets/cards/siete-de-bastos.png'),
+  'ocho-de-bastos': require('../../assets/cards/ocho-de-bastos.png'),
+  'nueve-de-bastos': require('../../assets/cards/nueve-de-bastos.png'),
+  'diez-de-bastos': require('../../assets/cards/diez-de-bastos.png'),
+  'sota-de-bastos': require('../../assets/cards/sota-de-bastos.png'),
+  'caballero-de-bastos': require('../../assets/cards/caballero-de-bastos.png'),
+  'reina-de-bastos': require('../../assets/cards/reina-de-bastos.png'),
+  'rey-de-bastos': require('../../assets/cards/rey-de-bastos.png'),
+  'as-de-copas': require('../../assets/cards/as-de-copas.png'),
+  'dos-de-copas': require('../../assets/cards/dos-de-copas.png'),
+  'tres-de-copas': require('../../assets/cards/tres-de-copas.png'),
+  'cuatro-de-copas': require('../../assets/cards/cuatro-de-copas.png'),
+  'cinco-de-copas': require('../../assets/cards/cinco-de-copas.png'),
+  'seis-de-copas': require('../../assets/cards/seis-de-copas.png'),
+  'siete-de-copas': require('../../assets/cards/siete-de-copas.png'),
+  'ocho-de-copas': require('../../assets/cards/ocho-de-copas.png'),
+  'nueve-de-copas': require('../../assets/cards/nueve-de-copas.png'),
+  'diez-de-copas': require('../../assets/cards/diez-de-copas.png'),
+  'sota-de-copas': require('../../assets/cards/sota-de-copas.png'),
+  'caballero-de-copas': require('../../assets/cards/caballero-de-copas.png'),
+  'reina-de-copas': require('../../assets/cards/reina-de-copas.png'),
+  'rey-de-copas': require('../../assets/cards/rey-de-copas.png'),
+  'as-de-espadas': require('../../assets/cards/as-de-espadas.png'),
+  'dos-de-espadas': require('../../assets/cards/dos-de-espadas.png'),
+  'tres-de-espadas': require('../../assets/cards/tres-de-espadas.png'),
+  'cuatro-de-espadas': require('../../assets/cards/cuatro-de-espadas.png'),
+  'cinco-de-espadas': require('../../assets/cards/cinco-de-espadas.png'),
+  'seis-de-espadas': require('../../assets/cards/seis-de-espadas.png'),
+  'siete-de-espadas': require('../../assets/cards/siete-de-espadas.png'),
+  'ocho-de-espadas': require('../../assets/cards/ocho-de-espadas.png'),
+  'nueve-de-espadas': require('../../assets/cards/nueve-de-espadas.png'),
+  'diez-de-espadas': require('../../assets/cards/diez-de-espadas.png'),
+  'sota-de-espadas': require('../../assets/cards/sota-de-espadas.png'),
+  'caballero-de-espadas': require('../../assets/cards/caballero-de-espadas.png'),
+  'reina-de-espadas': require('../../assets/cards/reina-de-espadas.png'),
+  'rey-de-espadas': require('../../assets/cards/rey-de-espadas.png'),
+  'as-de-oros': require('../../assets/cards/as-de-oros.png'),
+  'dos-de-oros': require('../../assets/cards/dos-de-oros.png'),
+  'tres-de-oros': require('../../assets/cards/tres-de-oros.png'),
+  'cuatro-de-oros': require('../../assets/cards/cuatro-de-oros.png'),
+  'cinco-de-oros': require('../../assets/cards/cinco-de-oros.png'),
+  'seis-de-oros': require('../../assets/cards/seis-de-oros.png'),
+  'siete-de-oros': require('../../assets/cards/siete-de-oros.png'),
+  'ocho-de-oros': require('../../assets/cards/ocho-de-oros.png'),
+  'nueve-de-oros': require('../../assets/cards/nueve-de-oros.png'),
+  'diez-de-oros': require('../../assets/cards/diez-de-oros.png'),
+  'sota-de-oros': require('../../assets/cards/sota-de-oros.png'),
+  'caballero-de-oros': require('../../assets/cards/caballero-de-oros.png'),
+  'reina-de-oros': require('../../assets/cards/reina-de-oros.png'),
+  'rey-de-oros': require('../../assets/cards/rey-de-oros.png'),
+};
 
-function pickCards(count: number) {
-  const shuffled = [...cardPool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+interface FlipCardProps {
+  card: TarotCard;
+  index: number;
+  isFlipped: boolean;
+  onFlip: (index: number, card: TarotCard) => void;
+  positionLabel?: string;
 }
 
-interface ReadingResult {
-  type: string;
-  title: string;
-  cards?: Array<{ name: string; position: string; reading: string }>;
-  yesNo?: 'SÍ' | 'NO';
-  yesNoExplanation?: string;
-  dailyCard?: { name: string; keywords: string; reading: string };
-}
+function FlipCard({ card, index, isFlipped, onFlip, positionLabel }: FlipCardProps) {
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  const [showFront, setShowFront] = useState(false);
 
-function buildReading(spread: typeof spreads[0]): ReadingResult {
-  if (spread.type === 'daily') {
-    const card = pickCards(1)[0];
-    return {
-      type: 'daily',
-      title: spread.title,
-      dailyCard: card,
-    };
-  }
-
-  if (spread.type === 'yesno') {
-    const answer: 'SÍ' | 'NO' = Math.random() > 0.5 ? 'SÍ' : 'NO';
-    const card = pickCards(1)[0];
-    return {
-      type: 'yesno',
-      title: spread.title,
-      yesNo: answer,
-      yesNoExplanation: card.reading,
-    };
-  }
-
-  if (spread.type === 'past-present-future') {
-    const [past, present, future] = pickCards(3);
-    return {
-      type: 'past-present-future',
-      title: spread.title,
-      cards: [
-        { name: past.name, position: 'Pasado', reading: past.reading },
-        { name: present.name, position: 'Presente', reading: present.reading },
-        { name: future.name, position: 'Futuro', reading: future.reading },
-      ],
-    };
-  }
-
-  // celtic cross — simplified 5-card version for demo
-  const drawn = pickCards(5);
-  const positions = ['Situación central', 'Cruce / Desafío', 'Base', 'Pasado reciente', 'Resultado potencial'];
-  return {
-    type: 'celtic',
-    title: spread.title,
-    cards: drawn.map((c, i) => ({ name: c.name, position: positions[i], reading: c.reading })),
+  const handleFlip = () => {
+    if (isFlipped) return;
+    Animated.timing(flipAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowFront(true);
+      onFlip(index, card);
+    });
   };
+
+  const backRotate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] });
+  const frontRotate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['-90deg', '0deg'] });
+
+  const img = CARD_IMAGES[card.fileName];
+
+  return (
+    <View style={styles.flipContainer}>
+      {positionLabel ? <Text style={styles.posLabel}>{positionLabel}</Text> : null}
+      <TouchableOpacity onPress={handleFlip} activeOpacity={0.9} disabled={isFlipped}>
+        {showFront ? (
+          <Animated.View style={[styles.cardFace, { transform: [{ rotateY: frontRotate }] }]}>
+            {img ? (
+              <Image source={img} style={styles.cardImage} resizeMode="cover" />
+            ) : (
+              <View style={[styles.cardImage, styles.cardImageFallback]}>
+                <Text style={styles.cardFallbackText}>{card.name}</Text>
+              </View>
+            )}
+          </Animated.View>
+        ) : (
+          <Animated.View style={[styles.cardFace, { transform: [{ rotateY: backRotate }] }]}>
+            <LinearGradient colors={['#2D1B69', '#1A1035', '#0F0A1E']} style={styles.cardBack}>
+              <Text style={styles.cardBackSymbol}>✦</Text>
+              <Text style={styles.cardBackText}>ANIMA</Text>
+            </LinearGradient>
+          </Animated.View>
+        )}
+      </TouchableOpacity>
+      {isFlipped
+        ? <Text style={styles.cardName} numberOfLines={2}>{card.name}</Text>
+        : <Text style={styles.cardHint}>Toca para revelar</Text>
+      }
+    </View>
+  );
 }
 
 export default function TarotScreen() {
-  const [reading, setReading] = useState<ReadingResult | null>(null);
+  const [selectedSpread, setSelectedSpread] = useState<typeof SPREADS[0] | null>(null);
+  const [drawnCards, setDrawnCards] = useState<TarotCard[]>([]);
+  const [flippedIndexes, setFlippedIndexes] = useState<Set<number>>(new Set());
+  const [selectedCard, setSelectedCard] = useState<TarotCard | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isShuffling, setIsShuffling] = useState(false);
 
-  const handleSpreadPress = (spread: typeof spreads[0]) => {
-    setReading(buildReading(spread));
+  const POSITION_LABELS: Record<string, string[]> = {
+    three: ['Pasado', 'Presente', 'Futuro'],
+    cross: ['Situación', 'Desafío', 'Base', 'Potencial', 'Resultado'],
+    horseshoe: ['Pasado', 'Presente', 'Futuro cercano', 'Consejo', 'Influencias', 'Esperanzas', 'Resultado'],
   };
 
+  const startSpread = (spread: typeof SPREADS[0]) => {
+    setIsShuffling(true);
+    setFlippedIndexes(new Set());
+    setSelectedCard(null);
+    setTimeout(() => {
+      setSelectedSpread(spread);
+      setDrawnCards(shuffleCards(spread.count));
+      setIsShuffling(false);
+    }, 800);
+  };
+
+  const handleFlip = (index: number, card: TarotCard) => {
+    setFlippedIndexes(prev => {
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
+    setSelectedCard(card);
+  };
+
+  const speakReading = (card: TarotCard) => {
+    if (isSpeaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+      return;
+    }
+    const text = `${card.name}. Palabras clave: ${card.keywords.join(', ')}. ${card.reading}`;
+    setIsSpeaking(true);
+    Speech.speak(text, {
+      language: 'es-ES',
+      pitch: 0.95,
+      rate: 0.85,
+      onDone: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
+    });
+  };
+
+  const closeModal = () => {
+    Speech.stop();
+    setIsSpeaking(false);
+    setSelectedCard(null);
+  };
+
+  const reset = () => {
+    Speech.stop();
+    setIsSpeaking(false);
+    setSelectedSpread(null);
+    setDrawnCards([]);
+    setFlippedIndexes(new Set());
+    setSelectedCard(null);
+  };
+
+  const labels = selectedSpread ? POSITION_LABELS[selectedSpread.id] || [] : [];
+
   return (
-    <LinearGradient
-      colors={['#0F0A1E', '#1A1035', '#2D1B69']}
-      style={styles.gradient}
-    >
+    <LinearGradient colors={['#0F0A1E', '#1A1035', '#2D1B69']} style={styles.gradient}>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>Tarot</Text>
-          <Text style={styles.subtitle}>Elige tu tirada</Text>
+          <Text style={styles.title}>🔮 Tarot</Text>
+          <Text style={styles.subtitle}>Deja que las cartas hablen</Text>
 
-          {spreads.map((spread, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.card}
-              activeOpacity={0.8}
-              onPress={() => handleSpreadPress(spread)}
-            >
-              <View style={styles.cardRow}>
-                <Text style={styles.cardIcon}>{spread.icon}</Text>
-                <View style={styles.cardContent}>
-                  <View style={styles.titleRow}>
-                    <Text style={styles.cardTitle}>{spread.title}</Text>
-                    <View style={[styles.badge, { backgroundColor: spread.badgeColor }]}>
-                      <Text style={styles.badgeText}>{spread.badge}</Text>
+          {!selectedSpread ? (
+            <>
+              <Text style={styles.sectionLabel}>Elige tu tirada</Text>
+              {SPREADS.map(spread => (
+                <TouchableOpacity
+                  key={spread.id}
+                  style={styles.spreadCard}
+                  onPress={() => startSpread(spread)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.spreadRow}>
+                    <View style={styles.spreadBadge}>
+                      <Text style={styles.spreadBadgeText}>{spread.count}</Text>
                     </View>
-                  </View>
-                  <Text style={styles.cardDescription}>{spread.description}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Reading Modal */}
-        <Modal
-          visible={reading !== null}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setReading(null)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.modalTitle}>{reading?.title}</Text>
-
-                {reading?.type === 'daily' && reading.dailyCard && (
-                  <View style={styles.modalSection}>
-                    <Text style={styles.cardNameLarge}>{reading.dailyCard.name}</Text>
-                    <Text style={styles.keywordsText}>{reading.dailyCard.keywords}</Text>
-                    <Text style={styles.readingParagraph}>{reading.dailyCard.reading}</Text>
-                  </View>
-                )}
-
-                {reading?.type === 'yesno' && (
-                  <View style={styles.modalSection}>
-                    <Text style={[styles.yesNoAnswer, reading.yesNo === 'SÍ' ? styles.yesColor : styles.noColor]}>
-                      {reading.yesNo}
-                    </Text>
-                    <Text style={styles.readingParagraph}>{reading.yesNoExplanation}</Text>
-                  </View>
-                )}
-
-                {(reading?.type === 'past-present-future' || reading?.type === 'celtic') &&
-                  reading.cards?.map((c, i) => (
-                    <View key={i} style={styles.cardReadingBlock}>
-                      <Text style={styles.positionLabel}>{c.position}</Text>
-                      <Text style={styles.cardNameMedium}>{c.name}</Text>
-                      <Text style={styles.readingParagraph}>{c.reading}</Text>
+                    <View style={styles.spreadInfo}>
+                      <Text style={styles.spreadLabel}>{spread.label}</Text>
+                      <Text style={styles.spreadDesc}>{spread.description}</Text>
                     </View>
-                  ))}
+                    <Text style={styles.spreadArrow}>›</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+
+              <Text style={styles.sectionLabel}>Galería de cartas</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {TAROT_CARDS.map(card => {
+                  const img = CARD_IMAGES[card.fileName];
+                  return (
+                    <TouchableOpacity
+                      key={card.id}
+                      style={styles.miniCardWrap}
+                      onPress={() => setSelectedCard(card)}
+                    >
+                      {img ? (
+                        <Image source={img} style={styles.miniCard} resizeMode="cover" />
+                      ) : (
+                        <View style={[styles.miniCard, styles.cardImageFallback]}>
+                          <Text style={{ color: '#C4B5FD', fontSize: 8, textAlign: 'center' }}>{card.name}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.miniCardName} numberOfLines={2}>{card.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
+            </>
+          ) : (
+            <>
+              <View style={styles.spreadHeader}>
+                <Text style={styles.activeSpreadTitle}>{selectedSpread.label}</Text>
+                <TouchableOpacity onPress={reset} style={styles.resetBtn}>
+                  <Text style={styles.resetBtnText}>↩ Nueva tirada</Text>
+                </TouchableOpacity>
+              </View>
 
-              <TouchableOpacity style={styles.closeButton} onPress={() => setReading(null)}>
-                <Text style={styles.closeButtonText}>Cerrar lectura</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+              {isShuffling ? (
+                <View style={styles.shufflingWrap}>
+                  <Text style={styles.shufflingText}>🔀 Barajando las cartas...</Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.instructionText}>
+                    {flippedIndexes.size === 0
+                      ? 'Concéntrate en tu pregunta y toca una carta'
+                      : flippedIndexes.size < drawnCards.length
+                      ? `${drawnCards.length - flippedIndexes.size} carta${drawnCards.length - flippedIndexes.size > 1 ? 's' : ''} por revelar`
+                      : '✨ Todas las cartas reveladas — toca cualquiera para leer'}
+                  </Text>
+
+                  <View style={styles.cardsGrid}>
+                    {drawnCards.map((card, i) => (
+                      <FlipCard
+                        key={card.id + i}
+                        card={card}
+                        index={i}
+                        isFlipped={flippedIndexes.has(i)}
+                        onFlip={handleFlip}
+                        positionLabel={labels[i]}
+                      />
+                    ))}
+                  </View>
+
+                  {flippedIndexes.size === drawnCards.length && drawnCards.length > 1 && (
+                    <View style={styles.revealedList}>
+                      <Text style={styles.revealedTitle}>Tus cartas</Text>
+                      {drawnCards.map((card, i) => (
+                        <TouchableOpacity
+                          key={card.id}
+                          style={styles.revealedItem}
+                          onPress={() => setSelectedCard(card)}
+                        >
+                          <Text style={styles.revealedPos}>{labels[i] || `Carta ${i + 1}`}</Text>
+                          <Text style={styles.revealedName}>{card.name}</Text>
+                          <Text style={styles.revealedArrow}>›</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </ScrollView>
       </SafeAreaView>
+
+      <Modal visible={!!selectedCard} transparent animationType="fade" onRequestClose={closeModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {selectedCard && (() => {
+                const img = CARD_IMAGES[selectedCard.fileName];
+                return (
+                  <>
+                    <View style={styles.modalImageWrap}>
+                      {img ? (
+                        <Image source={img} style={styles.modalCardImage} resizeMode="contain" />
+                      ) : (
+                        <View style={[styles.modalCardImage, styles.cardImageFallback]}>
+                          <Text style={styles.cardFallbackText}>{selectedCard.name}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <Text style={styles.modalCardName}>{selectedCard.name}</Text>
+                    <Text style={styles.modalArcana}>
+                      {selectedCard.arcana === 'mayor' ? '✦ Arcano Mayor' : `✦ Arcano Menor · ${selectedCard.suit}`}
+                    </Text>
+
+                    <View style={styles.keywordsRow}>
+                      {selectedCard.keywords.map(kw => (
+                        <View key={kw} style={styles.keyword}>
+                          <Text style={styles.keywordText}>{kw}</Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    <Text style={styles.modalReading}>{selectedCard.reading}</Text>
+
+                    <TouchableOpacity
+                      style={[styles.speakBtn, isSpeaking && styles.speakBtnActive]}
+                      onPress={() => speakReading(selectedCard)}
+                    >
+                      <Text style={styles.speakBtnText}>
+                        {isSpeaking ? '⏹ Detener audio' : '🔊 Escuchar lectura'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.closeBtn} onPress={closeModal}>
+                      <Text style={styles.closeBtnText}>Cerrar</Text>
+                    </TouchableOpacity>
+                  </>
+                );
+              })()}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -247,125 +406,74 @@ export default function TarotScreen() {
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 40 },
-  title: {
-    fontSize: 32,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 8,
-    letterSpacing: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#C4B5FD',
-    textAlign: 'center',
-    marginBottom: 32,
-    letterSpacing: 1,
-  },
-  card: {
-    backgroundColor: '#1A1035',
-    borderWidth: 1,
-    borderColor: '#2D1B69',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  cardRow: { flexDirection: 'row', alignItems: 'center' },
-  cardIcon: { fontSize: 32, marginRight: 16 },
-  cardContent: { flex: 1 },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  cardTitle: { fontSize: 16, color: '#F5F3FF', fontWeight: 'bold', flex: 1 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 8 },
-  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' },
-  cardDescription: { fontSize: 13, color: '#A78BFA' },
+  scroll: { padding: 20, paddingBottom: 60 },
+  title: { fontSize: 28, color: '#FFFFFF', fontWeight: 'bold', textAlign: 'center', marginTop: 10 },
+  subtitle: { fontSize: 14, color: '#C4B5FD', textAlign: 'center', marginBottom: 24, letterSpacing: 1 },
+  sectionLabel: { fontSize: 16, color: '#C4B5FD', fontWeight: 'bold', marginBottom: 12, letterSpacing: 1 },
 
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'flex-end',
+  spreadCard: {
+    backgroundColor: '#1A1035', borderWidth: 1, borderColor: '#2D1B69',
+    borderRadius: 14, padding: 16, marginBottom: 12,
   },
-  modalContainer: {
-    backgroundColor: '#1A1035',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '85%',
-    borderTopWidth: 1,
-    borderColor: '#7C3AED',
+  spreadRow: { flexDirection: 'row', alignItems: 'center' },
+  spreadBadge: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: '#7C3AED',
+    alignItems: 'center', justifyContent: 'center', marginRight: 14,
   },
-  modalTitle: {
-    fontSize: 22,
-    color: '#F59E0B',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-    letterSpacing: 2,
+  spreadBadgeText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
+  spreadInfo: { flex: 1 },
+  spreadLabel: { color: '#F5F3FF', fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
+  spreadDesc: { color: '#8B7DB8', fontSize: 12 },
+  spreadArrow: { color: '#7C3AED', fontSize: 24 },
+
+  miniCardWrap: { width: 70, marginRight: 10, alignItems: 'center', marginBottom: 16 },
+  miniCard: { width: 60, height: 96, borderRadius: 6, backgroundColor: '#2D1B69' },
+  miniCardName: { color: '#C4B5FD', fontSize: 9, textAlign: 'center', marginTop: 4 },
+
+  spreadHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  activeSpreadTitle: { fontSize: 20, color: '#F5F3FF', fontWeight: 'bold' },
+  resetBtn: { backgroundColor: '#2D1B69', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
+  resetBtnText: { color: '#C4B5FD', fontSize: 13 },
+  shufflingWrap: { alignItems: 'center', paddingVertical: 60 },
+  shufflingText: { color: '#C4B5FD', fontSize: 18 },
+  instructionText: { color: '#8B7DB8', fontSize: 13, textAlign: 'center', marginBottom: 20, fontStyle: 'italic' },
+
+  cardsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12 },
+  flipContainer: { width: CARD_WIDTH, alignItems: 'center', marginBottom: 8 },
+  posLabel: { color: '#F59E0B', fontSize: 10, fontWeight: 'bold', marginBottom: 6, textAlign: 'center' },
+  cardFace: { width: CARD_WIDTH, height: CARD_HEIGHT, borderRadius: 10, overflow: 'hidden' },
+  cardBack: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#7C3AED' },
+  cardBackSymbol: { fontSize: 32, color: '#C4B5FD', marginBottom: 4 },
+  cardBackText: { color: '#7C3AED', fontSize: 10, letterSpacing: 3 },
+  cardImage: { width: CARD_WIDTH, height: CARD_HEIGHT, borderRadius: 10 },
+  cardImageFallback: { backgroundColor: '#2D1B69', alignItems: 'center', justifyContent: 'center' },
+  cardFallbackText: { color: '#C4B5FD', fontSize: 11, textAlign: 'center', padding: 6 },
+  cardName: { color: '#C4B5FD', fontSize: 10, textAlign: 'center', marginTop: 6, fontWeight: 'bold' },
+  cardHint: { color: '#4A3F6B', fontSize: 9, textAlign: 'center', marginTop: 4 },
+
+  revealedList: { marginTop: 24 },
+  revealedTitle: { color: '#F59E0B', fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
+  revealedItem: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1035',
+    borderRadius: 10, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: '#2D1B69',
   },
-  modalSection: { alignItems: 'center', marginBottom: 16 },
-  cardNameLarge: {
-    fontSize: 28,
-    color: '#F5F3FF',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  keywordsText: {
-    fontSize: 13,
-    color: '#C4B5FD',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    marginBottom: 14,
-  },
-  readingParagraph: {
-    fontSize: 15,
-    color: '#A78BFA',
-    lineHeight: 24,
-    textAlign: 'left',
-  },
-  yesNoAnswer: {
-    fontSize: 64,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  yesColor: { color: '#10B981' },
-  noColor: { color: '#EF4444' },
-  cardReadingBlock: {
-    backgroundColor: '#0F0A1E',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#2D1B69',
-  },
-  positionLabel: {
-    fontSize: 11,
-    color: '#F59E0B',
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  cardNameMedium: {
-    fontSize: 18,
-    color: '#F5F3FF',
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  closeButton: {
-    backgroundColor: '#7C3AED',
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  closeButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  revealedPos: { color: '#8B7DB8', fontSize: 12, width: 90 },
+  revealedName: { color: '#F5F3FF', fontSize: 14, fontWeight: 'bold', flex: 1 },
+  revealedArrow: { color: '#7C3AED', fontSize: 20 },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalBox: { backgroundColor: '#1A1035', borderRadius: 20, padding: 24, width: '100%', maxHeight: '90%', borderWidth: 1, borderColor: '#2D1B69' },
+  modalImageWrap: { alignItems: 'center', marginBottom: 16 },
+  modalCardImage: { width: 140, height: 224, borderRadius: 12 },
+  modalCardName: { fontSize: 22, color: '#F5F3FF', fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
+  modalArcana: { color: '#F59E0B', fontSize: 13, textAlign: 'center', marginBottom: 16 },
+  keywordsRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 16 },
+  keyword: { backgroundColor: '#2D1B69', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  keywordText: { color: '#C4B5FD', fontSize: 12 },
+  modalReading: { color: '#A78BFA', fontSize: 15, lineHeight: 24, marginBottom: 20, textAlign: 'center' },
+  speakBtn: { backgroundColor: '#7C3AED', borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 10 },
+  speakBtnActive: { backgroundColor: '#DC2626' },
+  speakBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  closeBtn: { borderWidth: 1, borderColor: '#2D1B69', borderRadius: 12, padding: 12, alignItems: 'center' },
+  closeBtnText: { color: '#8B7DB8', fontSize: 14 },
 });
