@@ -167,24 +167,67 @@ function FlipCard({ card, index, isFlipped, onFlip, positionLabel }: FlipCardPro
   );
 }
 
+const POSITION_LABELS: Record<string, string[]> = {
+  three: ['Pasado', 'Presente', 'Futuro'],
+  cross: ['Situación', 'Desafío', 'Base', 'Potencial', 'Resultado'],
+  horseshoe: ['Pasado', 'Presente', 'Futuro cercano', 'Consejo', 'Influencias', 'Esperanzas', 'Resultado'],
+};
+
+function generateSpreadReading(spreadId: string, cards: TarotCard[]): string {
+  if (cards.length === 1) {
+    return `El universo habla con claridad: ${cards[0].name} se presenta ante ti. ${cards[0].reading} Medita sobre esta energía y permite que su mensaje resuene en tu interior.`;
+  }
+
+  const labels = POSITION_LABELS[spreadId] || cards.map((_, i) => `Carta ${i + 1}`);
+
+  if (spreadId === 'three') {
+    return `Tu tirada de Tres Cartas dibuja un camino claro.\n\n` +
+      `En el PASADO, ${cards[0].name} marcó tu punto de partida — ${cards[0].reading}\n\n` +
+      `En el PRESENTE, ${cards[1].name} define tu momento actual — ${cards[1].reading}\n\n` +
+      `En el FUTURO, ${cards[2].name} señala hacia dónde te diriges — ${cards[2].reading}\n\n` +
+      `La energía de ${cards[0].keywords[0]} que viviste se transforma hoy en ${cards[1].keywords[0]}, y el universo te guía hacia ${cards[2].keywords[0]}. El hilo que une estas tres cartas es una invitación a crecer desde la experiencia, actuar con conciencia y confiar en el camino que se abre ante ti.`;
+  }
+
+  if (spreadId === 'cross') {
+    return `Tu Cruz Celta revela la complejidad de tu momento.\n\n` +
+      `La SITUACIÓN central está marcada por ${cards[0].name}: ${cards[0].reading}\n\n` +
+      `El DESAFÍO que debes enfrentar viene de ${cards[1].name}: ${cards[1].reading}\n\n` +
+      `La BASE que te sostiene es ${cards[2].name}: ${cards[2].reading}\n\n` +
+      `Tu POTENCIAL más elevado lo encarna ${cards[3].name}: ${cards[3].reading}\n\n` +
+      `El RESULTADO probable de este camino es ${cards[4].name}: ${cards[4].reading}\n\n` +
+      `La síntesis de estas cinco cartas muestra que bajo la energía de ${cards[0].keywords[0]} y el desafío del ${cards[1].keywords[0]}, tienes la fortaleza de ${cards[2].keywords[0]} para alcanzar el potencial de ${cards[3].keywords[0]}. El universo te muestra que el resultado está en tus manos.`;
+  }
+
+  if (spreadId === 'horseshoe') {
+    return `Tu Herradura despliega un panorama completo de tu camino.\n\n` +
+      `Tu PASADO estuvo marcado por ${cards[0].name} — ${cards[0].keywords.join(', ')}.\n\n` +
+      `Tu PRESENTE vive la energía de ${cards[1].name} — ${cards[1].keywords.join(', ')}.\n\n` +
+      `Tu FUTURO CERCANO se aproxima con ${cards[2].name} — ${cards[2].keywords.join(', ')}.\n\n` +
+      `El CONSEJO del universo para ti es ${cards[3].name}: ${cards[3].reading}\n\n` +
+      `Las INFLUENCIAS que te rodean están representadas por ${cards[4].name} — ${cards[4].keywords.join(', ')}.\n\n` +
+      `Tus ESPERANZAS Y MIEDOS se reflejan en ${cards[5].name}: ${cards[5].reading}\n\n` +
+      `El RESULTADO final apunta hacia ${cards[6].name}: ${cards[6].reading}\n\n` +
+      `Esta tirada te muestra que el camino desde ${cards[0].keywords[0]} hasta ${cards[6].keywords[0]} es posible si honras el consejo de ${cards[3].name} y te abres a la transformación que ${cards[2].name} trae consigo.`;
+  }
+
+  // Fallback genérico
+  return cards.map((c, i) => `${labels[i]}: ${c.name} — ${c.reading}`).join('\n\n');
+}
+
 export default function TarotScreen() {
   const [selectedSpread, setSelectedSpread] = useState<typeof SPREADS[0] | null>(null);
   const [drawnCards, setDrawnCards] = useState<TarotCard[]>([]);
   const [flippedIndexes, setFlippedIndexes] = useState<Set<number>>(new Set());
   const [selectedCard, setSelectedCard] = useState<TarotCard | null>(null);
+  const [showSpreadReading, setShowSpreadReading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
-
-  const POSITION_LABELS: Record<string, string[]> = {
-    three: ['Pasado', 'Presente', 'Futuro'],
-    cross: ['Situación', 'Desafío', 'Base', 'Potencial', 'Resultado'],
-    horseshoe: ['Pasado', 'Presente', 'Futuro cercano', 'Consejo', 'Influencias', 'Esperanzas', 'Resultado'],
-  };
 
   const startSpread = (spread: typeof SPREADS[0]) => {
     setIsShuffling(true);
     setFlippedIndexes(new Set());
     setSelectedCard(null);
+    setShowSpreadReading(false);
     setTimeout(() => {
       setSelectedSpread(spread);
       setDrawnCards(shuffleCards(spread.count));
@@ -201,18 +244,17 @@ export default function TarotScreen() {
     setSelectedCard(card);
   };
 
-  const speakReading = (card: TarotCard) => {
+  const speakText = (text: string) => {
     if (isSpeaking) {
       Speech.stop();
       setIsSpeaking(false);
       return;
     }
-    const text = `${card.name}. Palabras clave: ${card.keywords.join(', ')}. ${card.reading}`;
     setIsSpeaking(true);
     Speech.speak(text, {
       language: 'es-ES',
       pitch: 0.95,
-      rate: 0.85,
+      rate: 0.82,
       onDone: () => setIsSpeaking(false),
       onError: () => setIsSpeaking(false),
     });
@@ -224,6 +266,12 @@ export default function TarotScreen() {
     setSelectedCard(null);
   };
 
+  const closeSpreadModal = () => {
+    Speech.stop();
+    setIsSpeaking(false);
+    setShowSpreadReading(false);
+  };
+
   const reset = () => {
     Speech.stop();
     setIsSpeaking(false);
@@ -231,9 +279,12 @@ export default function TarotScreen() {
     setDrawnCards([]);
     setFlippedIndexes(new Set());
     setSelectedCard(null);
+    setShowSpreadReading(false);
   };
 
   const labels = selectedSpread ? POSITION_LABELS[selectedSpread.id] || [] : [];
+  const allFlipped = drawnCards.length > 0 && flippedIndexes.size === drawnCards.length;
+  const spreadReading = selectedSpread && allFlipped ? generateSpreadReading(selectedSpread.id, drawnCards) : '';
 
   return (
     <LinearGradient colors={['#0F0A1E', '#1A1035', '#2D1B69']} style={styles.gradient}>
@@ -324,20 +375,39 @@ export default function TarotScreen() {
                     ))}
                   </View>
 
-                  {flippedIndexes.size === drawnCards.length && drawnCards.length > 1 && (
+                  {allFlipped && (
                     <View style={styles.revealedList}>
-                      <Text style={styles.revealedTitle}>Tus cartas</Text>
-                      {drawnCards.map((card, i) => (
-                        <TouchableOpacity
-                          key={card.id}
-                          style={styles.revealedItem}
-                          onPress={() => setSelectedCard(card)}
-                        >
-                          <Text style={styles.revealedPos}>{labels[i] || `Carta ${i + 1}`}</Text>
-                          <Text style={styles.revealedName}>{card.name}</Text>
-                          <Text style={styles.revealedArrow}>›</Text>
-                        </TouchableOpacity>
-                      ))}
+                      {/* Botón interpretación global */}
+                      <TouchableOpacity
+                        style={styles.interpretBtn}
+                        onPress={() => setShowSpreadReading(true)}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.interpretBtnIcon}>✨</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.interpretBtnTitle}>Interpretación de la tirada</Text>
+                          <Text style={styles.interpretBtnSub}>Lectura completa de todas las cartas</Text>
+                        </View>
+                        <Text style={styles.spreadArrow}>›</Text>
+                      </TouchableOpacity>
+
+                      {/* Lista de cartas individuales */}
+                      {drawnCards.length > 1 && (
+                        <>
+                          <Text style={styles.revealedTitle}>Cartas individuales</Text>
+                          {drawnCards.map((card, i) => (
+                            <TouchableOpacity
+                              key={card.id}
+                              style={styles.revealedItem}
+                              onPress={() => setSelectedCard(card)}
+                            >
+                              <Text style={styles.revealedPos}>{labels[i] || `Carta ${i + 1}`}</Text>
+                              <Text style={styles.revealedName}>{card.name}</Text>
+                              <Text style={styles.revealedArrow}>›</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </>
+                      )}
                     </View>
                   )}
                 </>
@@ -346,6 +416,50 @@ export default function TarotScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
+
+      {/* Modal interpretación global de la tirada */}
+      <Modal visible={showSpreadReading} transparent animationType="slide" onRequestClose={closeSpreadModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.spreadModalTitle}>✨ Interpretación de la tirada</Text>
+              <Text style={styles.spreadModalSubtitle}>{selectedSpread?.label}</Text>
+
+              {/* Miniaturas de las cartas */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+                {drawnCards.map((card, i) => {
+                  const img = CARD_IMAGES[card.fileName];
+                  return (
+                    <View key={card.id} style={styles.spreadMiniWrap}>
+                      {img
+                        ? <Image source={img} style={styles.spreadMiniCard} resizeMode="cover" />
+                        : <View style={[styles.spreadMiniCard, styles.cardImageFallback]} />
+                      }
+                      <Text style={styles.spreadMiniPos}>{labels[i] || `${i + 1}`}</Text>
+                      <Text style={styles.spreadMiniName} numberOfLines={2}>{card.name}</Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+
+              <Text style={styles.spreadReadingText}>{spreadReading}</Text>
+
+              <TouchableOpacity
+                style={[styles.speakBtn, isSpeaking && styles.speakBtnActive]}
+                onPress={() => speakText(spreadReading)}
+              >
+                <Text style={styles.speakBtnText}>
+                  {isSpeaking ? '⏹ Detener audio' : '🔊 Escuchar interpretación'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.closeBtn} onPress={closeSpreadModal}>
+                <Text style={styles.closeBtnText}>Cerrar</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={!!selectedCard} transparent animationType="fade" onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
@@ -382,7 +496,7 @@ export default function TarotScreen() {
 
                     <TouchableOpacity
                       style={[styles.speakBtn, isSpeaking && styles.speakBtnActive]}
-                      onPress={() => speakReading(selectedCard)}
+                      onPress={() => speakText(`${selectedCard.name}. Palabras clave: ${selectedCard.keywords.join(', ')}. ${selectedCard.reading}`)}
                     >
                       <Text style={styles.speakBtnText}>
                         {isSpeaking ? '⏹ Detener audio' : '🔊 Escuchar lectura'}
@@ -452,7 +566,24 @@ const styles = StyleSheet.create({
   cardHint: { color: '#4A3F6B', fontSize: 9, textAlign: 'center', marginTop: 4 },
 
   revealedList: { marginTop: 24 },
-  revealedTitle: { color: '#F59E0B', fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
+  revealedTitle: { color: '#F59E0B', fontSize: 14, fontWeight: 'bold', marginBottom: 10, marginTop: 16 },
+
+  interpretBtn: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#2D1B69',
+    borderRadius: 14, padding: 16, marginBottom: 4,
+    borderWidth: 1, borderColor: '#7C3AED',
+  },
+  interpretBtnIcon: { fontSize: 28, marginRight: 12 },
+  interpretBtnTitle: { color: '#F5F3FF', fontSize: 16, fontWeight: 'bold' },
+  interpretBtnSub: { color: '#8B7DB8', fontSize: 12, marginTop: 2 },
+
+  spreadModalTitle: { fontSize: 22, color: '#F5F3FF', fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
+  spreadModalSubtitle: { color: '#F59E0B', fontSize: 14, textAlign: 'center', marginBottom: 20 },
+  spreadMiniWrap: { width: 64, marginRight: 12, alignItems: 'center' },
+  spreadMiniCard: { width: 56, height: 90, borderRadius: 8, backgroundColor: '#2D1B69' },
+  spreadMiniPos: { color: '#F59E0B', fontSize: 9, textAlign: 'center', marginTop: 4 },
+  spreadMiniName: { color: '#C4B5FD', fontSize: 9, textAlign: 'center' },
+  spreadReadingText: { color: '#A78BFA', fontSize: 14, lineHeight: 24, marginBottom: 24, textAlign: 'left' },
   revealedItem: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1035',
     borderRadius: 10, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: '#2D1B69',
