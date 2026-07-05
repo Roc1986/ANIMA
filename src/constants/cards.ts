@@ -68,7 +68,7 @@ export const TAROT_CARDS: TarotCard[] = [
   {
     id: 'los-enamorados',
     name: 'Los Enamorados',
-    fileName: 'los-enamorados',
+    fileName: 'los-amantes',
     arcana: 'mayor',
     keywords: ['Amor', 'Elección', 'Unión'],
     reading: 'Los Enamorados hablan de una elección importante desde el corazón. Puede ser en el amor, en valores o en un camino de vida. Actúa desde tu verdad más profunda y no desde el miedo.',
@@ -86,7 +86,7 @@ export const TAROT_CARDS: TarotCard[] = [
   {
     id: 'la-fuerza',
     name: 'La Fuerza',
-    fileName: 'la-fuerza',
+    fileName: 'fuerza',
     arcana: 'mayor',
     keywords: ['Valentía', 'Paciencia', 'Compasión'],
     reading: 'La verdadera fuerza no es la del músculo sino la del corazón. Enfrenta tus miedos con amor y compasión. La paciencia y la dulzura son tus armas más poderosas ahora.',
@@ -104,7 +104,7 @@ export const TAROT_CARDS: TarotCard[] = [
   {
     id: 'la-rueda',
     name: 'La Rueda de la Fortuna',
-    fileName: 'la-rueda',
+    fileName: 'rueda-de-la-fortuna',
     arcana: 'mayor',
     keywords: ['Cambio', 'Ciclos', 'Destino'],
     reading: 'La Rueda de la Fortuna gira y con ella tu vida cambia. Lo que sube debe bajar y viceversa. Acepta los ciclos con gracia y confía en que todo tiene un propósito mayor.',
@@ -113,7 +113,7 @@ export const TAROT_CARDS: TarotCard[] = [
   {
     id: 'la-justicia',
     name: 'La Justicia',
-    fileName: 'la-justicia',
+    fileName: 'justicia',
     arcana: 'mayor',
     keywords: ['Equilibrio', 'Verdad', 'Karma'],
     reading: 'La Justicia te recuerda que cada acción tiene su consecuencia. La verdad prevalecerá y el equilibrio será restaurado. Actúa con honestidad e integridad en todos tus asuntos.',
@@ -131,7 +131,7 @@ export const TAROT_CARDS: TarotCard[] = [
   {
     id: 'la-muerte',
     name: 'La Muerte',
-    fileName: 'la-muerte',
+    fileName: 'muerte',
     arcana: 'mayor',
     keywords: ['Transformación', 'Fin', 'Renacimiento'],
     reading: 'La Muerte no es el fin sino la transformación más profunda. Algo debe morir para que algo nuevo pueda nacer. Suelta con gracia lo que ya cumplió su ciclo y abraza el renacimiento.',
@@ -140,7 +140,7 @@ export const TAROT_CARDS: TarotCard[] = [
   {
     id: 'la-templanza',
     name: 'La Templanza',
-    fileName: 'la-templanza',
+    fileName: 'templanza',
     arcana: 'mayor',
     keywords: ['Equilibrio', 'Moderación', 'Paciencia'],
     reading: 'La Templanza trae equilibrio y armonía. Es tiempo de integrar opuestos, encontrar el término medio y actuar con paciencia. Los mejores resultados vienen de la calma y la moderación.',
@@ -194,7 +194,7 @@ export const TAROT_CARDS: TarotCard[] = [
   {
     id: 'el-juicio',
     name: 'El Juicio',
-    fileName: 'el-juicio',
+    fileName: 'juicio',
     arcana: 'mayor',
     keywords: ['Renacimiento', 'Llamado', 'Absolución'],
     reading: 'El Juicio te llama a despertar y responder a tu propósito más elevado. Es tiempo de evaluar tu vida con honestidad, perdonarte a ti mismo y a otros, y abrirte a un nuevo capítulo de existencia.',
