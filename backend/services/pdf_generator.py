@@ -253,13 +253,26 @@ def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
     elements.append(Spacer(1, 10))
 
     # Aportes empleador box
-    employer_data = [
+    from services.payroll_calculator import get_ley21735_rates as _get_rates
+    _cap_pct, _fapp_pct = _get_rates(payroll_run.period_year, payroll_run.period_month)
+    _renta_imp_pdf = int(float(entry.remuneracion_imponible or 0))
+    _crp_amt  = round(_renta_imp_pdf * _cap_pct)
+    _fapp_amt = round(_renta_imp_pdf * _fapp_pct)
+
+    employer_rows = [
         [section_header("APORTES EMPLEADOR (COSTO EMPRESA)", DARK_GRAY), ""],
         ["Seguro Cesantía Empleador", _fmt_clp(entry.aporte_cesantia_empleador)],
         ["SIS (Seg. Invalidez y Sobrevivencia 1.62%)", _fmt_clp(entry.aporte_sis)],
-        [Paragraph("<b>TOTAL COSTO EMPRESA</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold")),
-         Paragraph(f"<b>{_fmt_clp(entry.total_costo_empleador)}</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold", alignment=TA_RIGHT))],
     ]
+    if _fapp_amt > 0:
+        employer_rows.append([f"FAPP (Fondo Ahorro Previsional {_fapp_pct*100:.1f}%)", _fmt_clp(_fapp_amt)])
+    if _crp_amt > 0:
+        employer_rows.append([f"CRP (Cotiz. Rentabilidad Protegida {_cap_pct*100:.1f}%)", _fmt_clp(_crp_amt)])
+    employer_rows.append([
+        Paragraph("<b>TOTAL COSTO EMPRESA</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold")),
+        Paragraph(f"<b>{_fmt_clp(entry.total_costo_empleador)}</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold", alignment=TA_RIGHT)),
+    ])
+    employer_data = employer_rows
     emp_cost_table = Table(employer_data, colWidths=[14.2*cm, 4*cm])
     emp_cost_table.setStyle(TableStyle([
         ("FONTSIZE", (0, 0), (-1, -1), 8),

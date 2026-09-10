@@ -231,6 +231,7 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
     Referencia: Manual Previred v58+ con reforma previsional 2025.
     """
     import math as _math
+    from services.payroll_calculator import get_ley21735_rates
 
     filename = f"previred_{run.period_year}_{run.period_month:02d}_{uuid.uuid4().hex[:8]}.txt"
     filepath = os.path.join(UPLOAD_DIR, filename)
@@ -266,7 +267,9 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         mayor_ret     = _math.ceil(renta_imp * 0.001)   # 0.1% mayor retención (ceil)
         cot_afp_total = cot_afp_base + mayor_ret
         cot_sis       = round(renta_imp * 0.0162)        # SIS 1.62% tasa vigente 2026
-        exp_vida      = round(renta_imp * 0.009)         # Cotización Expectativa de Vida 0.9%
+        _cap_pct, _fapp_pct = get_ley21735_rates(run.period_year, run.period_month)
+        exp_vida      = round(renta_imp * 0.009)         # Cotización Expectativa de Vida (fija 0.9%)
+        crp           = round(renta_imp * _cap_pct)      # CRP empleador (campo 95)
         cot_salud     = int(float(entry.descuento_salud or 0))
         cot_cesantia  = int(float(entry.descuento_cesantia or 0))
         afc_emp       = int(float(entry.aporte_cesantia_empleador or 0))
@@ -376,7 +379,7 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
             f[i] = "0"
         f[92] = "1"              # 93 Tipo Jornada (1=Completa, 2=Parcial)
         f[93] = str(exp_vida)    # 94 Cotización Expectativa de Vida (0.9%)
-        f[94] = ""               # 95 Código Sucursal
+        f[94] = str(crp)         # 95 CRP — Cotización con Rentabilidad Protegida (empleador)
 
         # ── Bloque 9: Mutualidad (campos 96-99) ───────────────────────────────
         # Código 00 = empresa paga ISL directo fuera de Previred.
