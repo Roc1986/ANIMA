@@ -19,30 +19,39 @@ import math
 from typing import Optional, List
 
 
-# Ley 21.735 Art. 4° transitorio — rates change every August
+# Ley 21.735 Art. 4° transitorio
+# cap_pct = Capitalización Individual (va a cuenta AFP del trabajador)
+# cap_pct escala cada agosto según el Art. 4° transitorio
 _LEY21735_SCHEDULE = [
-    # (start_year, start_month, cap_pct, fapp_pct)
-    (2025, 8,  0.001, 0.009),
-    (2026, 8,  0.001, 0.025),
-    (2027, 8,  0.0025, 0.025),
-    (2028, 8,  0.010, 0.025),
-    (2029, 8,  0.017, 0.025),
-    (2030, 8,  0.024, 0.025),
-    (2031, 8,  0.031, 0.025),
-    (2032, 8,  0.038, 0.025),
-    (2033, 8,  0.045, 0.025),
+    # (start_year, start_month, cap_pct)
+    (2025, 8,  0.001),
+    (2027, 8,  0.0025),
+    (2028, 8,  0.010),
+    (2029, 8,  0.017),
+    (2030, 8,  0.024),
+    (2031, 8,  0.031),
+    (2032, 8,  0.038),
+    (2033, 8,  0.045),
 ]
+# CRP: Cotización con Rentabilidad Protegida — 0.9% fijo desde ago 2025 (Campo 95 Previred)
+CRP_RATE = 0.009
 TASA_MUTUAL_ISL = 0.0093  # fixed rate (Ley 16.744)
 
 def get_ley21735_rates(year: int, month: int) -> tuple:
-    """Returns (cap_pct, fapp_pct) applicable for the given period. (0, 0) before Aug 2025."""
-    cap, fapp = 0.0, 0.0
-    for start_y, start_m, c, f in _LEY21735_SCHEDULE:
+    """Returns (cap_pct, crp_pct) for the given period. (0, 0) before Aug 2025.
+    cap_pct = Capitalización Individual (escala cada agosto).
+    crp_pct = CRP fijo 0.9% desde ago 2025 (Campo 95 Previred).
+    """
+    cap = 0.0
+    crp = 0.0
+    for start_y, start_m, c in _LEY21735_SCHEDULE:
         if (year, month) >= (start_y, start_m):
-            cap, fapp = c, f
+            cap = c
         else:
             break
-    return cap, fapp
+    if (year, month) >= (2025, 8):
+        crp = CRP_RATE
+    return cap, crp
 
 
 # AFP rates map (key = AFP enum value)
@@ -122,6 +131,7 @@ class ChileanPayrollCalculator:
 
         # Ley 21.735 rates for this period
         self.ley21735_cap, self.ley21735_fapp = get_ley21735_rates(period_year, period_month)
+        # ley21735_cap = Capitalización Individual; ley21735_fapp = CRP (0.9% fijo)
 
     def _get_afp_rate(self, afp_name: str, legal_params: dict = None) -> float:
         """Get AFP rate from legal params or fallback to hardcoded."""
@@ -354,8 +364,9 @@ class ChileanPayrollCalculator:
 
         aporte_sis = base_afp * self.sis_empleador
 
-        aporte_empleador_afp_reforma = base_afp * self.ley21735_cap
-        aporte_seguro_social = base_afp * self.ley21735_fapp
+        # cap = Capitalización Individual 0.1%→ va a AFP; crp = CRP 0.9% → Campo 95 Previred
+        aporte_empleador_afp_reforma = base_afp * self.ley21735_cap   # Capitalización Individual
+        aporte_seguro_social = base_afp * self.ley21735_fapp           # CRP (Rentabilidad Protegida)
         aporte_mutual_isl = total_imponible_bruto * TASA_MUTUAL_ISL  # no cap for Mutual
 
         total_costo_empleador = (total_haberes + aporte_cesantia_empleador + aporte_sis

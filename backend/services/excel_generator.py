@@ -267,9 +267,9 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         mayor_ret     = _math.ceil(renta_imp * 0.001)   # 0.1% mayor retención (ceil)
         cot_afp_total = cot_afp_base + mayor_ret
         cot_sis       = round(renta_imp * 0.0162)        # SIS 1.62% tasa vigente 2026
-        _cap_pct, _fapp_pct = get_ley21735_rates(run.period_year, run.period_month)
-        exp_vida      = round(renta_imp * 0.009)         # Cotización Expectativa de Vida (fija 0.9%)
-        crp           = round(renta_imp * _cap_pct)      # CRP empleador (campo 95)
+        _cap_pct, _crp_pct = get_ley21735_rates(run.period_year, run.period_month)
+        exp_vida      = round(renta_imp * 0.009)         # Cotización Expectativa de Vida (0.9%)
+        crp           = round(renta_imp * _crp_pct)      # CRP empleador campo 95 (0.9% desde ago 2025)
         cot_salud     = int(float(entry.descuento_salud or 0))
         cot_cesantia  = int(float(entry.descuento_cesantia or 0))
         afc_emp       = int(float(entry.aporte_cesantia_empleador or 0))

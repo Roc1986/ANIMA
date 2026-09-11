@@ -254,20 +254,19 @@ def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
 
     # Aportes empleador box
     from services.payroll_calculator import get_ley21735_rates as _get_rates
-    _cap_pct, _fapp_pct = _get_rates(payroll_run.period_year, payroll_run.period_month)
-    _renta_imp_pdf = int(float(entry.remuneracion_imponible or 0))
-    _crp_amt  = round(_renta_imp_pdf * _cap_pct)
-    _fapp_amt = round(_renta_imp_pdf * _fapp_pct)
+    _cap_pct, _crp_pct = _get_rates(payroll_run.period_year, payroll_run.period_month)
 
     employer_rows = [
         [section_header("APORTES EMPLEADOR (COSTO EMPRESA)", DARK_GRAY), ""],
         ["Seguro Cesantía Empleador", _fmt_clp(entry.aporte_cesantia_empleador)],
         ["SIS (Seg. Invalidez y Sobrevivencia 1.62%)", _fmt_clp(entry.aporte_sis)],
     ]
-    if _fapp_amt > 0:
-        employer_rows.append([f"FAPP (Fondo Ahorro Previsional {_fapp_pct*100:.1f}%)", _fmt_clp(_fapp_amt)])
-    if _crp_amt > 0:
-        employer_rows.append([f"CRP (Cotiz. Rentabilidad Protegida {_cap_pct*100:.1f}%)", _fmt_clp(_crp_amt)])
+    # CRP (Cotización Rentabilidad Protegida 0.9%) — desde ago 2025, Campo 95 Previred
+    if _crp_pct > 0:
+        employer_rows.append([f"CRP (Cotiz. Rentabilidad Protegida {_crp_pct*100:.1f}%)", _fmt_clp(entry.aporte_seguro_social)])
+    # Capitalización Individual — desde ago 2025, va a cuenta AFP del trabajador
+    if _cap_pct > 0:
+        employer_rows.append([f"Capitalización Individual ({_cap_pct*100:.1f}%)", _fmt_clp(entry.aporte_empleador_afp_reforma)])
     employer_rows.append([
         Paragraph("<b>TOTAL COSTO EMPRESA</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold")),
         Paragraph(f"<b>{_fmt_clp(entry.total_costo_empleador)}</b>", ParagraphStyle("TC", fontSize=9, fontName="Helvetica-Bold", alignment=TA_RIGHT)),
