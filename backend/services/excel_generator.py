@@ -91,7 +91,8 @@ def generate_previred_excel(run, entries, employees: Dict, company=None) -> str:
         cot_afp_base = int(float(entry.descuento_afp))
         mayor_ret    = _math.ceil(renta_imp * 0.001)
         cot_afp_total = cot_afp_base + mayor_ret
-        cot_sis_real = round(renta_imp * 0.0162)  # SIS 1.62%
+        from services.payroll_calculator import get_sis_rate as _get_sis
+        cot_sis_real = round(renta_imp * _get_sis(run.period_year, run.period_month))
 
         ws.cell(row=row, column=1,  value=rut_clean)
         ws.cell(row=row, column=2,  value=emp.first_name)
@@ -231,7 +232,7 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
     Referencia: Manual Previred v58+ con reforma previsional 2025.
     """
     import math as _math
-    from services.payroll_calculator import get_ley21735_rates
+    from services.payroll_calculator import get_ley21735_rates, get_sis_rate
 
     filename = f"previred_{run.period_year}_{run.period_month:02d}_{uuid.uuid4().hex[:8]}.txt"
     filepath = os.path.join(UPLOAD_DIR, filename)
@@ -266,7 +267,8 @@ def generate_previred_txt(run, entries, employees: Dict) -> str:
         cot_afp_base  = int(float(entry.descuento_afp or 0))
         mayor_ret     = _math.ceil(renta_imp * 0.001)   # 0.1% mayor retención (ceil)
         cot_afp_total = cot_afp_base + mayor_ret
-        cot_sis       = round(renta_imp * 0.0162)        # SIS 1.62% tasa vigente 2026
+        _sis_rate     = get_sis_rate(run.period_year, run.period_month)
+        cot_sis       = round(renta_imp * _sis_rate)     # SIS tasa vigente por período
         _cap_pct, _crp_pct = get_ley21735_rates(run.period_year, run.period_month)
         exp_vida      = round(renta_imp * 0.009)         # Cotización Expectativa de Vida (0.9%)
         crp           = round(renta_imp * _crp_pct)      # CRP empleador campo 95 (0.9% desde ago 2025)

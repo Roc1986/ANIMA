@@ -37,6 +37,19 @@ _LEY21735_SCHEDULE = [
 CRP_RATE = 0.009
 TASA_MUTUAL_ISL = 0.0093  # fixed rate (Ley 16.744)
 
+# SIS rates by licitación period (Superintendencia de Pensiones)
+_SIS_SCHEDULE = [
+    # (start_year, start_month, end_year, end_month, rate)
+    (2026, 8, 2026, 10, 0.0178),   # ago-oct 2026: 1.78%
+]
+SIS_RATE_DEFAULT = 0.0162  # 1.62% base
+
+def get_sis_rate(year: int, month: int) -> float:
+    for sy, sm, ey, em, rate in _SIS_SCHEDULE:
+        if (sy, sm) <= (year, month) <= (ey, em):
+            return rate
+    return SIS_RATE_DEFAULT
+
 def get_ley21735_rates(year: int, month: int) -> tuple:
     """Returns (cap_pct, crp_pct) for the given period. (0, 0) before Aug 2025.
     cap_pct = Capitalización Individual (escala cada agosto).
@@ -118,7 +131,7 @@ class ChileanPayrollCalculator:
         self.cesantia_trabajador = lp.get("CESANTIA_TRABAJADOR", 0.6) / 100
         self.cesantia_empleador_indefinido = lp.get("CESANTIA_EMPLEADOR_INDEFINIDO", 2.4) / 100
         self.cesantia_empleador_fijo = lp.get("CESANTIA_EMPLEADOR_PLAZO_FIJO", 3.0) / 100
-        self.sis_empleador = lp.get("SIS_EMPLEADOR", 1.62) / 100
+        self.sis_empleador = get_sis_rate(period_year, period_month)
         self.gratif_multiplicador = lp.get("GRATIFICACION_TOPE_IMM_MULTIPLICADOR", 4.75)
         self.gratif_porcentaje = lp.get("GRATIFICACION_PORCENTAJE", 25.0) / 100
         self.recargo_habiles = lp.get("RECARGO_HH_EE_HABILES", 50.0) / 100

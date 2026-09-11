@@ -253,13 +253,14 @@ def generate_liquidacion_pdf(entry, employee, payroll_run, company=None) -> str:
     elements.append(Spacer(1, 10))
 
     # Aportes empleador box
-    from services.payroll_calculator import get_ley21735_rates as _get_rates
+    from services.payroll_calculator import get_ley21735_rates as _get_rates, get_sis_rate as _get_sis
     _cap_pct, _crp_pct = _get_rates(payroll_run.period_year, payroll_run.period_month)
+    _sis_pct = _get_sis(payroll_run.period_year, payroll_run.period_month)
 
     employer_rows = [
         [section_header("APORTES EMPLEADOR (COSTO EMPRESA)", DARK_GRAY), ""],
         ["Seguro Cesantía Empleador", _fmt_clp(entry.aporte_cesantia_empleador)],
-        ["SIS (Seg. Invalidez y Sobrevivencia 1.62%)", _fmt_clp(entry.aporte_sis)],
+        [f"SIS (Seg. Invalidez y Sobrevivencia {_sis_pct*100:.2f}%)", _fmt_clp(entry.aporte_sis)],
     ]
     # CRP (Cotización Rentabilidad Protegida 0.9%) — desde ago 2025, Campo 95 Previred
     if _crp_pct > 0:
